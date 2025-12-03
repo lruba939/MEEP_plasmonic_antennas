@@ -34,12 +34,14 @@ class SimParams:
         self.freq = 1.0 / self.lambda0
         self.freq_width = self.freq * 0.5
         self.component = mp.Ey
-        self.xyz_src = [0,0,5.0]
+        self.xyz_src = [0.0, 0.0, 3.0]
+        self.src_size = [0.0, 0.0, 0.0]
         
         ## Simulation settings
         self.pml = 1.0
         self.resolution = 50
         self.sim_time = 50
+        self.animations_folder_path = "animations"
 
     def reset_to_defaults(self):
         self._init_parameters()
