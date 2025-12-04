@@ -208,3 +208,6 @@ __marimo__/
 
 # Video
 *.mp4
+
+# Workspace
+*.zip
