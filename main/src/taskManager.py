@@ -2,9 +2,11 @@ from . import params
 from . import simulation
 
 import meep as mp
-import matplotlib.pyplot as plt
+from visualization.plotter import *
 import numpy as np
 import os
+
+from utils.meep_utils import *
 
 # inicialize singleton of all parameters
 p = params.SimParams()
@@ -19,10 +21,6 @@ def task_1():
 
 # TASK 2 -------------------------------
 
-    ###########################
-    # task 2 not working .... #
-    ###########################
-
 def task_2(plot=False):
     
     p.showParams()
@@ -30,23 +28,19 @@ def task_2(plot=False):
     sim = simulation.make_sim()
     simulation.start_calc(sim)
     
-    # eps_data = sim.get_array(
-    #         center=p.center[0],
-    #         size=p.xyz_cell,
-    #         component=mp.Epsilon())
-    eps_data = sim.get_epsilon()
+    eps_data = sim.get_epsilon(frequency=p.freq)
     
     if plot:
-        plt.figure()
-        plt.imshow(eps_data.transpose(), interpolation="spline36", cmap="binary")
-        plt.axis("on")
-        plt.show()
-
+        show_data_img(datas_arr =   [eps_data],
+                      norm_bool =   [True],
+                      cmap_arr  =   ["binary"],
+                      alphas    =   [1.0])
+        
     return eps_data
 
 # TASK 3 -------------------------------
 
-def task_3(plot=False, animation=False, animation_name="dupa"):
+def task_3(plot=False, eps_data=[], animation=False, animation_name="dupa"):
     p.showParams()
     
     sim = simulation.make_sim()
@@ -55,19 +49,13 @@ def task_3(plot=False, animation=False, animation_name="dupa"):
     E_data = sim.get_array(center=mp.Vector3(), size=p.xyz_cell, component=p.component)
 
     if plot:
-        plt.figure()
-        # plt.imshow(eps_data.transpose(), interpolation="spline36", cmap="binary")
-        plt.imshow(E_data.transpose(), interpolation="spline36", cmap="RdBu", alpha=0.9)
-        plt.axis("off")
-        plt.show()
+        show_data_img(datas_arr =   [eps_data, E_data],
+                      norm_bool =   [True, False],
+                      cmap_arr  =   ["binary", "RdBu"],
+                      alphas    =   [1.0, 0.9])
         
     if animation:
-        animation_name = animation_name + ".mp4"
-        
-        sim.reset_meep()
-        animate = mp.Animate2D(sim, fields=p.component, normalize = True)
-        sim.run(mp.at_every(0.1, animate), until=10)
-        animate.to_mp4(filename = os.path.join(p.animations_folder_path, animation_name), fps = 10)
+        make_animation(p, sim, animation_name)
 
     return E_data
 
