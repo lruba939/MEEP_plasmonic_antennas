@@ -40,7 +40,7 @@ def task_2(plot=False):
 
 # TASK 3 -------------------------------
 
-def task_3(plot=False, eps_data=[], animation=False, animation_name="dupa"):
+def task_3(plot=False, eps_data=[], animation=False, animation_name="dupa", plot_3D=False):
     p.showParams()
     
     sim = simulation.make_sim()
@@ -57,7 +57,7 @@ def task_3(plot=False, eps_data=[], animation=False, animation_name="dupa"):
     if animation:
         make_animation(p, sim, animation_name)
         
-    collected_data, time_steps, x_coords = collect_e_line(p, delta_t=0.5, width=5, plot_3d=True)
+    collected_data, time_steps, x_coords = collect_e_line(p, sim, delta_t=0.5, width=5, plot_3d=plot_3D)
 
     return E_data
 
@@ -73,12 +73,11 @@ def task_4():
     ]
     
     compontets = [
-        mp.Ex,
         mp.Ey,
         mp.Ez
     ]
     
-    comp_names = ["Ex", "Ey", "Ez"]
+    comp_names = ["Ey", "Ez"]
     size_names = ["000", "200", "400", "220", "440"]
     
     for comp_pos, comp in enumerate(compontets):
@@ -91,9 +90,11 @@ def task_4():
             p.src_size = new_size
             
             name = "antennas" + comp_name + size_name
-            task_3(plot=False, animation=True, animation_name=name)
+            eps = task_2(plot=False)
+            task_3(plot=True, eps_data=eps, animation=False, animation_name=name)
 
             p.center = [mp.Vector3(0, 0, -10.), # upper bar
                         mp.Vector3(0, 0, -10.)] # lower bar
             name = "without_antennas" + comp_name + size_name
-            task_3(plot=False, animation=True, animation_name=name)
+            eps = task_2(plot=False)
+            task_3(plot=True, eps_data=eps, animation=False, animation_name=name)

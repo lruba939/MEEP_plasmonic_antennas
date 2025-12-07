@@ -3,9 +3,7 @@ import numpy as np
 import os
 
 from visualization.plotter import *
-from main.src.simulation import *
-
-# inicialize singleton of all parameters
+# !!!!!!!!! ---> from main.src.simulation import * # CANT IMPORT DUE TO CIRCULAR DEPENDENCY
 
 def show_data_img(datas_arr, norm_bool, cmap_arr, alphas):
     """
@@ -49,7 +47,7 @@ def make_animation(singleton_params, sim, animation_name):
     sim.run(mp.at_every(singleton_params.animations_step, animate), until=singleton_params.animations_until)
     animate.to_mp4(filename = os.path.join(singleton_params.animations_folder_path, animation_name), fps = singleton_params.animations_fps)
 
-def collect_e_line(singleton_params, delta_t=1.0, width=1, plot_3d=False):
+def collect_e_line(singleton_params, sim, delta_t=1.0, width=1, plot_3d=False):
     """
     Collect E component along center line (x_0:x_end, 0, 0) at intervals of delta_t.
     The returned ey_line is the mean across a vertical "width":
@@ -65,9 +63,6 @@ def collect_e_line(singleton_params, delta_t=1.0, width=1, plot_3d=False):
         time_steps: List of time values
         x_coords: Array of x coordinates along the line
     """
-    sim = make_sim()
-    start_calc(sim)
-
     collected_data = []
     time_steps = []
     x_coords = None
