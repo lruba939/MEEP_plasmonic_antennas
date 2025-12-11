@@ -5,25 +5,33 @@ from src.taskManager import *
 from utils.sys_utils import *
 
 def run():
-    # #### Task 1
-    # print_task(1, "Making medium - a split bar antenna.")
-    # task_1()
-    
-    # #### Task 2
-    # print_task(2, "Making medium - a split bar antenna.")
-    # eps = task_2(plot=False)
 
-    # #### Task 3
-    # print_task(3, "Calculations of the scalar electric field Ey as result of continuous source radiation.")
-    # task_3(plot=True, eps_data=eps, animation=True, animation_name="planewave_TEST")
+    #--- Task 0 ---
+    print_task(0, "Triggering calculations and saving the most general results.")
+    sim = task_0()
+
+    #--- Task 1 ---
+    print_task(1, "Making medium - a split bar antenna.")
+    task_1()
     
-    # #### Task 4
-    # print_task(4, "Test different source components and sizes.")
-    # task_4()
+    #--- Task 2 ---
+    print_task(2, "Plotting the dielectric constant of a system.")
+    task_2(plot=False)
+
+    #--- Task 3 ---
+    print_task(3, "Plotting the scalar electric field E component.")
+    task_3(plot=True, animation=True, animation_name="with_antennas", plot_3D=True, sim=sim)
+
+    #--- Task 3 ---
+    print_task(3, "WITHOUT ANTENNAS; Plotting the scalar electric field E component.")
+    p.center = [mp.Vector3(-9999, -9999, -9999), # upper bar
+                mp.Vector3(-9999, -9999, -9999)] # lower bar
+    task_3(plot=False, animation=True, animation_name="without_antennas", plot_3D=True, recalculate=True)
+    p.reset_to_defaults()
     
-    #### Task 5
-    print_task(5, "Magnitude of the electric field with and without antennas.")
-    task_5(E_plot = True)
+    #--- Task 4 ---
+    print_task(4, "Magnitude of the electric field with and without antennas.")
+    task_4(E_plot = True)
     
 if __name__ == "__main__":
     run()

@@ -5,7 +5,7 @@ import os
 from visualization.plotter import *
 # !!!!!!!!! ---> from main.src.simulation import * # CANT IMPORT DUE TO CIRCULAR DEPENDENCY
 
-def show_data_img(datas_arr, norm_bool, cmap_arr, alphas):
+def show_data_img(datas_arr, abs_bool, norm_bool, cmap_arr, alphas, name_to_save=None, IMG_CLOSE=False):
     """
     Displays a series of images from a given array of data.
 
@@ -20,12 +20,23 @@ def show_data_img(datas_arr, norm_bool, cmap_arr, alphas):
     and transparency settings. The x and y axis ticks are turned off for a cleaner visualization.
     """
     for idx, data in enumerate(datas_arr):
-        if norm_bool[idx]:
+        if abs_bool[idx]:
             data = np.abs(data) # complex -> real
+        if norm_bool[idx]:
+            max_data = np.max(data)
+            data = data / max_data # complex -> real
         plt.imshow(data.transpose(), interpolation="spline36", cmap=cmap_arr[idx], alpha=alphas[idx])
         plt.xticks([])  # Turn off x-axis numbers
         plt.yticks([])  # Turn off y-axis numbers
-    plt.show()
+        plt.colorbar(shrink=0.6)  # Show color scale
+    if name_to_save is not None:
+        plt.savefig(f"results/{name_to_save}.png", dpi=300, bbox_inches="tight", format="png")
+    if IMG_CLOSE:
+        plt.show(block=False)
+        plt.pause(2)
+        plt.close("all")
+    else:
+        plt.show()
     
 def make_animation(singleton_params, sim, animation_name):
     """
@@ -46,8 +57,11 @@ def make_animation(singleton_params, sim, animation_name):
     animate = mp.Animate2D(sim, fields=singleton_params.component, normalize = True)
     sim.run(mp.at_every(singleton_params.animations_step, animate), until=singleton_params.animations_until)
     animate.to_mp4(filename = os.path.join(singleton_params.animations_folder_path, animation_name), fps = singleton_params.animations_fps)
+    plt.show(block=False)
+    plt.pause(2)
+    plt.close("all")
 
-def collect_e_line(singleton_params, sim, delta_t=1.0, width=1, plot_3d=False):
+def collect_e_line(singleton_params, sim, delta_t=1.0, width=1, plot_3d=False, name=None):
     """
     Collect E component along center line (x_0:x_end, 0, 0) at intervals of delta_t.
     The returned ey_line is the mean across a vertical "width":
@@ -94,18 +108,19 @@ def collect_e_line(singleton_params, sim, delta_t=1.0, width=1, plot_3d=False):
             # use actual simulation cell x-extent
             x_extent = singleton_params.xyz_cell[0]
             x_coords = np.linspace(-x_extent/2, x_extent/2, e_line.shape[0])
-
+    
+    sim.reset_meep()
     sim.run(mp.at_every(delta_t, collect_data), until=singleton_params.animations_until)
 
     if len(collected_data) == 0:
         return collected_data, time_steps, None
 
     if plot_3d:
-        plot_e_3d(collected_data, x_coords, time_steps)
+        plot_e_3d(collected_data, x_coords, time_steps, name=name, IMG_CLOSE=singleton_params.IMG_CLOSE)
 
     return collected_data, time_steps, x_coords
 
-def plot_e_3d(collected_data, x_coords, time_steps):
+def plot_e_3d(collected_data, x_coords, time_steps, name=None, IMG_CLOSE=False):
     """
     Plot E component in 3D: x axis, time axis, z axis (E magnitude)
     
@@ -133,9 +148,15 @@ def plot_e_3d(collected_data, x_coords, time_steps):
     
     # Adjust viewpoint: elev controls vertical angle, azim controls horizontal angle
     ax.view_init(elev=20, azim=45)
-    plt.show()
+    plt.savefig(os.path.join("results", f"3Dplot_profile_{name}.png"), dpi=300, bbox_inches="tight", format="png")
+    if IMG_CLOSE:
+        plt.show(block=False)
+        plt.pause(2)
+        plt.close("all")
+    else:
+        plt.show()
     
-def collect_max_field(singleton_params, sim, skip_fraction=0.25, delta_t=0.5):
+def collect_max_field(singleton_params, sim, skip_fraction=0.5, delta_t=0.031377):
     """
     Collects the maximum value of the component field at each spatial point 
     across the simulation duration, skipping the first skip_fraction of time.
@@ -150,79 +171,33 @@ def collect_max_field(singleton_params, sim, skip_fraction=0.25, delta_t=0.5):
         E_max (np.ndarray): 2D array with maximum field magnitude at each point
     """
     collected_data = []
-    time_steps = []
     skip_time = singleton_params.animations_until * skip_fraction
 
     def collect_data(sim):
         current_time = sim.meep_time()
         
-        # Zbierz dane tylko po przeminięciu skip_time
         if current_time >= skip_time:
             E_data = sim.get_array(center=mp.Vector3(), 
                                    size=singleton_params.xyz_cell, 
                                    component=singleton_params.component)
             collected_data.append(np.abs(E_data))
-            time_steps.append(current_time)
 
-    # Uruchom symulację i zbieraj dane
+    sim.reset_meep()
     sim.run(mp.at_every(delta_t, collect_data), until=singleton_params.animations_until)
 
     if len(collected_data) == 0:
-        print("Uwaga: brak danych zebrano!")
+        print("Warning: No data collected after skipping initial time!")
         return None
 
-    # Oblicz maksimum dla każdego punktu przestrzennego
-    E_max = np.max(collected_data, axis=0)
+    # Initialize E_maxes as a zero array with the same shape as collected_data[0]
+    E_maxes = np.zeros_like(collected_data[0], dtype=float)
 
-    return E_max
+    # For each time step, update E_maxes if the current value is greater
+    for i in range(len(collected_data)):
+        current_data = collected_data[i]
+        # print(f"CURRENT DATA: {current_data[100,100]}")
+        # print(f"CURRENT MAXES: {E_maxes[100,100]}")
+        E_maxes = np.maximum(E_maxes, current_data)
 
-def collect_integrated_field(singleton_params, sim, skip_fraction=0.25, delta_t=0.5):
-    """
-    Collects the time-integrated magnitude of the component field at each spatial point 
-    across the simulation duration, skipping the first skip_fraction of time.
 
-    Parameters:
-        singleton_params (object): Singleton with component, xyz_cell, animations_until
-        sim (object): MEEP simulation object
-        skip_fraction (float): Fraction of simulation time to skip (default 0.25 = 25%)
-        delta_t (float): Time interval between data collections (used as integration step)
-
-    Returns:
-        E_integrated (np.ndarray): 2D array with time-integrated field magnitude at each point
-    """
-    collected_data = []
-    time_steps = []
-    skip_time = singleton_params.animations_until * skip_fraction
-
-    def collect_data(sim):
-        current_time = sim.meep_time()
-        
-        # Zbierz dane tylko po przeminięciu skip_time
-        if current_time >= skip_time:
-            E_data = sim.get_array(center=mp.Vector3(), 
-                                   size=singleton_params.xyz_cell, 
-                                   component=singleton_params.component)
-            collected_data.append(np.abs(E_data))
-            time_steps.append(current_time)
-
-    # Uruchom symulację i zbieraj dane
-    sim.run(mp.at_every(delta_t, collect_data), until=singleton_params.animations_until)
-
-    if len(collected_data) == 0:
-        print("Uwaga: brak danych zebrano!")
-        return None
-
-    # Całkuj po czasie przy użyciu reguły trapezów
-    collected_array = np.array(collected_data)
-    time_steps_array = np.array(time_steps)
-    
-    # Oblicz różnice czasowe między krokami
-    dt_array = np.diff(time_steps_array)
-    
-    # Całkowanie: suma (|E_i| + |E_{i+1}|) / 2 * dt_i dla każdego punktu
-    E_integrated = np.zeros_like(collected_array[0], dtype=float)
-    
-    for i in range(len(dt_array)):
-        E_integrated += (np.abs(collected_array[i]) + np.abs(collected_array[i + 1])) / 2.0 * dt_array[i]
-
-    return E_integrated
+    return E_maxes
