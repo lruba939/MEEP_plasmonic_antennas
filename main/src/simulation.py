@@ -36,6 +36,7 @@ def start_calc(sim):
 def start_empty_cell_calc():
     p.center = [mp.Vector3(-9999, -9999, -9999), # upper bar
                 mp.Vector3(-9999, -9999, -9999)] # lower bar
+    p.bowtie_center = [-9999, -9999]
     
     sim = make_sim()
     
@@ -46,6 +47,7 @@ def start_empty_cell_calc():
 
     p.center = [mp.Vector3(0, p.y_length/2.0 + p.gap_size/2.0, 0), # upper bar
                 mp.Vector3(0, (-1)*(p.y_length/2.0 + p.gap_size/2.0), 0)] # lower bar
+    p.bowtie_center = [0.0, 0.0]
     sim.reset_meep()
 
     return 0

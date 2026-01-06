@@ -38,7 +38,7 @@ def make_split_bar():
 
 def make_bow_tie():
 
-    P1 = np.array([p.gap_size/2.0, 0]) # right tips' point on the x-axis
+    P1 = np.array([p.bowtie_center[0] + p.gap_size/2.0, p.bowtie_center[1]]) # right tips' point on the x-axis
     # Rn we assume the bow-tie is a equilateral triangle !!!
     P2 = P1 + p.bowtie_amp * np.array([1.0, np.tan(np.deg2rad(30))])
     P3 = P2 * np.array([1.0, -1.0]) # mirror on the x-axis

@@ -3,6 +3,8 @@ import os
 import numpy as np
 import meep as mp
 from meep.materials import Au, Cr, W, SiO2, Ag
+# !!! Fitting parameters for all materials are defined for a unit distance of 1 µm.
+xm = 1000 # nm to um conversion factor
 
 class SimParams:
     _instance=None
@@ -15,13 +17,14 @@ class SimParams:
     
     def _init_parameters(self):
         # SYSTEM
-        self.IMG_CLOSE =  False
+        self.IMG_CLOSE =  True
+        mp.Simulation.eps_averaging = True
 
         ###### Geometry ######
-        self.xyz_cell   =   [0.264, 0.181, 0.0]  # [um] z = 0.169
+        self.xyz_cell   =   [(264)/xm, (181)/xm, 0.0]  # [nm] z = 0.169
         self.material   =   Au
-        self.gap_size   =   0.016
-        self.pad        =   0.080
+        self.gap_size   =   16/xm
+        self.pad        =   40/xm
         
         ### Diferent antenna types parameters ###
         # Antenna type is a string defining the type of antenna to be used in the simulation
@@ -29,41 +32,41 @@ class SimParams:
         # self.antenna_type = "split-bar"
 
         # Bow tie antenna dimensions
-        self.bowtie_amp =   0.076
-        self.bowtie_radius =   0.012
-        self.bowtie_thickness =   0.024 # thickness value CANT be zero !!!
+        self.bowtie_amp         =   76/xm
+        self.bowtie_radius      =   12/xm
+        self.bowtie_thickness   =   24/xm # thickness value CANT be zero !!!
         self.bowtie_flare_angle = 60.0 # we need to know the opening angle to compute the corrected gap size, sorry but im lazy...
         if self.bowtie_radius > 0 + 1e-12: # + to avoid floating point errors
             self.gap_size = self.corrected_gap(self.gap_size, self.bowtie_radius, np.deg2rad(self.bowtie_flare_angle))
+        self.bowtie_center     =   [0.0, 0.0]
 
         # Split bar antenna dimensions
-        self.x_width    =   0.05
-        self.y_length   =   0.11
-        self.z_height   =   0.024
+        self.x_width    =   5/xm
+        self.y_length   =   11/xm
+        self.z_height   =   24/xm
         self.center     =   [mp.Vector3(self.x_width/2.0 + self.gap_size/2.0, 0.0, 0.0), # left bar
                             mp.Vector3((-1)*(self.x_width/2.0 + self.gap_size/2.0), 0.0, 0.0)] # right bar
-        # self.center     =   [mp.Vector3(0, 0, -10.), # upper bar
-                            # mp.Vector3(0, 0, -10.)] # lower bar
         
         ###### Source ######
-        self.lambda0    =   0.800 # um
-        self.src_width  =   0.600 # temporal width (sigma) of the Gaussian envelope; controls spectral bandwidth
+        self.lambda0    =   5000/xm # nm
+        self.src_width  =   600/xm # temporal width (sigma) of the Gaussian envelope; controls spectral bandwidth
         self.freq       =   1.0 / self.lambda0
         self.freq_width =   1.0 / self.src_width
         self.component  =   mp.Ex
         self.src_amp    =   1.0
         self.src_cutoff =   5  # number of widths used to smoothly turn on/off the source; reduces high-frequency artifacts
-        self.xyz_src    =   [0.0, 0.056, 0.0] # z , 49.5
-        self.src_size   =   [0.19, 0.0, 0.0]
+        self.xyz_src    =   [0.0, 0.0, 0.0] # z , 49.5
+        self.src_size   =   [160.0/xm, 100.0/xm, 0.0]
         
         ###### Simulation settings ######
         self.Courant_factor         =   0.5
-        self.pml                    =   0.030
+        self.pml                    =   30/xm
         # self.pml                    =   (self.lambda0 + self.lambda0*0.5 ) / 2 #Should be: d_PML = lambda_max / 2
-        self.resolution             =   1000 # ?????
-        self.sim_time               =   20
-        self.animations_step        =   self.Courant_factor * (1 / self.resolution) # From dt = S * dx / c, where c=1 in MEEP units
-        self.animations_until       =   0.5
+        self.resolution             =   1000
+        self.sim_time               =   5000/xm
+        # self.animations_step        =   self.Courant_factor * (1 / self.resolution) # From dt = S * dx / c, where c=1 in MEEP units
+        self.animations_step        =   22/xm
+        self.animations_until       =   5000/xm
         self.animations_fps         =   10
         self.path_to_save           =   "results/"
         self.animations_folder_path =   os.path.join(self.path_to_save, "animations")

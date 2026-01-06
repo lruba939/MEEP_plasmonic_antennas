@@ -141,6 +141,7 @@ def task_4(skip_fraction=0.15, E_plot=False):
     # --- Without antennas ---
     p.center = [mp.Vector3(0, 0, -10.), 
                 mp.Vector3(0, 0, -10.)]
+    p.bowtie_center = [-9999, -9999]
     sim = simulation.make_sim()
     E_max_without = collect_max_field(p, sim, delta_t=p.animations_step, skip_fraction=skip_fraction, optional_name="without_antennas")
     if E_plot:
