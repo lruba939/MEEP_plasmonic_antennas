@@ -12,37 +12,28 @@ def pw_amp(k, x0):
     return _pw_amp
 
 def make_source():
-    sources = [
-        mp.Source(
-            src=mp.ContinuousSource(frequency=p.freq, is_integrated=True),
-            component=p.component,
-            center=mp.Vector3(p.xyz_src[0], p.xyz_src[1], p.xyz_src[2]),
-            size = mp.Vector3(p.src_size[0], p.src_size[1], p.src_size[2]),
-            amplitude=p.src_amp
-        )
-    ]
-    
-    # sources = [mp.EigenModeSource(mp.ContinuousSource(p.freq),
-    #                               center=mp.Vector3(p.xyz_src[0], p.xyz_src[1], p.xyz_src[2]),
-    #                               size=mp.Vector3(2.0, 2.0, 0.0),
-    #                               direction=mp.Z,
-    #                               eig_kpoint=mp.Vector3(z=-1),
-    #                               eig_band=1,
-    #                               eig_parity=mp.EVEN_Y + mp.ODD_Z,
-    #                               eig_match_freq=True,
-    #                               )]
-    
+    if p.src_type == "continuous":
+        return [
+            mp.Source(
+                src=mp.ContinuousSource(frequency=p.freq, is_integrated=p.src_is_integrated),
+                component=p.component,
+                center=mp.Vector3(p.xyz_src[0], p.xyz_src[1], p.xyz_src[2]),
+                size = mp.Vector3(p.src_size[0], p.src_size[1], p.src_size[2]),
+                amplitude=p.src_amp
+            )
+        ]
+
     # k = mp.Vector3(z=1)
     # src_center=mp.Vector3(p.xyz_src[0], p.xyz_src[1], p.xyz_src[2])
-       
-    # sources = [mp.Source(
-    #             mp.GaussianSource(p.freq, fwidth=p.freq_width, is_integrated=True),
-    #             component=p.component,
-    #             center=mp.Vector3(p.xyz_src[0], p.xyz_src[1], p.xyz_src[2]),
-    #             size = mp.Vector3(p.src_size[0], p.src_size[1], p.src_size[2]),
-    #             amplitude=p.src_amp
-    #         )
-    #     ]
 
-    
-    return sources
+    elif p.src_type == "gaussian":
+        return [mp.Source(
+                mp.GaussianSource(p.freq, fwidth=p.freq_width, is_integrated=p.src_is_integrated),
+                component=p.component,
+                center=mp.Vector3(p.xyz_src[0], p.xyz_src[1], p.xyz_src[2]),
+                size = mp.Vector3(p.src_size[0], p.src_size[1], p.src_size[2]),
+                amplitude=p.src_amp
+            )
+        ]
+    else:
+        raise ValueError(f"Unknown source type: {p.src_type}")

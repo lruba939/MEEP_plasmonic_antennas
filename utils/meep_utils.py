@@ -63,51 +63,51 @@ def make_animation(singleton_params, sim, animation_name):
 
 def collect_e_line(singleton_params, sim, delta_t, width=1, plot_3d=False, name=None):
     """
-    Collect E component along center line (x_0:x_end, 0, 0) at intervals of delta_t.
-    The returned ey_line is the mean across a vertical "width":
-      - width=1 -> only the center row
-      - width=2 -> center row plus rows at +/-1 (3 rows total)
-      - width=N -> rows at offsets - (N-1) .. + (N-1)
+    Collect E component along center line (0, y_0:y_end, 0) at intervals of delta_t.
+    The returned ey_line is the mean across a horizontal "width":
+      - width=1 -> only the center column
+      - width=2 -> center column plus columns at +/-1 (3 columns total)
+      - width=N -> columns at offsets - (N-1) .. + (N-1)
     Args:
         delta_t: Time interval between data collections
-        width: integer >=1 controlling how many rows (orders) to include
+        width: integer >=1 controlling how many columns (orders) to include
         plot_3d: Whether to plot the collected data in 3D
     Returns:
-        collected_data: List (time) of 1D arrays (x) with mean Ey
+        collected_data: List (time) of 1D arrays (y) with mean Ey
         time_steps: List of time values
-        x_coords: Array of x coordinates along the line
+        y_coords: Array of y coordinates along the line
     """
     collected_data = []
     time_steps = []
-    x_coords = None
+    y_coords = None
 
     def collect_data(sim):
-        nonlocal x_coords
+        nonlocal y_coords
         E_data = sim.get_array(center=mp.Vector3(), size=singleton_params.xyz_cell, component=singleton_params.component)
         # E_data shape: (nx, ny)  (may be 2D)
         nx = E_data.shape[0]
         ny = E_data.shape[1]
-        center_j = ny // 2
+        center_i = ny // 2
 
         # compute offsets: for width=1 -> [0], width=2 -> [-1,0,1], etc.
         max_order = max(0, width - 1)
         offsets = [o for o in range(-max_order, max_order + 1)
-                   if 0 <= center_j + o < ny]
+                   if 0 <= center_i + o < ny]
 
-        # select the rows and average across them (axis=1 -> per-x mean)
-        rows = E_data[:, [center_j + o for o in offsets]]
-        if rows.ndim == 1:
-            e_line = rows.copy()
+        # select the columns and average across them (axis=0 -> per-y mean)
+        cols = E_data[[center_i + o for o in offsets], :]
+        if cols.ndim == 1:
+            e_line = cols.copy()
         else:
-            e_line = np.mean(rows, axis=1)
+            e_line = np.mean(cols, axis=0)
 
         collected_data.append(e_line)
         time_steps.append(sim.meep_time())
 
-        if x_coords is None:
-            # use actual simulation cell x-extent
-            x_extent = singleton_params.xyz_cell[0]
-            x_coords = np.linspace(-x_extent/2, x_extent/2, e_line.shape[0])
+        if y_coords is None:
+            # use actual simulation cell y-extent
+            y_extent = singleton_params.xyz_cell[1]
+            y_coords = np.linspace(-y_extent/2, y_extent/2, e_line.shape[0])
     
     sim.reset_meep()
     sim.run(mp.at_every(delta_t, collect_data), until=singleton_params.animations_until)
@@ -117,9 +117,9 @@ def collect_e_line(singleton_params, sim, delta_t, width=1, plot_3d=False, name=
 
     if plot_3d: 
         save_name = os.path.join(singleton_params.path_to_save, f"3Dplot_profile_{name}.png")
-        plot_e_3d(collected_data, x_coords, time_steps, name=save_name, IMG_CLOSE=singleton_params.IMG_CLOSE)
+        plot_e_3d(collected_data, y_coords, time_steps, name=save_name, IMG_CLOSE=singleton_params.IMG_CLOSE)
 
-    return collected_data, time_steps, x_coords
+    return collected_data, time_steps, y_coords
 
 def plot_e_3d(collected_data, x_coords, time_steps, name=None, IMG_CLOSE=False):
     """
@@ -140,10 +140,10 @@ def plot_e_3d(collected_data, x_coords, time_steps, name=None, IMG_CLOSE=False):
     # Plot surface
     surf = ax.plot_surface(X, T, Z, cmap='viridis', alpha=0.9, edgecolor='none')
     
-    ax.set_xlabel('x coordinate')
+    ax.set_xlabel('y coordinate')
     ax.set_ylabel('time')
-    ax.set_zlabel('|Ey|')
-    ax.set_title('Ey Component vs Time')
+    ax.set_zlabel('|E|')
+    ax.set_title('E Component vs Time')
     
     fig.colorbar(surf, ax=ax, shrink=0.5, aspect=5)
     

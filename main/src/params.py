@@ -19,16 +19,21 @@ class SimParams:
         # SYSTEM
         self.IMG_CLOSE =  True
         mp.Simulation.eps_averaging = True
+        self.sim_dimensions = 2
+
+        self.resolution =   1000
 
         ###### Geometry ######
-        self.xyz_cell   =   [(264)/xm, (181)/xm, 0.0]  # [nm] z = 0.169
+        # self.xyz_cell   =   [(264)/xm, (181)/xm, 0.0]  # For hardcoding
         self.material   =   Au
-        self.gap_size   =   16/xm
-        self.pad        =   40/xm
+        self.gap_size   =   8/xm
+        self.pad        =   80/xm
+        self.pml        =   30/xm
+        # self.pml        =   (self.lambda0 + self.lambda0*0.5 ) / 2 #Should be: d_PML = lambda_max / 2
         
         ### Diferent antenna types parameters ###
         # Antenna type is a string defining the type of antenna to be used in the simulation
-        self.antenna_type = "bow-tie"  # options: "bow-tie", "split-bar"
+        self.antenna_type = "split-bar"  # options: "bow-tie", "split-bar"
         # self.antenna_type = "split-bar"
 
         # Bow tie antenna dimensions
@@ -36,19 +41,32 @@ class SimParams:
         self.bowtie_radius      =   12/xm
         self.bowtie_thickness   =   24/xm # thickness value CANT be zero !!!
         self.bowtie_flare_angle = 60.0 # we need to know the opening angle to compute the corrected gap size, sorry but im lazy...
-        if self.bowtie_radius > 0 + 1e-12: # + to avoid floating point errors
+        if self.bowtie_radius > 0 + 1e-12 and self.antenna_type == "bow-tie": # + to avoid floating point errors
             self.gap_size = self.corrected_gap(self.gap_size, self.bowtie_radius, np.deg2rad(self.bowtie_flare_angle))
         self.bowtie_center     =   [0.0, 0.0]
+        if self.antenna_type == "bow-tie":
+            self.xyz_cell   =   [self.bowtie_amp*2+self.gap_size+self.pad*2+self.pml*2,   # x
+                                 self.bowtie_amp+self.pad*2+self.pml*2,                   # y
+                                 self.bowtie_thickness+self.pad*2+self.pml*2]             # z
 
         # Split bar antenna dimensions
-        self.x_width    =   5/xm
-        self.y_length   =   11/xm
+        self.x_width    =   130/2.0/xm
+        self.y_length   =   5/xm
         self.z_height   =   24/xm
         self.center     =   [mp.Vector3(self.x_width/2.0 + self.gap_size/2.0, 0.0, 0.0), # left bar
                             mp.Vector3((-1)*(self.x_width/2.0 + self.gap_size/2.0), 0.0, 0.0)] # right bar
+        if self.antenna_type == "split-bar":
+            self.xyz_cell   =   [self.x_width*2+self.gap_size+self.pad*2+self.pml*2,   # x
+                                 self.y_length+self.pad*2+self.pml*2,                   # y
+                                 self.z_height+self.pad*2+self.pml*2]             # z
         
+        if self.sim_dimensions == 2:
+            self.xyz_cell[2] = 0.0  # Ensure z dimension is zero for 2D simulations
+
         ###### Source ######
-        self.lambda0    =   5000/xm # nm
+        self.src_type   =   "gaussian"  # options: "continuous", "gaussian"
+        self.src_is_integrated = False # if source overlaps with PML regions use True
+        self.lambda0    =   1200/xm # nm
         self.src_width  =   600/xm # temporal width (sigma) of the Gaussian envelope; controls spectral bandwidth
         self.freq       =   1.0 / self.lambda0
         self.freq_width =   1.0 / self.src_width
@@ -56,13 +74,18 @@ class SimParams:
         self.src_amp    =   1.0
         self.src_cutoff =   5  # number of widths used to smoothly turn on/off the source; reduces high-frequency artifacts
         self.xyz_src    =   [0.0, 0.0, 0.0] # z , 49.5
-        self.src_size   =   [160.0/xm, 100.0/xm, 0.0]
+        # self.src_size   =   [160.0/xm, 100.0/xm, 0.0]
+        if self.antenna_type == "bow-tie":
+            self.src_size   =   [(self.bowtie_amp*2+self.gap_size+self.pad*2)*0.9,   # x
+                                 (self.bowtie_amp+self.pad*2)*0.9,                   # y
+                                 0.0]                                                # z
+        elif self.antenna_type == "split-bar":
+            self.src_size   =   [(self.x_width*2+self.gap_size+self.pad*2)*0.9,    # x
+                                 (self.y_length+self.pad*2)*0.9,                   # y
+                                 0.0]                                              # z
         
         ###### Simulation settings ######
         self.Courant_factor         =   0.5
-        self.pml                    =   30/xm
-        # self.pml                    =   (self.lambda0 + self.lambda0*0.5 ) / 2 #Should be: d_PML = lambda_max / 2
-        self.resolution             =   1000
         self.sim_time               =   5000/xm
         # self.animations_step        =   self.Courant_factor * (1 / self.resolution) # From dt = S * dx / c, where c=1 in MEEP units
         self.animations_step        =   22/xm

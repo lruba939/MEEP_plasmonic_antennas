@@ -7,7 +7,7 @@ from utils.sys_utils import *
 def run():
     
     ### Set paths to save results
-    SIM_NAME = "TEST_3D_9"
+    SIM_NAME = "novotny_gold_w1200nm_eff130nm"
     #############################
     
     p.path_to_save = os.path.join("results", SIM_NAME)
@@ -29,12 +29,12 @@ def run():
     print_task(3, "Plotting the scalar electric field E component.")
     task_3(plot=True, animation=True, animation_name="with_antennas", plot_3D=True, sim=sim)
 
-    #--- Task 3 ---
-    print_task(3, "WITHOUT ANTENNAS; Plotting the scalar electric field E component.")
-    p.center = [mp.Vector3(-9999, -9999, -9999), # upper bar
-                mp.Vector3(-9999, -9999, -9999)] # lower bar
-    p.bowtie_center = [-9999, -9999]
-    task_3(plot=False, animation=True, animation_name="without_antennas", plot_3D=True, recalculate=True)
+    # #--- Task 3 ---
+    # print_task(3, "WITHOUT ANTENNAS; Plotting the scalar electric field E component.")
+    # p.center = [mp.Vector3(-9999, -9999, -9999), # upper bar
+    #             mp.Vector3(-9999, -9999, -9999)] # lower bar
+    # p.bowtie_center = [-9999, -9999]
+    # task_3(plot=False, animation=True, animation_name="without_antennas", plot_3D=True, recalculate=True)
     p.reset_to_defaults()
 
     #--- Task 4 ---

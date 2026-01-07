@@ -210,7 +210,7 @@ __marimo__/
 *.png
 *.jpeg
 *.jpg
-# *.gif
+*.gif
 
 # Video
 *.mp4
