@@ -1,9 +1,9 @@
-# MEEP split-bar antenna
+# MEEP plasmonic antennas
 
-This repository contains the design and simulation files for a split-bar antenna using MEEP.
+This repository contains the design and simulation files for plasmonic antennas using MEEP.
 
 ## Overview
-A split-bar antenna design with electromagnetic simulations and analysis.
+A split-bar or bow-tie antenna design with electromagnetic simulations and analysis.
 
 > **Note:** This project is currently a work in progress.
 
@@ -12,11 +12,11 @@ A split-bar antenna design with electromagnetic simulations and analysis.
 ### Cell Structure
 ![Cell](Assets/cell.png)
 
-### Antenna Design
+### Antenna Enhancement Effect
 ![Antenna](Assets/antenna.png)
 
-### Field Magnitude
-![Magnitude](Assets/magnitude.png)
+### EM Field
+![GIF](https://github.com/lruba939/MEEP_plasmonic_antennas/blob/main/Assets/EM.gif)
 
 ## Getting Started
 Clone the repository and explore the simulation files to get started with the antenna design.
