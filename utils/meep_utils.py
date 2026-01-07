@@ -55,7 +55,7 @@ def make_animation(singleton_params, sim, animation_name):
     animation_name = animation_name + ".mp4"
     sim.reset_meep()
     animate = mp.Animate2D(sim, fields=singleton_params.component, normalize = True)
-    sim.run(mp.at_every(singleton_params.animations_step*10, animate), until=singleton_params.animations_until)
+    sim.run(mp.at_every(singleton_params.animations_step, animate), until=singleton_params.animations_until)
     animate.to_mp4(filename = os.path.join(singleton_params.animations_folder_path, animation_name), fps = singleton_params.animations_fps)
     plt.show(block=False)
     plt.pause(2)

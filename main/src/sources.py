@@ -18,7 +18,7 @@ def make_source():
             component=p.component,
             center=mp.Vector3(p.xyz_src[0], p.xyz_src[1], p.xyz_src[2]),
             size = mp.Vector3(p.src_size[0], p.src_size[1], p.src_size[2]),
-            amplitude=1.0
+            amplitude=p.src_amp
         )
     ]
     
@@ -37,10 +37,10 @@ def make_source():
        
     # sources = [mp.Source(
     #             mp.GaussianSource(p.freq, fwidth=p.freq_width, is_integrated=True),
-    #             component=mp.Ey,
-    #             center=src_center,
-    #             size=mp.Vector3(4.0, 4.0, 0.0),
-    #             amp_func=pw_amp(k, src_center),
+    #             component=p.component,
+    #             center=mp.Vector3(p.xyz_src[0], p.xyz_src[1], p.xyz_src[2]),
+    #             size = mp.Vector3(p.src_size[0], p.src_size[1], p.src_size[2]),
+    #             amplitude=p.src_amp
     #         )
     #     ]
 
