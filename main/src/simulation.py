@@ -19,6 +19,11 @@ def make_sim():
         k_point = mp.Vector3(),
         dimensions=p.sim_dimensions
     )
+    sim.run(until=1)
+    eps_data = sim.get_epsilon(frequency=p.freq)
+    con.eps_data_container = eps_data
+    sim.reset_meep()
+
     return sim
 
 def start_calc(sim):

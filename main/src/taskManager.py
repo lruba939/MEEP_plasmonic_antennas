@@ -31,12 +31,12 @@ def task_0():
     sim = simulation.make_sim()
     simulation.start_calc(sim)
 
-    np.savez(
-        os.path.join(p.path_to_save, "data_general.npz"),
-        Ey = con.E_comp_data_container,
-        Ey_empty = con.empty_cell_E_comp_data_container,
-        eps = con.eps_data_container
-        )
+    # np.savez(
+    #     os.path.join(p.path_to_save, "data_general.npz"),
+    #     Ey = con.E_comp_data_container,
+    #     Ey_empty = con.empty_cell_E_comp_data_container,
+    #     eps = con.eps_data_container
+    #     )
     
     return sim
 
@@ -188,3 +188,96 @@ def task_4(skip_fraction=0.15, E_plot=False):
         )
 
     return gain_db_clipped
+
+# TASK 5 -------------------------------
+
+def task_5():
+    sim = simulation.make_sim()
+    collected_data = collect_data_in_time(singleton_params=p, sim=sim,
+                                          delta_t=p.animations_step, clear_pml=True,
+                                          Ex=[], Ey=[],
+                                          E2=[], H2=[])
+    make_field_animation(collected_data, field_name='Ex', singleton_params=p,
+                         animation_name='Ex', cmap=cm_rdbu,
+                         structure=con.eps_data_container, crop_pml=True)
+    
+    make_field_animation(collected_data, field_name='Ey', singleton_params=p,
+                         animation_name='Ey', cmap=cm_rdbu,
+                         structure=con.eps_data_container, crop_pml=True)
+    
+    make_field_animation(collected_data, field_name='E2', singleton_params=p,
+                         animation_name='E2', cmap=cm_rdbu,
+                         structure=con.eps_data_container, crop_pml=True)
+    
+    make_field_animation(collected_data, field_name='H2', singleton_params=p,
+                         animation_name='H2', cmap=cm_rdbu,
+                         structure=con.eps_data_container, crop_pml=True)
+
+# TASK 6 -------------------------------
+
+def task_6():
+    # --- With antennas ---
+    sim = simulation.make_sim()
+    collected_data = collect_data_in_time(singleton_params=p, sim=sim,
+                                          delta_t=p.animations_step, clear_pml=True,
+                                          Ex=[], Ey=[],
+                                          E2=[], H2=[])
+    # --- Without antennas ---
+    p.center = [mp.Vector3(0, 0, -10.), 
+                mp.Vector3(0, 0, -10.)]
+    p.bowtie_center = [-9999, -9999]
+    sim = simulation.make_sim()
+    empty_collected_data = collect_data_in_time(singleton_params=p, sim=sim,
+                                        delta_t=p.animations_step, clear_pml=True,
+                                        Ex=[], Ey=[],
+                                        E2=[], H2=[])
+
+    make_field_animation(empty_collected_data, field_name='Ex', singleton_params=p,
+                         animation_name='empty_Ex', cmap=cm_rdbu,
+                         structure=con.eps_data_container, crop_pml=True)
+
+    make_field_animation(empty_collected_data, field_name='Ey', singleton_params=p,
+                         animation_name='empty_Ey', cmap=cm_rdbu,
+                         structure=con.eps_data_container, crop_pml=True)
+
+    make_field_animation(empty_collected_data, field_name='E2', singleton_params=p,
+                         animation_name='empty_E2', cmap=cm_rdbu,
+                         structure=con.eps_data_container, crop_pml=True)
+
+    Ex_enhancement = calculate_field_enhancement(collected_data['Ex'], empty_collected_data['Ex'], singleton_params=p)
+    collected_data["Ex_enhancement"] = Ex_enhancement
+    E2_enhancement = calculate_field_enhancement(collected_data['E2'], empty_collected_data['E2'], singleton_params=p)
+    collected_data["E2_enhancement"] = E2_enhancement
+    H2_enhancement = calculate_field_enhancement(collected_data['H2'], empty_collected_data['H2'], singleton_params=p)
+    collected_data["H2_enhancement"] = H2_enhancement
+
+    make_field_animation(collected_data, field_name='Ex_enhancement', singleton_params=p,
+                         animation_name='Ex_enhancement', cmap=cm_rdbu,
+                         structure=con.eps_data_container, crop_pml=True)
+
+    make_field_animation(collected_data, field_name='E2_enhancement', singleton_params=p,
+                         animation_name='E2_enhancement', cmap=cm_rdbu,
+                         structure=con.eps_data_container, crop_pml=True)
+
+    make_field_animation(collected_data, field_name='H2_enhancement', singleton_params=p,
+                         animation_name='H2_enhancement', cmap=cm_rdbu,
+                         structure=con.eps_data_container, crop_pml=True)
+    
+    Ex_ratio = calculate_field_ratio(collected_data['Ex'], empty_collected_data['Ex'])
+    collected_data["Ex_ratio"] = Ex_ratio
+    E2_ratio = calculate_field_ratio(collected_data['E2'], empty_collected_data['E2'])
+    collected_data["E2_ratio"] = E2_ratio
+    H2_ratio = calculate_field_ratio(collected_data['H2'], empty_collected_data['H2'])
+    collected_data["H2_ratio"] = H2_ratio
+
+    make_field_animation(collected_data, field_name='Ex_ratio', singleton_params=p,
+                         animation_name='Ex_ratio', cmap=cm_rdbu,
+                         structure=con.eps_data_container, crop_pml=True)
+
+    make_field_animation(collected_data, field_name='E2_ratio', singleton_params=p,
+                         animation_name='E2_ratio', cmap=cm_rdbu,
+                         structure=con.eps_data_container, crop_pml=True)
+
+    make_field_animation(collected_data, field_name='H2_ratio', singleton_params=p,
+                         animation_name='H2_ratio', cmap=cm_rdbu,
+                         structure=con.eps_data_container, crop_pml=True)

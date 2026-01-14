@@ -1,7 +1,9 @@
 import matplotlib.pyplot as plt
 from matplotlib import rcParams
 from matplotlib.cm import get_cmap
+from matplotlib import animation
 import numpy as np
+import os
 
 from mpl_toolkits.mplot3d import Axes3D
 
@@ -42,6 +44,7 @@ cm_viridis = get_cmap("viridis")
 cm_seismic = get_cmap("seismic")
 cm_jet = get_cmap("jet")
 cm_tab10 = get_cmap("tab10")
+cm_rdbu = get_cmap("RdBu")
 ### Palettes from color-hex.com/
 c_google = ['#008744', '#0057e7', '#d62d20', '#ffa700'] # G, B, R, Y # https://www.color-hex.com/color-palette/1872
 c_twilight = ['#363b74', '#673888', '#ef4f91', '#c79dd7', '#4d1b7b'] # https://www.color-hex.com/color-palette/809
@@ -341,3 +344,128 @@ def multi_line_plotter_same_axes(xdata_list, ydata_list, colors=None, linestyles
 
     plt.tight_layout()
     plt.show()
+
+def make_field_animation(
+    collected_data,
+    field_name,
+    singleton_params,
+    animation_name,
+    structure=[],
+    cmap='RdBu',
+    absolute=False,
+    crop_pml=True,
+    interval=100,
+    percentile=99.5,
+    structure_alpha=0.9,
+    field_alpha=0.8
+):
+
+    if field_name not in collected_data or field_name == 'time_steps':
+        raise ValueError(f"Field '{field_name}' not found")
+
+    raw_fields = collected_data[field_name]
+    if len(raw_fields) == 0:
+        return
+
+    fig, ax = plt.subplots(figsize=(10, 8))
+    ax.set_axis_off()
+
+    structure = np.abs(structure)
+
+    # --------------------------------------------------
+    # Field + structure preprocessing (ONCE)
+    # --------------------------------------------------
+    def process_array(arr):
+        if crop_pml:
+            pmlx = singleton_params.pml / (singleton_params.xyz_cell[0] / 2)
+            pmly = singleton_params.pml / (singleton_params.xyz_cell[1] / 2)
+
+            cx = int(np.ceil(pmlx * arr.shape[1] / 2)*1.15)
+            cy = int(np.ceil(pmly * arr.shape[0] / 2)*1.15)
+
+            arr = arr[cy:-cy, cx:-cx]
+
+        return arr.T
+
+    # Process structure
+    if len(structure) != 0:
+        structure_proc = process_array(structure)
+    else:
+        structure_proc = np.zeros_like(process_array(raw_fields[0]))
+
+    # Process fields
+    fields = []
+    for f in raw_fields:
+        fld = np.abs(f) if absolute else f
+        fields.append(process_array(fld))
+    fields = np.array(fields)
+
+    # --------------------------------------------------
+    # FIXED global scale (KEY PART)
+    # --------------------------------------------------
+    if absolute:
+        vmin = 0.0
+        vmax = np.percentile(fields, percentile)
+    else:
+        vmax = np.percentile(np.abs(fields), percentile)
+        vmin = -vmax
+
+    # --------------------------------------------------
+    # Background: gray
+    # --------------------------------------------------
+    ax.set_facecolor((0.5, 0.5, 0.5))  # neutral gray
+
+    # --------------------------------------------------
+    # STRUCTURE overlay (WHITE)
+    # --------------------------------------------------
+    structure_img = ax.imshow(
+        structure_proc,
+        cmap='gray',
+        origin='lower',
+        interpolation='none',
+        vmin=np.min(structure_proc),
+        vmax=np.max(structure_proc),
+        alpha=structure_alpha
+    )
+
+    # --------------------------------------------------
+    # FIELD overlay (COLOR)
+    # --------------------------------------------------
+    field_img = ax.imshow(
+        fields[0],
+        cmap=cmap,
+        origin='lower',
+        interpolation='none',
+        vmin=vmin,
+        vmax=vmax,
+        alpha=field_alpha
+    )
+
+    # Colorbar only for field
+    cbar = plt.colorbar(field_img, ax=ax, fraction=0.046, pad=0.04)
+    label = f"|{field_name}|" if absolute else field_name
+    cbar.set_label(label)
+
+    ax.set_title(f"Field: {field_name}")
+
+    # --------------------------------------------------
+    # Animation update
+    # --------------------------------------------------
+    def update(i):
+        field_img.set_data(fields[i])
+        return (field_img,)
+
+    ani = animation.FuncAnimation(
+        fig,
+        update,
+        frames=len(fields),
+        interval=interval,
+        blit=True
+    )
+
+    path = os.path.join(singleton_params.path_to_save, animation_name + ".mp4")
+    ani.save(path, writer='ffmpeg')
+
+    print(f"Saved animation: {path}")
+
+    plt.close(fig) if singleton_params.IMG_CLOSE else plt.show()

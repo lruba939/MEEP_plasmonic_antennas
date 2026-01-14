@@ -21,24 +21,24 @@ class SimParams:
         mp.Simulation.eps_averaging = True
         self.sim_dimensions = 2
 
-        self.resolution =   1000
+        self.resolution =   500
 
         ###### Geometry ######
         # self.xyz_cell   =   [(264)/xm, (181)/xm, 0.0]  # For hardcoding
         self.material   =   Au
-        self.gap_size   =   8/xm
-        self.pad        =   80/xm
+        self.gap_size   =   12/xm
+        self.pad        =   200/xm
         self.pml        =   30/xm
         # self.pml        =   (self.lambda0 + self.lambda0*0.5 ) / 2 #Should be: d_PML = lambda_max / 2
         
         ### Diferent antenna types parameters ###
         # Antenna type is a string defining the type of antenna to be used in the simulation
-        self.antenna_type = "split-bar"  # options: "bow-tie", "split-bar"
+        self.antenna_type = "bow-tie"  # options: "bow-tie", "split-bar"
         # self.antenna_type = "split-bar"
 
         # Bow tie antenna dimensions
         self.bowtie_amp         =   76/xm
-        self.bowtie_radius      =   12/xm
+        self.bowtie_radius      =   8/xm
         self.bowtie_thickness   =   24/xm # thickness value CANT be zero !!!
         self.bowtie_flare_angle = 60.0 # we need to know the opening angle to compute the corrected gap size, sorry but im lazy...
         if self.bowtie_radius > 0 + 1e-12 and self.antenna_type == "bow-tie": # + to avoid floating point errors
@@ -64,9 +64,9 @@ class SimParams:
             self.xyz_cell[2] = 0.0  # Ensure z dimension is zero for 2D simulations
 
         ###### Source ######
-        self.src_type   =   "gaussian"  # options: "continuous", "gaussian"
+        self.src_type   =   "continuous"  # options: "continuous", "gaussian"
         self.src_is_integrated = False # if source overlaps with PML regions use True
-        self.lambda0    =   1200/xm # nm
+        self.lambda0    =   800/xm # nm
         self.src_width  =   600/xm # temporal width (sigma) of the Gaussian envelope; controls spectral bandwidth
         self.freq       =   1.0 / self.lambda0
         self.freq_width =   1.0 / self.src_width
