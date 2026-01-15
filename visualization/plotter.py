@@ -4,7 +4,8 @@ from matplotlib.cm import get_cmap
 from matplotlib import animation
 import numpy as np
 import os
-
+import h5py
+from matplotlib.animation import FuncAnimation
 from mpl_toolkits.mplot3d import Axes3D
 
 # Global settings for plotting
@@ -469,3 +470,119 @@ def make_field_animation(
     print(f"Saved animation: {path}")
 
     plt.close(fig) if singleton_params.IMG_CLOSE else plt.show()
+
+
+def animate_field_from_h5(
+    h5_filename,
+    z_index=None,
+    dataset_name=None,
+    interval=50,
+    cmap="inferno",
+    vmin=None,
+    vmax=None,
+    transpose_xy=False,
+    axis_time=2,
+    axis_x=0,
+    axis_y=1,
+    save_path=None,
+    IMG_CLOSE=False
+):
+    """
+    Animate MEEP field data with EXPLICIT axis mapping.
+
+    Parameters
+    ----------
+    h5_filename : str
+        Path to HDF5 file
+    axis_time : int
+        Index of TIME axis in data
+    axis_x : int
+        Index of X axis in data
+    axis_y : int
+        Index of Y axis in data
+    z_index : int or None
+        If data has Z axis, pick this index (e.g. 0)
+    dataset_name : str or None
+        HDF5 dataset name
+    interval : int
+        ms between frames
+    transpose_xy : bool
+        If True, transpose frame before plotting
+    """
+
+    # --- Load data ---
+    with h5py.File(h5_filename, "r") as f:
+        if dataset_name is None:
+            dataset_name = list(f.keys())[0]
+        data = np.array(f[dataset_name])
+
+    print("RAW data shape:", data.shape)
+
+    # --- If Z axis exists and is not time/x/y ---
+    used_axes = {axis_time, axis_x, axis_y}
+    all_axes = set(range(data.ndim))
+    z_axes = list(all_axes - used_axes)
+
+    if z_axes:
+        if z_index is None:
+            raise ValueError("Z axis present but z_index not specified")
+        data = np.take(data, indices=z_index, axis=z_axes[0])
+        print("After Z slice:", data.shape)
+
+    # --- Move axes to canonical order (T, Y, X) ---
+    data = np.moveaxis(
+        data,
+        [axis_time, axis_y, axis_x],
+        [0, 1, 2]
+    )
+
+    print("Reordered data shape (T,Y,X):", data.shape)
+
+    Nt, Ny, Nx = data.shape
+
+    # --- Color scale ---
+    if vmin is None:
+        vmin = np.min(data)
+    if vmax is None:
+        vmax = np.max(data)
+
+    # --- Plot ---
+    fig, ax = plt.subplots()
+    frame0 = data[0]
+
+    if transpose_xy:
+        frame0 = frame0.T
+
+    img = ax.imshow(
+        frame0,
+        origin="lower",
+        cmap=cmap,
+        vmin=vmin,
+        vmax=vmax,
+        aspect="auto",
+    )
+
+    plt.colorbar(img, ax=ax)
+
+    def update(t):
+        frame = data[t]
+        if transpose_xy:
+            frame = frame.T
+        img.set_array(frame)
+        ax.set_title(f"frame {t}/{Nt-1}")
+        return (img,)
+
+    anim = FuncAnimation(
+        fig,
+        update,
+        frames=Nt,
+        interval=interval,
+        blit=True,
+    )
+
+    if save_path:
+        anim.save(save_path, writer="ffmpeg")
+
+    if IMG_CLOSE == False:
+        plt.show()
+    return anim

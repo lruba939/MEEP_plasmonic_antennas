@@ -17,7 +17,7 @@ class SimParams:
     
     def _init_parameters(self):
         # SYSTEM
-        self.IMG_CLOSE =  False
+        self.IMG_CLOSE =  True
         mp.Simulation.eps_averaging = True
         self.sim_dimensions = 3
 
@@ -48,7 +48,7 @@ class SimParams:
             self.xyz_cell   =   [self.bowtie_amp*2+self.gap_size+self.pad*2+self.pml*2,   # x
                                  self.bowtie_amp+self.pad*2+self.pml*2,                   # y
                                  self.bowtie_thickness+self.pad*2+self.pml*2]             # z
-
+            
         # Split bar antenna dimensions
         self.x_width    =   130/2.0/xm
         self.y_length   =   5/xm
@@ -73,7 +73,7 @@ class SimParams:
         self.component  =   mp.Ex
         self.src_amp    =   1.0
         self.src_cutoff =   5  # number of widths used to smoothly turn on/off the source; reduces high-frequency artifacts
-        self.xyz_src    =   [0.0, 0.0, 0.0] # z , 49.5
+        self.xyz_src    =   [0.0, 0.0, self.pml*1.1] # z , 49.5
         # self.src_size   =   [160.0/xm, 100.0/xm, 0.0]
         if self.antenna_type == "bow-tie":
             self.src_size   =   [(self.bowtie_amp*2+self.gap_size+self.pad*2)*0.9,   # x

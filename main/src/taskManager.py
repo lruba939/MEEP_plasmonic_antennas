@@ -285,16 +285,90 @@ def task_6():
 # TASK 7 -------------------------------
 
 def task_7():
-    sim = simulation.make_sim()
-    sim.run(until=0.2)
-    eps_xy = sim.get_array(
-        vol=p.xz_plane,
-        frequency=p.freq,
-        component=mp.Dielectric
+    # sim = simulation.make_sim()   
+    # # sim.run(until=0)
+    # # eps_xy = sim.get_array(
+    # #     vol=p.xy_plane,
+    # #     frequency=p.freq,
+    # #     component=mp.Dielectric
+    # # )
+    # # show_data_img(datas_arr =   [eps_xy],
+    # #                   norm_bool =   [True],
+    # #                   abs_bool  =   [True],
+    # #                   cmap_arr  =   ["binary"],
+    # #                   alphas    =   [1.0],
+    # #                   IMG_CLOSE =   p.IMG_CLOSE)
+    # collect_fields_with_output(
+    #     sim,
+    #     volume=p.xy_plane,
+    #     delta_t=p.animations_step,
+    #     until=p.sim_time,
+    #     prefix="xyplanar-bowtie",
+    #     start_time=0
+    # )
+    animate_field_from_h5(
+        h5_filename="run-xyplanar-bowtie_ex.h5",
+        transpose_xy=False,
+        cmap="RdBu",
+        save_path="xyplanar-bowtie.mp4",
+        IMG_CLOSE=p.IMG_CLOSE
     )
-    show_data_img(datas_arr =   [eps_xy],
-                      norm_bool =   [True],
-                      abs_bool  =   [True],
-                      cmap_arr  =   ["binary"],
-                      alphas    =   [1.0],
-                      IMG_CLOSE =   p.IMG_CLOSE)
+
+    # sim.reset_meep()
+    
+    # collect_fields_with_output(
+    #     sim,
+    #     volume=p.xz_plane,
+    #     delta_t=p.animations_step,
+    #     until=p.sim_time,
+    #     prefix="xzplanar-bowtie",
+    #     start_time=0
+    # )
+    animate_field_from_h5(
+        h5_filename="run-xzplanar-bowtie_ex.h5",
+        transpose_xy=False,
+        cmap="RdBu",
+        save_path="xzplanar-bowtie.mp4",
+        IMG_CLOSE=p.IMG_CLOSE
+    )
+
+    # sim.reset_meep()
+    # p.antenna_type = "split-bar"
+    # p.center = [mp.Vector3(-9999, -9999, -9999), # upper bar
+    #             mp.Vector3(-9999, -9999, -9999)] # lower bar
+    
+    # sim = simulation.make_sim()
+
+    # collect_fields_with_output(
+    #     sim,
+    #     volume=p.xy_plane,
+    #     delta_t=p.animations_step,
+    #     until=p.sim_time,
+    #     prefix="xyplanar-empty",
+    #     start_time=0
+    # )
+    animate_field_from_h5(
+        h5_filename="run-xyplanar-empty_ex.h5",
+        transpose_xy=False,
+        cmap="RdBu",
+        save_path="xyplanar-empty.mp4",
+        IMG_CLOSE=p.IMG_CLOSE
+    )
+
+    # sim.reset_meep()
+    
+    # collect_fields_with_output(
+    #     sim,
+    #     volume=p.xz_plane,
+    #     delta_t=p.animations_step,
+    #     until=p.sim_time,
+    #     prefix="xzplanar-empty",
+    #     start_time=0
+    # )
+    animate_field_from_h5(
+        h5_filename="run-xzplanar-empty_ex.h5",
+        transpose_xy=False,
+        cmap="RdBu",
+        save_path="xzplanar-empty.mp4",
+        IMG_CLOSE=p.IMG_CLOSE
+    )

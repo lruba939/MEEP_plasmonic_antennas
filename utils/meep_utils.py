@@ -449,3 +449,85 @@ def calculate_field_enhancement(data_field, data_ref, singleton_params, region_f
         enhancement_data.append(enhancement)
     
     return enhancement_data
+
+def collect_fields_with_output(
+    sim,
+    volume,
+    delta_t,
+    until,
+    prefix="field",
+    start_time=0.0,
+):
+    """
+    Collect field data using MEEP output_* mechanisms (HDF5),
+    restricted to a given mp.Volume.
+
+    Parameters
+    ----------
+    sim : mp.Simulation
+        Initialized MEEP simulation
+    volume : mp.Volume
+        Spatial region where fields are recorded
+    delta_t : float
+        Time interval between outputs
+    until : float
+        End time of simulation
+    prefix : str
+        Filename prefix (e.g. 'planar', 'volume')
+    start_time : float
+        Time after which outputs start (default: 0.0)
+    """
+
+    actions = []
+
+    # --- Electric field components ---
+    actions += [
+        mp.to_appended(
+            f"{prefix}_ex",
+            mp.at_every(delta_t, mp.output_efield_x)
+        ),
+        mp.to_appended(
+            f"{prefix}_ey",
+            mp.at_every(delta_t, mp.output_efield_y)
+        ),
+        mp.to_appended(
+            f"{prefix}_ez",
+            mp.at_every(delta_t, mp.output_efield_z)
+        ),
+    ]
+
+    # --- Magnetic field components ---
+    actions += [
+        mp.to_appended(
+            f"{prefix}_hx",
+            mp.at_every(delta_t, mp.output_hfield_x)
+        ),
+        mp.to_appended(
+            f"{prefix}_hy",
+            mp.at_every(delta_t, mp.output_hfield_y)
+        ),
+        mp.to_appended(
+            f"{prefix}_hz",
+            mp.at_every(delta_t, mp.output_hfield_z)
+        ),
+    ]
+
+    # --- Power density ---
+    actions += [
+        mp.to_appended(
+            f"{prefix}_dpwr",
+            mp.at_every(delta_t, mp.output_dpwr)
+        )
+    ]
+
+    # --- Wrap everything in volume + optional after_time ---
+    if start_time > 0:
+        volume_action = mp.in_volume(
+            volume,
+            mp.after_time(start_time, *actions)
+        )
+    else:
+        volume_action = mp.in_volume(volume, *actions)
+
+    # --- Run simulation ---
+    sim.run(volume_action, until=until)
