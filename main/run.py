@@ -45,9 +45,13 @@ def run():
     # print_task(5, "Creating animation of Ex field component over time.")
     # task_5()
 
-    #--- Task 5 ---
-    print_task(6, "Enhanced field calculation in the gap region.")
-    task_6()
+    # #--- Task 6 ---
+    # print_task(6, "Enhanced field calculation in the gap region.")
+    # task_6()
+
+    #--- Task 7 ---
+    print_task(7, "3D.")
+    task_7()
 
     
 if __name__ == "__main__":

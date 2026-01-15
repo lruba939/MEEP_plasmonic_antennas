@@ -17,11 +17,11 @@ class SimParams:
     
     def _init_parameters(self):
         # SYSTEM
-        self.IMG_CLOSE =  True
+        self.IMG_CLOSE =  False
         mp.Simulation.eps_averaging = True
-        self.sim_dimensions = 2
+        self.sim_dimensions = 3
 
-        self.resolution =   500
+        self.resolution =   300
 
         ###### Geometry ######
         # self.xyz_cell   =   [(264)/xm, (181)/xm, 0.0]  # For hardcoding
@@ -38,7 +38,7 @@ class SimParams:
 
         # Bow tie antenna dimensions
         self.bowtie_amp         =   76/xm
-        self.bowtie_radius      =   8/xm
+        self.bowtie_radius      =   16/xm
         self.bowtie_thickness   =   24/xm # thickness value CANT be zero !!!
         self.bowtie_flare_angle = 60.0 # we need to know the opening angle to compute the corrected gap size, sorry but im lazy...
         if self.bowtie_radius > 0 + 1e-12 and self.antenna_type == "bow-tie": # + to avoid floating point errors
@@ -83,6 +83,18 @@ class SimParams:
             self.src_size   =   [(self.x_width*2+self.gap_size+self.pad*2)*0.9,    # x
                                  (self.y_length+self.pad*2)*0.9,                   # y
                                  0.0]                                              # z
+            
+        ###### Volumes ######
+        self.xy_plane = mp.Volume(center=mp.Vector3(0,0,self.bowtie_thickness/2.0 if self.antenna_type == "bow-tie" else 0),
+                                  size=mp.Vector3(
+                                      self.xyz_cell[0],
+                                      self.xyz_cell[1],
+                                      0.0))
+        self.xz_plane = mp.Volume(center=mp.Vector3(0,0,0),
+                                  size=mp.Vector3(
+                                      self.xyz_cell[0],
+                                      0,
+                                      self.xyz_cell[2]))
         
         ###### Simulation settings ######
         self.Courant_factor         =   0.5

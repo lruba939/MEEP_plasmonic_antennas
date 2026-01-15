@@ -281,3 +281,20 @@ def task_6():
     make_field_animation(collected_data, field_name='H2_ratio', singleton_params=p,
                          animation_name='H2_ratio', cmap=cm_rdbu,
                          structure=con.eps_data_container, crop_pml=True)
+    
+# TASK 7 -------------------------------
+
+def task_7():
+    sim = simulation.make_sim()
+    sim.run(until=0.2)
+    eps_xy = sim.get_array(
+        vol=p.xz_plane,
+        frequency=p.freq,
+        component=mp.Dielectric
+    )
+    show_data_img(datas_arr =   [eps_xy],
+                      norm_bool =   [True],
+                      abs_bool  =   [True],
+                      cmap_arr  =   ["binary"],
+                      alphas    =   [1.0],
+                      IMG_CLOSE =   p.IMG_CLOSE)

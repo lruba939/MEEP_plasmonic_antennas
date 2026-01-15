@@ -235,7 +235,7 @@ def fillet_polygon(
         # --- fillet cylinder ---
         geometry.append(
             mp.Cylinder(
-                center=mp.Vector3(C[0], C[1], 0),
+                center=mp.Vector3(C[0], C[1], height/2.0),
                 radius=radius,
                 height=height,
                 axis=mp.Vector3(*axis),
