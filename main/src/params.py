@@ -21,13 +21,13 @@ class SimParams:
         mp.Simulation.eps_averaging = True
         self.sim_dimensions = 3
 
-        self.resolution =   300
+        self.resolution =   500
 
         ###### Geometry ######
         # self.xyz_cell   =   [(264)/xm, (181)/xm, 0.0]  # For hardcoding
         self.material   =   Au
-        self.gap_size   =   12/xm
-        self.pad        =   200/xm
+        self.gap_size   =   16/xm
+        self.pad        =   40/xm
         self.pml        =   30/xm
         # self.pml        =   (self.lambda0 + self.lambda0*0.5 ) / 2 #Should be: d_PML = lambda_max / 2
         
@@ -38,7 +38,7 @@ class SimParams:
 
         # Bow tie antenna dimensions
         self.bowtie_amp         =   76/xm
-        self.bowtie_radius      =   16/xm
+        self.bowtie_radius      =   12/xm
         self.bowtie_thickness   =   24/xm # thickness value CANT be zero !!!
         self.bowtie_flare_angle = 60.0 # we need to know the opening angle to compute the corrected gap size, sorry but im lazy...
         if self.bowtie_radius > 0 + 1e-12 and self.antenna_type == "bow-tie": # + to avoid floating point errors
@@ -64,7 +64,7 @@ class SimParams:
             self.xyz_cell[2] = 0.0  # Ensure z dimension is zero for 2D simulations
 
         ###### Source ######
-        self.src_type   =   "continuous"  # options: "continuous", "gaussian"
+        self.src_type   =   "gaussian"  # options: "continuous", "gaussian"
         self.src_is_integrated = False # if source overlaps with PML regions use True
         self.lambda0    =   800/xm # nm
         self.src_width  =   600/xm # temporal width (sigma) of the Gaussian envelope; controls spectral bandwidth
@@ -73,7 +73,7 @@ class SimParams:
         self.component  =   mp.Ex
         self.src_amp    =   1.0
         self.src_cutoff =   5  # number of widths used to smoothly turn on/off the source; reduces high-frequency artifacts
-        self.xyz_src    =   [0.0, 0.0, self.pml*1.1] # z , 49.5
+        self.xyz_src    =   [0.0, 0.0, self.xyz_cell[2]/2.0-self.pml*1.15]
         # self.src_size   =   [160.0/xm, 100.0/xm, 0.0]
         if self.antenna_type == "bow-tie":
             self.src_size   =   [(self.bowtie_amp*2+self.gap_size+self.pad*2)*0.9,   # x
