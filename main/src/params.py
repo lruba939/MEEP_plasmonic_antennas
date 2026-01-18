@@ -18,10 +18,14 @@ class SimParams:
     def _init_parameters(self):
         # SYSTEM
         self.IMG_CLOSE =  True
-        mp.Simulation.eps_averaging = True
+        mp.Simulation.eps_averaging = False
         self.sim_dimensions = 3
 
-        self.resolution =   500
+        self.resolution =   1000
+        self.symmetries = [
+            mp.Mirror(direction=mp.X, phase=-1),
+            mp.Mirror(direction=mp.Y, phase=+1)
+        ]
 
         ###### Geometry ######
         # self.xyz_cell   =   [(264)/xm, (181)/xm, 0.0]  # For hardcoding
@@ -73,11 +77,14 @@ class SimParams:
         self.component  =   mp.Ex
         self.src_amp    =   1.0
         self.src_cutoff =   5  # number of widths used to smoothly turn on/off the source; reduces high-frequency artifacts
-        self.xyz_src    =   [0.0, 0.0, self.xyz_cell[2]/2.0-self.pml*1.15]
+        self.xyz_src    =   [0.0, 0.0, self.bowtie_thickness*2.0]
         # self.src_size   =   [160.0/xm, 100.0/xm, 0.0]
         if self.antenna_type == "bow-tie":
-            self.src_size   =   [(self.bowtie_amp*2+self.gap_size+self.pad*2)*0.9,   # x
-                                 (self.bowtie_amp+self.pad*2)*0.9,                   # y
+            # self.src_size   =   [(self.bowtie_amp*2+self.gap_size+self.pad*2)*0.9,   # x
+            #                      (self.bowtie_amp+self.pad*2)*0.9,                   # y
+            #                      0.0]                                                # z
+            self.src_size   =   [self.xyz_cell[0],   # x
+                                 self.xyz_cell[1],                   # y
                                  0.0]                                                # z
         elif self.antenna_type == "split-bar":
             self.src_size   =   [(self.x_width*2+self.gap_size+self.pad*2)*0.9,    # x
@@ -98,10 +105,10 @@ class SimParams:
         
         ###### Simulation settings ######
         self.Courant_factor         =   0.5
-        self.sim_time               =   5000/xm
+        self.sim_time               =   7000/xm
         # self.animations_step        =   self.Courant_factor * (1 / self.resolution) # From dt = S * dx / c, where c=1 in MEEP units
         self.animations_step        =   22/xm
-        self.animations_until       =   5000/xm
+        self.animations_until       =   7000/xm
         self.animations_fps         =   10
         self.path_to_save           =   "results/"
         self.animations_folder_path =   os.path.join(self.path_to_save, "animations")

@@ -285,81 +285,183 @@ def task_6():
 # TASK 7 -------------------------------
 
 def task_7():
-    sim = simulation.make_sim()   
-    # sim.run(until=0)
-    # eps_xy = sim.get_array(
-    #     vol=p.xy_plane,
-    #     frequency=p.freq,
-    #     component=mp.Dielectric
+    # # sim = simulation.make_sim()   
+    # # sim.run(until=0)
+    # # eps_xy = sim.get_array(
+    # #     vol=p.xy_plane,
+    # #     frequency=p.freq,
+    # #     component=mp.Dielectric
+    # # )
+    # # show_data_img(datas_arr =   [eps_xy],
+    # #                   norm_bool =   [True],
+    # #                   abs_bool  =   [True],
+    # #                   cmap_arr  =   ["binary"],
+    # #                   alphas    =   [1.0],
+    # #                   IMG_CLOSE =   p.IMG_CLOSE)
+    
+    # #####################
+    # ### With antennas ###
+    # #####################
+    
+    # # collect_fields_with_output(
+    # #     sim,
+    # #     volumes={
+    # #     "xyplanar-bowtie": p.xy_plane,
+    # #     "xzplanar-bowtie": p.xz_plane,
+    # #     },
+    # #     delta_t=p.animations_step,
+    # #     until=p.sim_time,
+    # #     start_time=0
+    # # )
+    # animate_field_from_h5(
+    #     h5_filename="run-xyplanar-bowtie_ex.h5",
+    #     transpose_xy=False,
+    #     cmap="RdBu",
+    #     save_path="xyplanar-ex-bowtie.mp4",
+    #     IMG_CLOSE=p.IMG_CLOSE
     # )
-    # show_data_img(datas_arr =   [eps_xy],
-    #                   norm_bool =   [True],
-    #                   abs_bool  =   [True],
-    #                   cmap_arr  =   ["binary"],
-    #                   alphas    =   [1.0],
-    #                   IMG_CLOSE =   p.IMG_CLOSE)
+    # animate_field_from_h5(
+    #     h5_filename="run-xzplanar-bowtie_ex.h5",
+    #     transpose_xy=False,
+    #     cmap="RdBu",
+    #     save_path="xzplanar-ex-bowtie.mp4",
+    #     IMG_CLOSE=p.IMG_CLOSE
+    # )
+    # animate_field_from_h5(
+    #     h5_filename="run-xyplanar-bowtie_hy.h5",
+    #     transpose_xy=False,
+    #     cmap="RdBu",
+    #     save_path="xyplanar-hy-bowtie.mp4",
+    #     IMG_CLOSE=p.IMG_CLOSE
+    # )
+    # animate_field_from_h5(
+    #     h5_filename="run-xzplanar-bowtie_hy.h5",
+    #     transpose_xy=False,
+    #     cmap="RdBu",
+    #     save_path="xzplanar-hy-bowtie.mp4",
+    #     IMG_CLOSE=p.IMG_CLOSE
+    # )
+    # animate_field_from_h5(
+    #     h5_filename="run-xyplanar-bowtie_dpwr.h5",
+    #     transpose_xy=False,
+    #     cmap="RdBu",
+    #     save_path="xyplanar-dpwr-bowtie.mp4",
+    #     IMG_CLOSE=p.IMG_CLOSE
+    # )
+    # animate_field_from_h5(
+    #     h5_filename="run-xzplanar-bowtie_dpwr.h5",
+    #     transpose_xy=False,
+    #     cmap="RdBu",
+    #     save_path="xzplanar-dpwr-bowtie.mp4",
+    #     IMG_CLOSE=p.IMG_CLOSE
+    # )
+
+    # ########################
+    # ### Without antennas ###
+    # ########################
     
-    #####################
-    ### With antennas ###
-    #####################
-    
-    collect_fields_with_output(
-        sim,
-        volumes={
-        "xyplanar-bowtie": p.xy_plane,
-        "xzplanar-bowtie": p.xz_plane,
-        },
-        delta_t=p.animations_step,
-        until=p.sim_time,
-        start_time=0
+    # # sim.reset_meep()
+    # # p.bowtie_center = [-9999.9, -9999.9]
+
+    # # sim = simulation.make_sim()
+
+    # # collect_fields_with_output(
+    # #     sim,
+    # #     volumes={
+    # #     "xyplanar-empty": p.xy_plane,
+    # #     "xzplanar-empty": p.xz_plane,
+    # #     },
+    # #     delta_t=p.animations_step,
+    # #     until=p.sim_time,
+    # #     start_time=0
+    # # )
+    # animate_field_from_h5(
+    #     h5_filename="run-xyplanar-empty_ex.h5",
+    #     transpose_xy=False,
+    #     cmap="RdBu",
+    #     save_path="xyplanar-ex-empty.mp4",
+    #     IMG_CLOSE=p.IMG_CLOSE
+    # )
+    # animate_field_from_h5(
+    #     h5_filename="run-xzplanar-empty_ex.h5",
+    #     transpose_xy=False,
+    #     cmap="RdBu",
+    #     save_path="xzplanar-ex-empty.mp4",
+    #     IMG_CLOSE=p.IMG_CLOSE
+    # )
+    # animate_field_from_h5(
+    #     h5_filename="run-xyplanar-empty_hy.h5",
+    #     transpose_xy=False,
+    #     cmap="RdBu",
+    #     save_path="xyplanar-hy-empty.mp4",
+    #     IMG_CLOSE=p.IMG_CLOSE
+    # )
+    # animate_field_from_h5(
+    #     h5_filename="run-xzplanar-empty_hy.h5",
+    #     transpose_xy=False,
+    #     cmap="RdBu",
+    #     save_path="xzplanar-hy-empty.mp4",
+    #     IMG_CLOSE=p.IMG_CLOSE
+    # )
+    # animate_field_from_h5(
+    #     h5_filename="run-xyplanar-empty_dpwr.h5",
+    #     transpose_xy=False,
+    #     cmap="RdBu",
+    #     save_path="xyplanar-dpwr-empty.mp4",
+    #     IMG_CLOSE=p.IMG_CLOSE
+    # )
+    # animate_field_from_h5(
+    #     h5_filename="run-xzplanar-empty_dpwr.h5",
+    #     transpose_xy=False,
+    #     cmap="RdBu",
+    #     save_path="xzplanar-dpwr-empty.mp4",
+    #     IMG_CLOSE=p.IMG_CLOSE
+    # )
+
+
+
+
+
+
+
+
+
+
+    # TO DO
+    # only good function to finde ratio/enhancement is rn only collect_time_max_from_h5 .... other func sucks
+
+
+
+
+
+
+    divide_by_reference_time_max(
+        "run-xyplanar-bowtie_ex.h5",
+        "run-xyplanar-empty_ex.h5",
+        save_to="enhancement_ex.h5",
+        out_dataset_name="enhancement"
     )
+
     animate_field_from_h5(
-        h5_filename="run-xyplanar-bowtie_ex.h5",
+        h5_filename="enhancement_ex.h5",
         transpose_xy=False,
         cmap="RdBu",
-        save_path="xyplanar-bowtie.mp4",
-        IMG_CLOSE=p.IMG_CLOSE
-    )
-    animate_field_from_h5(
-        h5_filename="run-xzplanar-bowtie_ex.h5",
-        transpose_xy=False,
-        cmap="RdBu",
-        save_path="xzplanar-bowtie.mp4",
+        save_path="enhancement-ex.mp4",
         IMG_CLOSE=p.IMG_CLOSE
     )
 
-    ########################
-    ### Without antennas ###
-    ########################
-    
-    sim.reset_meep()
-    p.antenna_type = "split-bar"
-    p.center = [mp.Vector3(-9999, -9999, -9999), # upper bar
-                mp.Vector3(-9999, -9999, -9999)] # lower bar
+    # B_max = collect_time_max_from_h5(
+    #     "run-xyplanar-empty_ex.h5",
+    #     skip_fraction=0.5,
+    #     frame_width=20,
+    #     take_abs=True,
+    # )
+    # np.savetxt("bmax.txt", B_max)
 
-    sim = simulation.make_sim()
-
-    collect_fields_with_output(
-        sim,
-        volumes={
-        "xyplanar-empty": p.xy_plane,
-        "xzplanar-empty": p.xz_plane,
-        },
-        delta_t=p.animations_step,
-        until=p.sim_time,
-        start_time=0
-    )
-    animate_field_from_h5(
-        h5_filename="run-xyplanar-empty_ex.h5",
-        transpose_xy=False,
-        cmap="RdBu",
-        save_path="xyplanar-empty.mp4",
-        IMG_CLOSE=p.IMG_CLOSE
-    )
-    animate_field_from_h5(
-        h5_filename="run-xzplanar-empty_ex.h5",
-        transpose_xy=False,
-        cmap="RdBu",
-        save_path="xzplanar-empty.mp4",
-        IMG_CLOSE=p.IMG_CLOSE
-    )
+    # A_max = collect_time_max_from_h5(
+    #     "run-xyplanar-bowtie_ex.h5",
+    #     skip_fraction=0.5,
+    #     frame_width=20,
+    #     take_abs=True,
+    # )
+    # np.savetxt("amax.txt", A_max)

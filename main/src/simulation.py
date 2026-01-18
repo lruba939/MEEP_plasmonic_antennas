@@ -17,6 +17,7 @@ def make_sim():
         sources = sources.make_source(),
         resolution = p.resolution,
         k_point = mp.Vector3(),
+        symmetries=p.symmetries,
         dimensions=p.sim_dimensions
     )
     if p.sim_dimensions == 2:

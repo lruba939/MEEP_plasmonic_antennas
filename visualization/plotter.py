@@ -481,33 +481,22 @@ def animate_field_from_h5(
     vmin=None,
     vmax=None,
     transpose_xy=False,
-    axis_time=2,
     axis_x=0,
     axis_y=1,
+    axis_time=2,
     save_path=None,
-    IMG_CLOSE=False
+    IMG_CLOSE=False,
+    xzeros=50,
+    yzeros=None,
 ):
     """
-    Animate MEEP field data with EXPLICIT axis mapping.
+    Animate MEEP field data with explicit axis mapping.
 
-    Parameters
-    ----------
-    h5_filename : str
-        Path to HDF5 file
-    axis_time : int
-        Index of TIME axis in data
-    axis_x : int
-        Index of X axis in data
-    axis_y : int
-        Index of Y axis in data
-    z_index : int or None
-        If data has Z axis, pick this index (e.g. 0)
-    dataset_name : str or None
-        HDF5 dataset name
-    interval : int
-        ms between frames
-    transpose_xy : bool
-        If True, transpose frame before plotting
+    PML cleanup is done by CROPPING the data once:
+    - xzeros removes points from left/right (X axis)
+    - yzeros removes points from bottom/top (Y axis)
+
+    vmin / vmax are computed from the cropped data.
     """
 
     # --- Load data ---
@@ -516,9 +505,9 @@ def animate_field_from_h5(
             dataset_name = list(f.keys())[0]
         data = np.array(f[dataset_name])
 
-    print("RAW data shape:", data.shape)
+    # print("RAW data shape:", data.shape)
 
-    # --- If Z axis exists and is not time/x/y ---
+    # --- Handle Z axis ---
     used_axes = {axis_time, axis_x, axis_y}
     all_axes = set(range(data.ndim))
     z_axes = list(all_axes - used_axes)
@@ -529,24 +518,41 @@ def animate_field_from_h5(
         data = np.take(data, indices=z_index, axis=z_axes[0])
         print("After Z slice:", data.shape)
 
-    # --- Move axes to canonical order (T, Y, X) ---
+    # --- Reorder axes to (T, Y, X) ---
     data = np.moveaxis(
         data,
         [axis_time, axis_y, axis_x],
         [0, 1, 2]
     )
 
-    print("Reordered data shape (T,Y,X):", data.shape)
+    # print("Reordered data shape (T,Y,X):", data.shape)
 
     Nt, Ny, Nx = data.shape
 
-    # --- Color scale ---
+    # --- Cropping parameters ---
+    if yzeros is None:
+        yzeros = xzeros
+
+    xzeros = max(0, min(xzeros, Nx // 2))
+    yzeros = max(0, min(yzeros, Ny // 2))
+
+    # --- Crop data (remove PML) ---
+    y_slice = slice(yzeros, Ny - yzeros)
+    x_slice = slice(xzeros, Nx - xzeros)
+
+    data = data[:, y_slice, x_slice]
+
+    # print("Cropped data shape (T,Y,X):", data.shape)
+
+    Nt, Ny, Nx = data.shape
+
+    # --- Color scale (from cropped data) ---
     if vmin is None:
         vmin = np.min(data)
     if vmax is None:
         vmax = np.max(data)
 
-    # --- Plot ---
+    # --- Plot setup ---
     fig, ax = plt.subplots()
     frame0 = data[0]
 
@@ -564,10 +570,13 @@ def animate_field_from_h5(
 
     plt.colorbar(img, ax=ax)
 
+    # --- Animation update ---
     def update(t):
         frame = data[t]
+
         if transpose_xy:
             frame = frame.T
+
         img.set_array(frame)
         ax.set_title(f"frame {t}/{Nt-1}")
         return (img,)
@@ -583,6 +592,7 @@ def animate_field_from_h5(
     if save_path:
         anim.save(save_path, writer="ffmpeg")
 
-    if IMG_CLOSE == False:
+    if not IMG_CLOSE:
         plt.show()
+
     return anim

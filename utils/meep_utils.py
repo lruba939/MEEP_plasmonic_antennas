@@ -497,3 +497,209 @@ def collect_fields_with_output(
         run_actions.append(vol_action)
 
     sim.run(*run_actions, until=until)
+
+# def divide_by_reference_time_max(
+#     h5_target,
+#     h5_reference,
+#     axis_time=2,
+#     axis_y=0,
+#     axis_x=1,
+#     dataset_target=None,
+#     dataset_reference=None,
+#     z_index=None,
+#     xzeros=0,
+#     yzeros=None,
+#     eps=1e-12,
+#     save_to=None,
+#     out_dataset_name="enhancement",
+# ):
+#     """
+#     Compute enhancement as:
+#         enhancement[t,y,x] = A[t,y,x] / max_t B[t,y,x]
+
+#     Axes are explicitly mapped and reordered to (T, Y, X).
+
+#     Parameters
+#     ----------
+#     h5_target : str
+#         Target field HDF5 file (A)
+#     h5_reference : str
+#         Reference field HDF5 file (B)
+#     axis_time, axis_x, axis_y : int
+#         Explicit axis indices in raw datasets
+#     dataset_target, dataset_reference : str or None
+#         Dataset names (None -> first dataset)
+#     z_index : int or None
+#         Index for Z slice if extra axis exists
+#     xzeros, yzeros : int
+#         Boundary width to fill with ones (PML cleanup)
+#     eps : float
+#         Small number to avoid division by zero
+#     save_to : str or None
+#         Output HDF5 file
+#     out_dataset_name : str
+#         Dataset name for output
+
+#     Returns
+#     -------
+#     enhancement : np.ndarray
+#         Array of shape (T, Y, X)
+#     B_max : np.ndarray
+#         Reference max-in-time map (Y, X)
+#     """
+
+#     # --- Load data ---
+#     with h5py.File(h5_target, "r") as ft, h5py.File(h5_reference, "r") as fr:
+
+#         if dataset_target is None:
+#             dataset_target = list(ft.keys())[0]
+#         if dataset_reference is None:
+#             dataset_reference = list(fr.keys())[0]
+
+#         A = np.array(ft[dataset_target])
+#         B = np.array(fr[dataset_reference])
+
+#     if A.shape != B.shape:
+#         raise ValueError(f"Shape mismatch: {A.shape} vs {B.shape}")
+
+#     # print("RAW shape:", A.shape)
+
+#     # --- Handle extra axis (e.g. Z) ---
+#     used_axes = {axis_time, axis_x, axis_y}
+#     extra_axes = list(set(range(A.ndim)) - used_axes)
+
+#     if extra_axes:
+#         if z_index is None:
+#             raise ValueError("Extra axis detected but z_index not provided")
+#         A = np.take(A, indices=z_index, axis=extra_axes[0])
+#         B = np.take(B, indices=z_index, axis=extra_axes[0])
+#         # print("After Z slicing:", A.shape)
+
+#     # --- Reorder to (T, Y, X) ---
+#     A = np.moveaxis(A, [axis_time, axis_y, axis_x], [0, 1, 2])
+#     B = np.moveaxis(B, [axis_time, axis_y, axis_x], [0, 1, 2])
+
+#     # print("Reordered shape (T,Y,X):", A.shape)
+
+#     Nt, Ny, Nx = A.shape
+
+#     # --- Boundary cleanup (PML-like) ---
+#     if yzeros is None:
+#         yzeros = xzeros
+
+#     xzeros = max(0, min(xzeros, Nx // 2))
+#     yzeros = max(0, min(yzeros, Ny // 2))
+
+#     if xzeros > 0 or yzeros > 0:
+#         B[:, :yzeros, :] = 1.0
+#         B[:, -yzeros:, :] = 1.0
+#         B[:, :, :xzeros] = 1.0
+#         B[:, :, -xzeros:] = 1.0
+
+#     # --- Time-maximum reference ---
+#     B_max = np.max(B, axis=0)   # (Y, X)
+#     A_max = np.max(A, axis=0)   # (Y, X)
+
+#     np.savetxt("amax.txt", A_max)
+#     np.savetxt("bmax.txt", B_max)
+
+#     # --- Enhancement ---
+#     enhancement = A**2 / (B_max[None, :, :]**2 + eps)
+
+#     # --- Optional save ---
+#     if save_to is not None:
+#         with h5py.File(save_to, "w") as f:
+#             f.create_dataset(out_dataset_name, data=enhancement)
+#             f.create_dataset("reference_max", data=B_max)
+
+#     return enhancement, B_max
+
+def collect_time_max_from_h5(
+    h5_file,
+    axis_time=2,
+    axis_y=0,
+    axis_x=1,
+    dataset_name=None,
+    z_index=None,
+    skip_fraction=0.5,
+    frame_width=0,
+    take_abs=True,
+):
+    """
+    Collects time-maximum field map (XY) from HDF5 data,
+    equivalent to incremental np.maximum over time.
+
+    Returns a SINGLE 2D array (Y, X).
+
+    Parameters
+    ----------
+    h5_file : str
+        Path to .h5 file
+    axis_time, axis_x, axis_y : int
+        Explicit axis indices in dataset
+    dataset_name : str or None
+        Dataset name in HDF5 (None -> first)
+    z_index : int or None
+        Z slice index if extra axis exists
+    skip_fraction : float
+        Fraction of initial time steps to skip
+    frame_width : int
+        Width of border to zero (PML)
+    take_abs : bool
+        Whether to take abs() before max
+    """
+
+    # --- Load ---
+    with h5py.File(h5_file, "r") as f:
+        if dataset_name is None:
+            dataset_name = list(f.keys())[0]
+        data = np.array(f[dataset_name])
+
+    print("RAW shape:", data.shape)
+
+    # --- Handle extra axis (e.g. Z) ---
+    used_axes = {axis_time, axis_x, axis_y}
+    extra_axes = list(set(range(data.ndim)) - used_axes)
+
+    if extra_axes:
+        if z_index is None:
+            raise ValueError("Extra axis detected but z_index not provided")
+        data = np.take(data, indices=z_index, axis=extra_axes[0])
+
+    # --- Reorder to (T, Y, X) ---
+    data = np.moveaxis(
+        data,
+        [axis_time, axis_y, axis_x],
+        [0, 1, 2]
+    )
+
+    Nt, Ny, Nx = data.shape
+    print("Reordered shape (T,Y,X):", data.shape)
+
+    # --- Skip transient ---
+    start_idx = int(skip_fraction * Nt)
+    if start_idx >= Nt:
+        raise ValueError("skip_fraction too large")
+
+    # --- Initialize max map ---
+    first = data[start_idx]
+    if take_abs:
+        first = np.abs(first)
+
+    max_map = np.zeros_like(first, dtype=float)
+
+    # --- Incremental max over time ---
+    for t in range(start_idx, Nt):
+        frame = data[t]
+        if take_abs:
+            frame = np.abs(frame)
+        max_map = np.maximum(max_map, frame)
+
+    # --- Zero frame (PML-like) ---
+    if frame_width > 0:
+        max_map[:frame_width, :] = 0
+        max_map[-frame_width:, :] = 0
+        max_map[:, :frame_width] = 0
+        max_map[:, -frame_width:] = 0
+
+    return max_map
