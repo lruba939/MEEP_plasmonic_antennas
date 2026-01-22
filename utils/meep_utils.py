@@ -498,127 +498,126 @@ def collect_fields_with_output(
 
     sim.run(*run_actions, until=until)
 
-# def divide_by_reference_time_max(
-#     h5_target,
-#     h5_reference,
-#     axis_time=2,
-#     axis_y=0,
-#     axis_x=1,
-#     dataset_target=None,
-#     dataset_reference=None,
-#     z_index=None,
-#     xzeros=0,
-#     yzeros=None,
-#     eps=1e-12,
-#     save_to=None,
-#     out_dataset_name="enhancement",
-# ):
-#     """
-#     Compute enhancement as:
-#         enhancement[t,y,x] = A[t,y,x] / max_t B[t,y,x]
+def enhancement_divided_by_max(
+    h5_target,
+    h5_reference,
+    dataset_target=None,
+    dataset_reference=None,
+    z_index=None,
+    xzeros=0,
+    yzeros=None,
+    eps=1e-12,
+    save_to=None,
+    out_dataset_name="enhancement",
+):
+    """
+    Compute enhancement as:
 
-#     Axes are explicitly mapped and reordered to (T, Y, X).
+        enhancement[x,y,t] = A[x,y,t] / max_t(B[x,y,t])
 
-#     Parameters
-#     ----------
-#     h5_target : str
-#         Target field HDF5 file (A)
-#     h5_reference : str
-#         Reference field HDF5 file (B)
-#     axis_time, axis_x, axis_y : int
-#         Explicit axis indices in raw datasets
-#     dataset_target, dataset_reference : str or None
-#         Dataset names (None -> first dataset)
-#     z_index : int or None
-#         Index for Z slice if extra axis exists
-#     xzeros, yzeros : int
-#         Boundary width to fill with ones (PML cleanup)
-#     eps : float
-#         Small number to avoid division by zero
-#     save_to : str or None
-#         Output HDF5 file
-#     out_dataset_name : str
-#         Dataset name for output
+    where:
+        A = sum_i (A_i^2)
+        B = sum_i (B_i^2)
 
-#     Returns
-#     -------
-#     enhancement : np.ndarray
-#         Array of shape (T, Y, X)
-#     B_max : np.ndarray
-#         Reference max-in-time map (Y, X)
-#     """
+    FIXED ASSUMPTION:
+    -----------------
+    All datasets are stored as:
+        data[x, y, time]
 
-#     # --- Load data ---
-#     with h5py.File(h5_target, "r") as ft, h5py.File(h5_reference, "r") as fr:
+    h5_target and h5_reference can be:
+        - str (single field)
+        - list[str] (multiple field components)
 
-#         if dataset_target is None:
-#             dataset_target = list(ft.keys())[0]
-#         if dataset_reference is None:
-#             dataset_reference = list(fr.keys())[0]
+    h5_reference MUST mirror h5_target structure.
+    """
+    # --------------------------------------------------
+    # Helper: load one or many fields and sum squares
+    # --------------------------------------------------
+    def _load_and_sum_fields(h5_input, dataset_name, z_index):
+        if isinstance(h5_input, (list, tuple)):
+            fields = []
+            for h5 in h5_input:
+                fields.append(_load_and_sum_fields(h5, dataset_name, z_index))
+            return np.sum(fields, axis=0)
 
-#         A = np.array(ft[dataset_target])
-#         B = np.array(fr[dataset_reference])
+        # --- Single file case ---
+        with h5py.File(h5_input, "r") as f:
+            if dataset_name is None:
+                dataset_name = list(f.keys())[0]
+            data = np.array(f[dataset_name])
 
-#     if A.shape != B.shape:
-#         raise ValueError(f"Shape mismatch: {A.shape} vs {B.shape}")
+        # Handle optional Z axis
+        if data.ndim == 4:
+            if z_index is None:
+                raise ValueError("Z axis detected but z_index not provided")
+            data = data[:, :, z_index, :]
 
-#     # print("RAW shape:", A.shape)
+        if data.ndim != 3:
+            raise ValueError(f"Expected data[x,y,time], got {data.shape}")
 
-#     # --- Handle extra axis (e.g. Z) ---
-#     used_axes = {axis_time, axis_x, axis_y}
-#     extra_axes = list(set(range(A.ndim)) - used_axes)
+        return data**2
 
-#     if extra_axes:
-#         if z_index is None:
-#             raise ValueError("Extra axis detected but z_index not provided")
-#         A = np.take(A, indices=z_index, axis=extra_axes[0])
-#         B = np.take(B, indices=z_index, axis=extra_axes[0])
-#         # print("After Z slicing:", A.shape)
+    # --------------------------------------------------
+    # Input validation
+    # --------------------------------------------------
+    if isinstance(h5_target, (list, tuple)) != isinstance(h5_reference, (list, tuple)):
+        raise ValueError("h5_target and h5_reference must have the same structure")
 
-#     # --- Reorder to (T, Y, X) ---
-#     A = np.moveaxis(A, [axis_time, axis_y, axis_x], [0, 1, 2])
-#     B = np.moveaxis(B, [axis_time, axis_y, axis_x], [0, 1, 2])
+    if isinstance(h5_target, (list, tuple)):
+        if len(h5_target) != len(h5_reference):
+            raise ValueError("h5_target and h5_reference lists must have equal length")
 
-#     # print("Reordered shape (T,Y,X):", A.shape)
+    # --------------------------------------------------
+    # Load and combine fields
+    # --------------------------------------------------
+    A = _load_and_sum_fields(h5_target, dataset_target, z_index)
+    B = _load_and_sum_fields(h5_reference, dataset_reference, z_index)
 
-#     Nt, Ny, Nx = A.shape
+    if A.shape != B.shape:
+        raise ValueError(f"Shape mismatch: {A.shape} vs {B.shape}")
 
-#     # --- Boundary cleanup (PML-like) ---
-#     if yzeros is None:
-#         yzeros = xzeros
+    Nx, Ny, Nt = A.shape
 
-#     xzeros = max(0, min(xzeros, Nx // 2))
-#     yzeros = max(0, min(yzeros, Ny // 2))
+    # --------------------------------------------------
+    # Default yzeros
+    # --------------------------------------------------
+    if yzeros is None:
+        yzeros = xzeros
 
-#     if xzeros > 0 or yzeros > 0:
-#         B[:, :yzeros, :] = 1.0
-#         B[:, -yzeros:, :] = 1.0
-#         B[:, :, :xzeros] = 1.0
-#         B[:, :, -xzeros:] = 1.0
+    xzeros = max(0, min(xzeros, Nx // 2))
+    yzeros = max(0, min(yzeros, Ny // 2))
 
-#     # --- Time-maximum reference ---
-#     B_max = np.max(B, axis=0)   # (Y, X)
-#     A_max = np.max(A, axis=0)   # (Y, X)
+    # --------------------------------------------------
+    # Boundary cleanup (PML)
+    # --------------------------------------------------
+    if xzeros > 0 or yzeros > 0:
+        B[:xzeros, :, :] = 1.0
+        B[-xzeros:, :, :] = 1.0
+        B[:, :yzeros, :] = 1.0
+        B[:, -yzeros:, :] = 1.0
 
-#     np.savetxt("amax.txt", A_max)
-#     np.savetxt("bmax.txt", B_max)
+    # --------------------------------------------------
+    # Time max of reference
+    # --------------------------------------------------
+    B_max = np.max(B, axis=2)  # (x,y)
 
-#     # --- Enhancement ---
-#     enhancement = A**2 / (B_max[None, :, :]**2 + eps)
+    # --------------------------------------------------
+    # Enhancement
+    # --------------------------------------------------
+    enhancement = A / (B_max[:, :, None] + eps)
 
-#     # --- Optional save ---
-#     if save_to is not None:
-#         with h5py.File(save_to, "w") as f:
-#             f.create_dataset(out_dataset_name, data=enhancement)
-#             f.create_dataset("reference_max", data=B_max)
+    # --------------------------------------------------
+    # Optional save
+    # --------------------------------------------------
+    if save_to is not None:
+        with h5py.File(save_to, "w") as f:
+            f.create_dataset(out_dataset_name, data=enhancement)
+            f.create_dataset("reference_max", data=B_max)
 
-#     return enhancement, B_max
+    return enhancement, B_max
 
 def collect_time_max_from_h5(
     h5_file,
-    axis_time=2,
-    axis_y=0,
-    axis_x=1,
     dataset_name=None,
     z_index=None,
     skip_fraction=0.5,
@@ -626,80 +625,64 @@ def collect_time_max_from_h5(
     take_abs=True,
 ):
     """
-    Collects time-maximum field map (XY) from HDF5 data,
-    equivalent to incremental np.maximum over time.
+    Collects time-maximum field map from HDF5 data.
 
-    Returns a SINGLE 2D array (Y, X).
+    FIXED ASSUMPTION:
+    -----------------
+    Data layout is ALWAYS:
+        data[x, y, time]
 
-    Parameters
-    ----------
-    h5_file : str
-        Path to .h5 file
-    axis_time, axis_x, axis_y : int
-        Explicit axis indices in dataset
-    dataset_name : str or None
-        Dataset name in HDF5 (None -> first)
-    z_index : int or None
-        Z slice index if extra axis exists
-    skip_fraction : float
-        Fraction of initial time steps to skip
-    frame_width : int
-        Width of border to zero (PML)
-    take_abs : bool
-        Whether to take abs() before max
+    Returns
+    -------
+    max_map : np.ndarray
+        2D array (x, y)
     """
 
-    # --- Load ---
+    # --- Load data ---
     with h5py.File(h5_file, "r") as f:
         if dataset_name is None:
             dataset_name = list(f.keys())[0]
         data = np.array(f[dataset_name])
 
-    print("RAW shape:", data.shape)
-
-    # --- Handle extra axis (e.g. Z) ---
-    used_axes = {axis_time, axis_x, axis_y}
-    extra_axes = list(set(range(data.ndim)) - used_axes)
-
-    if extra_axes:
+    # --- Optional Z axis ---
+    # Allowed shapes:
+    #   (x, y, t)
+    #   (x, y, z, t)
+    if data.ndim == 4:
         if z_index is None:
-            raise ValueError("Extra axis detected but z_index not provided")
-        data = np.take(data, indices=z_index, axis=extra_axes[0])
+            raise ValueError("Z axis detected but z_index not provided")
+        data = data[:, :, z_index, :]
 
-    # --- Reorder to (T, Y, X) ---
-    data = np.moveaxis(
-        data,
-        [axis_time, axis_y, axis_x],
-        [0, 1, 2]
-    )
+    if data.ndim != 3:
+        raise ValueError(f"Expected data[x,y,time], got shape {data.shape}")
 
-    Nt, Ny, Nx = data.shape
-    print("Reordered shape (T,Y,X):", data.shape)
+    Nx, Ny, Nt = data.shape
 
     # --- Skip transient ---
     start_idx = int(skip_fraction * Nt)
     if start_idx >= Nt:
         raise ValueError("skip_fraction too large")
 
-    # --- Initialize max map ---
-    first = data[start_idx]
+    # --- Prepare first frame ---
+    frame0 = data[:, :, start_idx]
     if take_abs:
-        first = np.abs(first)
+        frame0 = np.abs(frame0)
 
-    max_map = np.zeros_like(first, dtype=float)
+    max_map = frame0.astype(float, copy=True)
 
     # --- Incremental max over time ---
-    for t in range(start_idx, Nt):
-        frame = data[t]
+    for t in range(start_idx + 1, Nt):
+        frame = data[:, :, t]
         if take_abs:
             frame = np.abs(frame)
-        max_map = np.maximum(max_map, frame)
+        np.maximum(max_map, frame, out=max_map)
 
     # --- Zero frame (PML-like) ---
     if frame_width > 0:
-        max_map[:frame_width, :] = 0
-        max_map[-frame_width:, :] = 0
-        max_map[:, :frame_width] = 0
-        max_map[:, -frame_width:] = 0
+        fw = min(frame_width, Nx // 2, Ny // 2)
+        max_map[:fw, :] = 0
+        max_map[-fw:, :] = 0
+        max_map[:, :fw] = 0
+        max_map[:, -fw:] = 0
 
     return max_map

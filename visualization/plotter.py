@@ -474,79 +474,52 @@ def make_field_animation(
 
 def animate_field_from_h5(
     h5_filename,
-    z_index=None,
     dataset_name=None,
     interval=50,
     cmap="inferno",
     vmin=None,
     vmax=None,
     transpose_xy=False,
-    axis_x=0,
-    axis_y=1,
-    axis_time=2,
     save_path=None,
     IMG_CLOSE=False,
-    xzeros=50,
+    xzeros=0,
     yzeros=None,
 ):
     """
-    Animate MEEP field data with explicit axis mapping.
+    Animate MEEP field data.
 
-    PML cleanup is done by CROPPING the data once:
-    - xzeros removes points from left/right (X axis)
-    - yzeros removes points from bottom/top (Y axis)
-
-    vmin / vmax are computed from the cropped data.
+    h5 file format:
+    -----------------
+    data[x, y, time]
     """
-
     # --- Load data ---
     with h5py.File(h5_filename, "r") as f:
         if dataset_name is None:
             dataset_name = list(f.keys())[0]
         data = np.array(f[dataset_name])
 
-    # print("RAW data shape:", data.shape)
+    if data.ndim != 3:
+        raise ValueError(f"Expected data[x,y,time], got {data.shape}")
 
-    # --- Handle Z axis ---
-    used_axes = {axis_time, axis_x, axis_y}
-    all_axes = set(range(data.ndim))
-    z_axes = list(all_axes - used_axes)
+    Nx, Ny, Nt = data.shape
 
-    if z_axes:
-        if z_index is None:
-            raise ValueError("Z axis present but z_index not specified")
-        data = np.take(data, indices=z_index, axis=z_axes[0])
-        print("After Z slice:", data.shape)
-
-    # --- Reorder axes to (T, Y, X) ---
-    data = np.moveaxis(
-        data,
-        [axis_time, axis_y, axis_x],
-        [0, 1, 2]
-    )
-
-    # print("Reordered data shape (T,Y,X):", data.shape)
-
-    Nt, Ny, Nx = data.shape
-
-    # --- Cropping parameters ---
+    # --- Default yzeros ---
     if yzeros is None:
         yzeros = xzeros
 
     xzeros = max(0, min(xzeros, Nx // 2))
     yzeros = max(0, min(yzeros, Ny // 2))
 
-    # --- Crop data (remove PML) ---
-    y_slice = slice(yzeros, Ny - yzeros)
-    x_slice = slice(xzeros, Nx - xzeros)
+    # --- Crop PML (still x,y,time) ---
+    data = data[
+        xzeros : Nx - xzeros,
+        yzeros : Ny - yzeros,
+        :
+    ]
 
-    data = data[:, y_slice, x_slice]
+    Nx, Ny, Nt = data.shape
 
-    # print("Cropped data shape (T,Y,X):", data.shape)
-
-    Nt, Ny, Nx = data.shape
-
-    # --- Color scale (from cropped data) ---
+    # --- Color scale ---
     if vmin is None:
         vmin = np.min(data)
     if vmax is None:
@@ -554,10 +527,11 @@ def animate_field_from_h5(
 
     # --- Plot setup ---
     fig, ax = plt.subplots()
-    frame0 = data[0]
+
+    frame0 = data[:, :, 0]   # x,y slice
 
     if transpose_xy:
-        frame0 = frame0.T
+        frame0 = frame0.T    # ONLY for display
 
     img = ax.imshow(
         frame0,
@@ -572,11 +546,9 @@ def animate_field_from_h5(
 
     # --- Animation update ---
     def update(t):
-        frame = data[t]
-
+        frame = data[:, :, t]
         if transpose_xy:
             frame = frame.T
-
         img.set_array(frame)
         ax.set_title(f"frame {t}/{Nt-1}")
         return (img,)

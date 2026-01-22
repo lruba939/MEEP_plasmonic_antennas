@@ -21,7 +21,7 @@ class SimParams:
         mp.Simulation.eps_averaging = False
         self.sim_dimensions = 3
 
-        self.resolution =   1000
+        self.resolution =   500
         self.symmetries = [
             mp.Mirror(direction=mp.X, phase=-1),
             mp.Mirror(direction=mp.Y, phase=+1)
