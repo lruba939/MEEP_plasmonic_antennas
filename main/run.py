@@ -7,7 +7,7 @@ from utils.sys_utils import *
 def run():
 
     ### Set paths to save results
-    SIM_NAME = "test3D"
+    SIM_NAME = "TEST_res250_bow_tie_antenna_3D"
     #############################
     
     p.path_to_save = os.path.join("results", SIM_NAME)

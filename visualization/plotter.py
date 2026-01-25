@@ -474,26 +474,102 @@ def make_field_animation(
 
 def animate_field_from_h5(
     h5_filename,
+    load_h5data_path=None,
+    save_name=None,
+    save_path=None,
     dataset_name=None,
     interval=50,
     cmap="inferno",
     vmin=None,
     vmax=None,
     transpose_xy=False,
-    save_path=None,
     IMG_CLOSE=False,
     xzeros=0,
     yzeros=None,
 ):
     """
-    Animate MEEP field data.
+    Animate time-dependent field data stored in an HDF5 file.
 
-    h5 file format:
+    FIXED DATA FORMAT
     -----------------
-    data[x, y, time]
+    The HDF5 dataset is assumed to have the layout:
+        data[x, y, time]
+
+    No axis reordering or transposition of the data array is performed.
+    Any transpose is applied ONLY at the visualization level.
+
+    Parameters
+    ----------
+    h5_filename : str
+        Name of the HDF5 file containing field data.
+        If `load_h5data_path` is provided, this is treated as a filename
+        relative to that directory.
+
+    dataset_name : str or None, optional
+        Name of the dataset inside the HDF5 file.
+        If None, the first dataset found in the file is used.
+
+    interval : int, optional
+        Delay between animation frames in milliseconds.
+
+    cmap : str, optional
+        Matplotlib colormap used for rendering the field.
+
+    vmin, vmax : float or None, optional
+        Color scale limits.
+        If None, they are computed from the cropped data.
+
+    transpose_xy : bool, optional
+        If True, transpose X and Y axes for display purposes ONLY.
+        This does NOT affect the underlying data array.
+
+    save_path : str or None, optional
+        Directory where the animation file should be saved.
+        If None, the animation is not saved to disk.
+
+    save_name : str or None, optional
+        Name of the output animation file (e.g. "field.mp4").
+        Used only if `save_path` is not None.
+        If None and `save_path` is given, defaults to "<h5_filename>.mp4".
+
+    load_h5data_path : str or None, optional
+        Directory in which the HDF5 file is searched.
+        If None, `h5_filename` is interpreted as a full or relative path.
+
+    IMG_CLOSE : bool, optional
+        If True, the matplotlib window is not displayed (useful for batch runs).
+
+    xzeros : int, optional
+        Number of grid points to crop from left and right boundaries (PML removal).
+
+    yzeros : int or None, optional
+        Number of grid points to crop from bottom and top boundaries.
+        If None, defaults to `xzeros`.
+
+    Returns
+    -------
+    anim : matplotlib.animation.FuncAnimation
+        The generated animation object.
     """
-    # --- Load data ---
-    with h5py.File(h5_filename, "r") as f:
+
+    import os
+    import h5py
+    import numpy as np
+    import matplotlib.pyplot as plt
+    from matplotlib.animation import FuncAnimation
+
+    # --------------------------------------------------
+    # Resolve HDF5 file path
+    # --------------------------------------------------
+    if load_h5data_path is not None:
+        h5_path = os.path.join(load_h5data_path, h5_filename)
+    else:
+        h5_path = h5_filename
+
+    # --------------------------------------------------
+    # Load data
+    # --------------------------------------------------
+    with h5py.File(h5_path, "r") as f:
         if dataset_name is None:
             dataset_name = list(f.keys())[0]
         data = np.array(f[dataset_name])
@@ -503,14 +579,18 @@ def animate_field_from_h5(
 
     Nx, Ny, Nt = data.shape
 
-    # --- Default yzeros ---
+    # --------------------------------------------------
+    # Default yzeros
+    # --------------------------------------------------
     if yzeros is None:
         yzeros = xzeros
 
     xzeros = max(0, min(xzeros, Nx // 2))
     yzeros = max(0, min(yzeros, Ny // 2))
 
-    # --- Crop PML (still x,y,time) ---
+    # --------------------------------------------------
+    # Crop PML regions (x,y only)
+    # --------------------------------------------------
     data = data[
         xzeros : Nx - xzeros,
         yzeros : Ny - yzeros,
@@ -519,19 +599,22 @@ def animate_field_from_h5(
 
     Nx, Ny, Nt = data.shape
 
-    # --- Color scale ---
+    # --------------------------------------------------
+    # Color scale
+    # --------------------------------------------------
     if vmin is None:
         vmin = np.min(data)
     if vmax is None:
         vmax = np.max(data)
 
-    # --- Plot setup ---
+    # --------------------------------------------------
+    # Plot setup
+    # --------------------------------------------------
     fig, ax = plt.subplots()
 
-    frame0 = data[:, :, 0]   # x,y slice
-
+    frame0 = data[:, :, 0]
     if transpose_xy:
-        frame0 = frame0.T    # ONLY for display
+        frame0 = frame0.T
 
     img = ax.imshow(
         frame0,
@@ -544,7 +627,9 @@ def animate_field_from_h5(
 
     plt.colorbar(img, ax=ax)
 
-    # --- Animation update ---
+    # --------------------------------------------------
+    # Animation update
+    # --------------------------------------------------
     def update(t):
         frame = data[:, :, t]
         if transpose_xy:
@@ -561,9 +646,22 @@ def animate_field_from_h5(
         blit=True,
     )
 
-    if save_path:
-        anim.save(save_path, writer="ffmpeg")
+    # --------------------------------------------------
+    # Save animation
+    # --------------------------------------------------
+    if save_path is not None:
+        os.makedirs(save_path, exist_ok=True)
 
+        if save_name is None:
+            base = os.path.splitext(os.path.basename(h5_filename))[0]
+            save_name = f"{base}.mp4"
+
+        save_fullpath = os.path.join(save_path, save_name)
+        anim.save(save_fullpath, writer="ffmpeg")
+
+    # --------------------------------------------------
+    # Show / close
+    # --------------------------------------------------
     if not IMG_CLOSE:
         plt.show()
 

@@ -295,26 +295,41 @@ def task_7():
     collect_fields_with_output(
         sim,
         volumes={
-        "xyplanar-bowtie": p.xy_plane,
-        "xzplanar-bowtie": p.xz_plane,
-        },
+            "xyplanar-bowtie": p.xy_plane,
+            "xzplanar-bowtie": p.xz_plane,
+            "yzplanar-bowtie": p.yz_plane,
+            },
         delta_t=p.animations_step,
         until=p.sim_time,
-        start_time=0
+        start_time=0,
+        path=p.path_to_save
     )
     
     animate_field_from_h5(
-        h5_filename="run-xyplanar-bowtie_ex.h5",
+        h5_filename="xyplanar-bowtie_ex.h5",
+        save_name="xyplanar-bowtie_ex.mp4",
+        load_h5data_path=p.path_to_save,
+        save_path=p.animations_folder_path,
         transpose_xy=True,
         cmap="RdBu",
-        save_path="xyplanar-bowtie_ex.mp4",
         IMG_CLOSE=p.IMG_CLOSE
     )
     animate_field_from_h5(
-        h5_filename="run-xzplanar-bowtie_ex.h5",
+        h5_filename="xzplanar-bowtie_ex.h5",
+        save_name="xzplanar-bowtie_ex.mp4",
+        load_h5data_path=p.path_to_save,
+        save_path=p.animations_folder_path,
         transpose_xy=True,
         cmap="RdBu",
-        save_path="xzplanar-bowtie_ex.mp4",
+        IMG_CLOSE=p.IMG_CLOSE
+    )
+    animate_field_from_h5(
+        h5_filename="yzplanar-bowtie_ex.h5",
+        save_name="yzplanar-bowtie_ex.mp4",
+        load_h5data_path=p.path_to_save,
+        save_path=p.animations_folder_path,
+        transpose_xy=True,
+        cmap="RdBu",
         IMG_CLOSE=p.IMG_CLOSE
     )
 
@@ -332,59 +347,100 @@ def task_7():
         volumes={
         "xyplanar-empty": p.xy_plane,
         "xzplanar-empty": p.xz_plane,
+        "yzplanar-empty": p.yz_plane
         },
         delta_t=p.animations_step,
         until=p.sim_time,
-        start_time=0
+        start_time=0,
+        path=p.path_to_save
     )
     
     animate_field_from_h5(
-        h5_filename="run-xyplanar-empty_ex.h5",
+        h5_filename="xyplanar-empty_ex.h5",
+        save_name="xyplanar-empty_ex.mp4",
+        load_h5data_path=p.path_to_save,
+        save_path=p.animations_folder_path,
         transpose_xy=True,
         cmap="RdBu",
-        save_path="xyplanar-empty_ex.mp4",
         IMG_CLOSE=p.IMG_CLOSE
     )
     animate_field_from_h5(
-        h5_filename="run-xzplanar-empty_ex.h5",
+        h5_filename="xzplanar-empty_ex.h5",
+        save_name="xzplanar-empty_ex.mp4",
+        load_h5data_path=p.path_to_save,
+        save_path=p.animations_folder_path,
         transpose_xy=True,
         cmap="RdBu",
-        save_path="xzplanar-empty_ex.mp4",
         IMG_CLOSE=p.IMG_CLOSE
     )
+    animate_field_from_h5(
+        h5_filename="yzplanar-empty_ex.h5",
+        save_name="yzplanar-empty_ex.mp4",
+        load_h5data_path=p.path_to_save,
+        save_path=p.animations_folder_path,
+        transpose_xy=True,
+        cmap="RdBu",
+        IMG_CLOSE=p.IMG_CLOSE
+    )
+    
     
     ####################
     ### Calculations ###
     ####################
     
     ### XY plane
-    enhancement_divided_by_max(
-        ["run-xyplanar-bowtie_ex.h5", "run-xyplanar-bowtie_ey.h5", "run-xyplanar-bowtie_ez.h5"],
-        ["run-xyplanar-empty_ex.h5", "run-xyplanar-empty_ey.h5", "run-xyplanar-empty_ez.h5"],
+    enhancement_divided_by_maxes_arr(
+        ["xyplanar-bowtie_ex.h5", "xyplanar-bowtie_ey.h5", "xyplanar-bowtie_ez.h5"],
+        ["xyplanar-empty_ex.h5", "xyplanar-empty_ey.h5", "xyplanar-empty_ez.h5"],
         save_to="enhancement_xy_exyz.h5",
+        path=p.path_to_save,
         out_dataset_name="enhancement"
     )
 
     animate_field_from_h5(
         h5_filename="enhancement_xy_exyz.h5",
+        save_name="enhancement_xy_exyz.mp4",
+        load_h5data_path=p.path_to_save,
+        save_path=p.animations_folder_path,
         transpose_xy=True,
         cmap="RdBu",
-        save_path="enhancement_xy_exyz.mp4",
         IMG_CLOSE=p.IMG_CLOSE
     )
     
     ### XZ plane
-    enhancement_divided_by_max(
-        ["run-xzplanar-bowtie_ex.h5", "run-xzplanar-bowtie_ey.h5", "run-xzplanar-bowtie_ez.h5"],
-        ["run-xzplanar-empty_ex.h5", "run-xzplanar-empty_ey.h5", "run-xzplanar-empty_ez.h5"],
+    enhancement_divided_by_maxes_arr(
+        ["xzplanar-bowtie_ex.h5", "xzplanar-bowtie_ey.h5", "xzplanar-bowtie_ez.h5"],
+        ["xzplanar-empty_ex.h5", "xzplanar-empty_ey.h5", "xzplanar-empty_ez.h5"],
         save_to="enhancement_xz_exyz.h5",
+        path=p.path_to_save,
         out_dataset_name="enhancement"
     )
 
     animate_field_from_h5(
         h5_filename="enhancement_xz_exyz.h5",
+        save_name="enhancement_xz_exyz.mp4",
+        load_h5data_path=p.path_to_save,
+        save_path=p.animations_folder_path,
         transpose_xy=True,
         cmap="RdBu",
-        save_path="enhancement_xz_exyz.mp4",
+        IMG_CLOSE=p.IMG_CLOSE
+    )
+
+    ### YZ plane
+    enhancement_divided_by_maxes_arr(
+        ["yzplanar-bowtie_ex.h5", "yzplanar-bowtie_ey.h5", "yzplanar-bowtie_ez.h5"],
+        ["yzplanar-empty_ex.h5", "yzplanar-empty_ey.h5", "yzplanar-empty_ez.h5"],
+        save_to="enhancement_yz_exyz.h5",
+        path=p.path_to_save,
+        out_dataset_name="enhancement"
+    )
+
+    animate_field_from_h5(
+        h5_filename="enhancement_yz_exyz.h5",
+        save_name="enhancement_yz_exyz.mp4",
+        load_h5data_path=p.path_to_save,
+        save_path=p.animations_folder_path,
+        transpose_xy=True,
+        cmap="RdBu",
         IMG_CLOSE=p.IMG_CLOSE
     )

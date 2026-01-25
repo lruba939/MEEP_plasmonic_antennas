@@ -21,7 +21,7 @@ class SimParams:
         mp.Simulation.eps_averaging = False
         self.sim_dimensions = 3
 
-        self.resolution =   500
+        self.resolution =   250
         self.symmetries = [
             mp.Mirror(direction=mp.X, phase=-1),
             mp.Mirror(direction=mp.Y, phase=+1)
@@ -101,6 +101,11 @@ class SimParams:
                                   size=mp.Vector3(
                                       self.xyz_cell[0],
                                       0,
+                                      self.xyz_cell[2]))
+        self.yz_plane = mp.Volume(center=mp.Vector3(0,0,0),
+                                  size=mp.Vector3(
+                                      0,
+                                      self.xyz_cell[1],
                                       self.xyz_cell[2]))
         
         ###### Simulation settings ######
