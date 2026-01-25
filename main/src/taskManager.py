@@ -285,7 +285,11 @@ def task_6():
 # TASK 7 -------------------------------
 
 def task_7():
-    
+    if not os.path.exists(p.path_to_save):
+        os.makedirs(p.path_to_save)
+    if not os.path.exists(p.animations_folder_path):
+        os.makedirs(p.animations_folder_path)
+    p.saveParams(filename=os.path.join(p.path_to_save, "simulation_params.txt"))
     sim = simulation.make_sim()   
     
     #####################
@@ -295,9 +299,9 @@ def task_7():
     collect_fields_with_output(
         sim,
         volumes={
-            "xyplanar-bowtie": p.xy_plane,
-            "xzplanar-bowtie": p.xz_plane,
-            "yzplanar-bowtie": p.yz_plane,
+            "xyplanar": p.xy_plane,
+            "xzplanar": p.xz_plane,
+            "yzplanar": p.yz_plane,
             },
         delta_t=p.animations_step,
         until=p.sim_time,
@@ -306,8 +310,8 @@ def task_7():
     )
     
     animate_field_from_h5(
-        h5_filename="xyplanar-bowtie_ex.h5",
-        save_name="xyplanar-bowtie_ex.mp4",
+        h5_filename="xyplanar_ex.h5",
+        save_name="xyplanar_ex.mp4",
         load_h5data_path=p.path_to_save,
         save_path=p.animations_folder_path,
         transpose_xy=True,
@@ -315,8 +319,8 @@ def task_7():
         IMG_CLOSE=p.IMG_CLOSE
     )
     animate_field_from_h5(
-        h5_filename="xzplanar-bowtie_ex.h5",
-        save_name="xzplanar-bowtie_ex.mp4",
+        h5_filename="xzplanar_ex.h5",
+        save_name="xzplanar_ex.mp4",
         load_h5data_path=p.path_to_save,
         save_path=p.animations_folder_path,
         transpose_xy=True,
@@ -324,8 +328,8 @@ def task_7():
         IMG_CLOSE=p.IMG_CLOSE
     )
     animate_field_from_h5(
-        h5_filename="yzplanar-bowtie_ex.h5",
-        save_name="yzplanar-bowtie_ex.mp4",
+        h5_filename="yzplanar_ex.h5",
+        save_name="yzplanar_ex.mp4",
         load_h5data_path=p.path_to_save,
         save_path=p.animations_folder_path,
         transpose_xy=True,
@@ -339,6 +343,8 @@ def task_7():
     
     sim.reset_meep()
     p.bowtie_center = [-9999.9, -9999.9]
+    p.center = [mp.Vector3(-9999, -9999, -9999), # upper bar
+                mp.Vector3(-9999, -9999, -9999)] # lower bar
 
     sim = simulation.make_sim()
 
@@ -390,7 +396,7 @@ def task_7():
     
     ### XY plane
     enhancement_divided_by_maxes_arr(
-        ["xyplanar-bowtie_ex.h5", "xyplanar-bowtie_ey.h5", "xyplanar-bowtie_ez.h5"],
+        ["xyplanar_ex.h5", "xyplanar_ey.h5", "xyplanar_ez.h5"],
         ["xyplanar-empty_ex.h5", "xyplanar-empty_ey.h5", "xyplanar-empty_ez.h5"],
         save_to="enhancement_xy_exyz.h5",
         path=p.path_to_save,
@@ -409,7 +415,7 @@ def task_7():
     
     ### XZ plane
     enhancement_divided_by_maxes_arr(
-        ["xzplanar-bowtie_ex.h5", "xzplanar-bowtie_ey.h5", "xzplanar-bowtie_ez.h5"],
+        ["xzplanar_ex.h5", "xzplanar_ey.h5", "xzplanar_ez.h5"],
         ["xzplanar-empty_ex.h5", "xzplanar-empty_ey.h5", "xzplanar-empty_ez.h5"],
         save_to="enhancement_xz_exyz.h5",
         path=p.path_to_save,
@@ -428,7 +434,7 @@ def task_7():
 
     ### YZ plane
     enhancement_divided_by_maxes_arr(
-        ["yzplanar-bowtie_ex.h5", "yzplanar-bowtie_ey.h5", "yzplanar-bowtie_ez.h5"],
+        ["yzplanar_ex.h5", "yzplanar_ey.h5", "yzplanar_ez.h5"],
         ["yzplanar-empty_ex.h5", "yzplanar-empty_ey.h5", "yzplanar-empty_ez.h5"],
         save_to="enhancement_yz_exyz.h5",
         path=p.path_to_save,

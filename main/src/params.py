@@ -30,17 +30,18 @@ class SimParams:
         ###### Geometry ######
         # self.xyz_cell   =   [(264)/xm, (181)/xm, 0.0]  # For hardcoding
         self.material   =   Au
-        self.gap_size   =   16/xm
         self.pad        =   40/xm
         self.pml        =   30/xm
         # self.pml        =   (self.lambda0 + self.lambda0*0.5 ) / 2 #Should be: d_PML = lambda_max / 2
         
         ### Diferent antenna types parameters ###
         # Antenna type is a string defining the type of antenna to be used in the simulation
-        self.antenna_type = "bow-tie"  # options: "bow-tie", "split-bar"
-        # self.antenna_type = "split-bar"
+        # self.antenna_type = "bow-tie"  # options: "bow-tie", "split-bar"
+        self.antenna_type = "split-bar"
 
         # Bow tie antenna dimensions
+        if self.antenna_type == "bow-tie":
+            self.gap_size   =   16/xm
         self.bowtie_amp         =   76/xm
         self.bowtie_radius      =   12/xm
         self.bowtie_thickness   =   24/xm # thickness value CANT be zero !!!
@@ -54,9 +55,11 @@ class SimParams:
                                  self.bowtie_thickness+self.pad*2+self.pml*2]             # z
             
         # Split bar antenna dimensions
-        self.x_width    =   130/2.0/xm
+        if self.antenna_type == "split-bar":
+            self.gap_size   =   10/xm
+        self.x_width    =   124/2.0/xm
         self.y_length   =   5/xm
-        self.z_height   =   24/xm
+        self.z_height   =   5/xm
         self.center     =   [mp.Vector3(self.x_width/2.0 + self.gap_size/2.0, 0.0, 0.0), # left bar
                             mp.Vector3((-1)*(self.x_width/2.0 + self.gap_size/2.0), 0.0, 0.0)] # right bar
         if self.antenna_type == "split-bar":
