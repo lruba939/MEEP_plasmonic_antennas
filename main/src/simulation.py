@@ -41,7 +41,7 @@ def start_calc(sim):
     con.E_comp_data_container = E_data
 
 def start_empty_cell_calc():
-    p.center = [mp.Vector3(-9999, -9999, -9999), # upper bar
+    p.splitbar_center = [mp.Vector3(-9999, -9999, -9999), # upper bar
                 mp.Vector3(-9999, -9999, -9999)] # lower bar
     p.bowtie_center = [-9999, -9999]
     
@@ -52,7 +52,7 @@ def start_empty_cell_calc():
     E_data = sim.get_array(center=mp.Vector3(), size=p.xyz_cell, component=p.component)
     con.empty_cell_E_comp_data_container = E_data
 
-    p.center = [mp.Vector3(p.x_width/2.0 + p.gap_size/2.0, 0.0, 0.0), # left bar
+    p.splitbar_center = [mp.Vector3(p.x_width/2.0 + p.gap_size/2.0, 0.0, 0.0), # left bar
                 mp.Vector3((-1)*(p.x_width/2.0 + p.gap_size/2.0), 0.0, 0.0)] # right bar
     p.bowtie_center = [0.0, 0.0]
     sim.reset_meep()

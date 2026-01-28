@@ -2,7 +2,7 @@
 import os
 import numpy as np
 import meep as mp
-from meep.materials import Au, Cr, W, SiO2, Ag
+from meep.materials import Au, Ti, SiO2
 # !!! Fitting parameters for all materials are defined for a unit distance of 1 µm.
 xm = 1000 # nm to um conversion factor
 
@@ -21,7 +21,7 @@ class SimParams:
         mp.Simulation.eps_averaging = False
         self.sim_dimensions = 3
 
-        self.resolution =   250
+        self.resolution =   500
         self.symmetries = [
             mp.Mirror(direction=mp.X, phase=-1),
             mp.Mirror(direction=mp.Y, phase=+1)
@@ -36,8 +36,9 @@ class SimParams:
         
         ### Diferent antenna types parameters ###
         # Antenna type is a string defining the type of antenna to be used in the simulation
-        # self.antenna_type = "bow-tie"  # options: "bow-tie", "split-bar"
-        self.antenna_type = "split-bar"
+        # self.antenna_type = "bow-tie"  # options: "bow-tie", "split-bar", "custom-split-bar"
+        # self.antenna_type = "split-bar"
+        self.antenna_type = "custom-split-bar"
 
         # Bow tie antenna dimensions
         if self.antenna_type == "bow-tie":
@@ -60,12 +61,36 @@ class SimParams:
         self.x_width    =   124/2.0/xm
         self.y_length   =   5/xm
         self.z_height   =   5/xm
-        self.center     =   [mp.Vector3(self.x_width/2.0 + self.gap_size/2.0, 0.0, 0.0), # left bar
-                            mp.Vector3((-1)*(self.x_width/2.0 + self.gap_size/2.0), 0.0, 0.0)] # right bar
         if self.antenna_type == "split-bar":
+            self.splitbar_center     =   [mp.Vector3(self.x_width/2.0 + self.gap_size/2.0, 0.0, 0.0), # left bar
+                                mp.Vector3((-1)*(self.x_width/2.0 + self.gap_size/2.0), 0.0, 0.0)] # right bar
             self.xyz_cell   =   [self.x_width*2+self.gap_size+self.pad*2+self.pml*2,   # x
-                                 self.y_length+self.pad*2+self.pml*2,                   # y
-                                 self.z_height+self.pad*2+self.pml*2]             # z
+                                 self.y_length+self.pad*2+self.pml*2,                  # y
+                                 self.z_height+self.pad*2+self.pml*2]                  # z
+        
+        # Custom antenna
+        if self.antenna_type == "custom-split-bar":
+            self.gap_size   =   30/xm
+        self.Au_part = np.array([1800, 240, 30]) / xm
+        self.material_1 = Au
+        self.Ti_part = np.array([1800, 240, 5]) / xm
+        self.material_2 = Ti
+
+        self.x_width    =   self.Au_part[0]
+        self.y_length   =   self.Au_part[1]
+        
+        # self.SiO2_part = np.array([self.x_width*2+self.gap_size+self.pad*2+self.pml*2,
+        #                            self.y_length+self.pad*2+self.pml*2,
+        #                            100 / xm])
+        # self.material_3 = SiO2
+
+        self.z_height   =   self.Au_part[2] + self.Ti_part[2] # + self.SiO2_part[2]
+        if self.antenna_type == "custom-split-bar":
+            self.custom_center     =   [mp.Vector3(self.x_width/2.0 + self.gap_size/2.0, 0.0, 0.0), # left bar
+                                mp.Vector3((-1)*(self.x_width/2.0 + self.gap_size/2.0), 0.0, 0.0)] # right bar
+            self.xyz_cell   =   [self.x_width*2+self.gap_size+self.pad*2+self.pml*2,   # x
+                                 self.y_length+self.pad*2+self.pml*2,                  # y
+                                 self.z_height+self.pad*2+self.pml*2]    
         
         if self.sim_dimensions == 2:
             self.xyz_cell[2] = 0.0  # Ensure z dimension is zero for 2D simulations
@@ -73,8 +98,8 @@ class SimParams:
         ###### Source ######
         self.src_type   =   "gaussian"  # options: "continuous", "gaussian"
         self.src_is_integrated = False # if source overlaps with PML regions use True
-        self.lambda0    =   800/xm # nm
-        self.src_width  =   600/xm # temporal width (sigma) of the Gaussian envelope; controls spectral bandwidth
+        self.lambda0    =   8100/xm # nm
+        self.src_width  =   1000/xm # temporal width (sigma) of the Gaussian envelope; controls spectral bandwidth
         self.freq       =   1.0 / self.lambda0
         self.freq_width =   1.0 / self.src_width
         self.component  =   mp.Ex
@@ -89,7 +114,7 @@ class SimParams:
             self.src_size   =   [self.xyz_cell[0],   # x
                                  self.xyz_cell[1],                   # y
                                  0.0]                                                # z
-        elif self.antenna_type == "split-bar":
+        elif self.antenna_type == "split-bar" or self.antenna_type == "custom-split-bar":
             self.src_size   =   [(self.x_width*2+self.gap_size+self.pad*2)*0.9,    # x
                                  (self.y_length+self.pad*2)*0.9,                   # y
                                  0.0]                                              # z
@@ -113,11 +138,11 @@ class SimParams:
         
         ###### Simulation settings ######
         self.Courant_factor         =   0.5
-        self.sim_time               =   7000/xm
+        self.sim_time               =   9000/xm
         # self.animations_step        =   self.Courant_factor * (1 / self.resolution) # From dt = S * dx / c, where c=1 in MEEP units
         self.animations_step        =   22/xm
-        self.animations_until       =   7000/xm
-        self.animations_fps         =   10
+        self.animations_until       =   9000/xm
+        self.animations_fps         =   15
         self.path_to_save           =   "results/"
         self.animations_folder_path =   os.path.join(self.path_to_save, "animations")
 

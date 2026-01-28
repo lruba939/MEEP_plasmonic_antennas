@@ -139,7 +139,7 @@ def task_4(skip_fraction=0.15, E_plot=False):
                         IMG_CLOSE =   p.IMG_CLOSE)
     
     # --- Without antennas ---
-    p.center = [mp.Vector3(0, 0, -10.), 
+    p.splitbar_center = [mp.Vector3(0, 0, -10.), 
                 mp.Vector3(0, 0, -10.)]
     p.bowtie_center = [-9999, -9999]
     sim = simulation.make_sim()
@@ -223,7 +223,7 @@ def task_6():
                                           Ex=[], Ey=[],
                                           E2=[], H2=[])
     # --- Without antennas ---
-    p.center = [mp.Vector3(0, 0, -10.), 
+    p.splitbar_center = [mp.Vector3(0, 0, -10.), 
                 mp.Vector3(0, 0, -10.)]
     p.bowtie_center = [-9999, -9999]
     sim = simulation.make_sim()
@@ -285,10 +285,6 @@ def task_6():
 # TASK 7 -------------------------------
 
 def task_7():
-    if not os.path.exists(p.path_to_save):
-        os.makedirs(p.path_to_save)
-    if not os.path.exists(p.animations_folder_path):
-        os.makedirs(p.animations_folder_path)
     p.saveParams(filename=os.path.join(p.path_to_save, "simulation_params.txt"))
     sim = simulation.make_sim()   
     
@@ -343,7 +339,9 @@ def task_7():
     
     sim.reset_meep()
     p.bowtie_center = [-9999.9, -9999.9]
-    p.center = [mp.Vector3(-9999, -9999, -9999), # upper bar
+    p.splitbar_center = [mp.Vector3(-9999, -9999, -9999), # upper bar
+                mp.Vector3(-9999, -9999, -9999)] # lower bar
+    p.custom_center = [mp.Vector3(-9999, -9999, -9999), # upper bar
                 mp.Vector3(-9999, -9999, -9999)] # lower bar
 
     sim = simulation.make_sim()
@@ -450,3 +448,56 @@ def task_7():
         cmap="RdBu",
         IMG_CLOSE=p.IMG_CLOSE
     )
+
+# TASK 8 -------------------------------
+
+def task_8():
+    sim = simulation.make_sim()
+    sim.run(until=0.2)
+    ### XY plane
+    eps_xy = sim.get_array(
+        vol=p.xy_plane,
+        frequency=p.freq,
+        component=mp.Dielectric
+    )
+    show_data_img(datas_arr =   [eps_xy],
+                      norm_bool =   [True],
+                      abs_bool  =   [True],
+                      cmap_arr  =   ["binary"],
+                      alphas    =   [1.0],
+                      IMG_CLOSE =   p.IMG_CLOSE,
+                      Title="Dielectric constant in XY plane",
+                      disable_ticks=False,
+                      name_to_save=os.path.join(p.path_to_save, "dielectric_XY_plane.png"))
+    ### XZ plane
+    eps_xz = sim.get_array(
+        vol=p.xz_plane,
+        frequency=p.freq,
+        component=mp.Dielectric
+    )
+    show_data_img(datas_arr =   [eps_xz],
+                      norm_bool =   [True],
+                      abs_bool  =   [True],
+                      cmap_arr  =   ["binary"],
+                      alphas    =   [1.0],
+                      IMG_CLOSE =   p.IMG_CLOSE,
+                      Title="Dielectric constant in XZ plane",
+                      disable_ticks=False,
+                      name_to_save=os.path.join(p.path_to_save, "dielectric_XZ_plane.png"))
+    ### YZ plane
+    eps_yz = sim.get_array(
+        vol=p.yz_plane,
+        frequency=p.freq,
+        component=mp.Dielectric
+    )
+    show_data_img(datas_arr =   [eps_yz],
+                      norm_bool =   [True],
+                      abs_bool  =   [True],
+                      cmap_arr  =   ["binary"],
+                      alphas    =   [1.0],
+                      IMG_CLOSE =   p.IMG_CLOSE,
+                      Title="Dielectric constant in YZ plane",
+                      disable_ticks=False,
+                      name_to_save=os.path.join(p.path_to_save, "dielectric_YZ_plane.png"))
+    
+    sim.reset_meep()

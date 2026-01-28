@@ -5,7 +5,7 @@ import os
 from visualization.plotter import *
 # !!!!!!!!! ---> from main.src.simulation import * # CANT IMPORT DUE TO CIRCULAR DEPENDENCY
 
-def show_data_img(datas_arr, abs_bool, norm_bool, cmap_arr, alphas, name_to_save=None, IMG_CLOSE=False):
+def show_data_img(datas_arr, abs_bool, norm_bool, cmap_arr, alphas, name_to_save=None, IMG_CLOSE=False, Title=None, disable_ticks=True):
     """
     Displays a series of images from a given array of data.
 
@@ -26,9 +26,12 @@ def show_data_img(datas_arr, abs_bool, norm_bool, cmap_arr, alphas, name_to_save
             max_data = np.max(data)
             data = data / max_data # complex -> real
         plt.imshow(data.transpose(), interpolation="spline36", cmap=cmap_arr[idx], alpha=alphas[idx])
+        plt.colorbar(shrink=0.6)  # Show color scale
+    if disable_ticks:
         plt.xticks([])  # Turn off x-axis numbers
         plt.yticks([])  # Turn off y-axis numbers
-        plt.colorbar(shrink=0.6)  # Show color scale
+    if Title is not None:
+        plt.title(Title)
     if name_to_save is not None:
         plt.savefig(f"{name_to_save}.png", dpi=300, bbox_inches="tight", format="png")
     if IMG_CLOSE:

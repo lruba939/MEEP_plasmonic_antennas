@@ -16,6 +16,8 @@ def make_medium():
         geometry = make_split_bar()
     elif p.antenna_type == "bow-tie":
         geometry = make_bow_tie()
+    elif p.antenna_type == "custom-split-bar":
+        geometry = make_custom_split_bar()
     else:
         raise ValueError(f"Unknown antenna type: {p.antenna_type}")
     return geometry
@@ -24,13 +26,13 @@ def make_split_bar():
     split_bar = [
         mp.Block(
             mp.Vector3(p.x_width, p.y_length, p.z_height),
-            center = p.center[0], # upper bar
+            center = p.splitbar_center[0], # upper bar
             material = p.material,
         ),
         
         mp.Block(
             mp.Vector3(p.x_width, p.y_length, p.z_height),
-            center = p.center[1], # lower bar
+            center = p.splitbar_center[1], # lower bar
             material = p.material,
         )
     ]
@@ -84,6 +86,35 @@ def make_bow_tie():
         )
 
     return bow_tie
+
+def make_custom_split_bar():
+    custom_split_bar = [
+        # RIGHT BAR
+        mp.Block(
+            mp.Vector3(p.x_width, p.y_length, p.Au_part[2]),
+            center = p.custom_center[0], # right bar
+            material = p.material_1,
+        ),
+        mp.Block(
+            mp.Vector3(p.x_width, p.y_length, p.Ti_part[2]),
+            center = p.custom_center[0] - mp.Vector3(0, 0, p.Au_part[2]/2.0 + p.Ti_part[2]/2.0) , # right bar
+            material = p.material_2,
+        ),
+        
+        # LEFT BAR
+        mp.Block(
+            mp.Vector3(p.x_width, p.y_length, p.Au_part[2]),
+            center = p.custom_center[1], # left bar
+            material = p.material_1,
+        ),
+
+        mp.Block(
+            mp.Vector3(p.x_width, p.y_length, p.Ti_part[2]),
+            center = p.custom_center[1] - mp.Vector3(0, 0, p.Au_part[2]/2.0 + p.Ti_part[2]/2.0) , # left bar
+            material = p.material_2,
+        )
+    ]
+    return custom_split_bar
 
 # rounded edges !!!
 
