@@ -43,54 +43,51 @@ class SimParams:
         # Bow tie antenna dimensions
         if self.antenna_type == "bow-tie":
             self.gap_size   =   16/xm
-        self.bowtie_amp         =   76/xm
-        self.bowtie_radius      =   12/xm
-        self.bowtie_thickness   =   24/xm # thickness value CANT be zero !!!
-        self.bowtie_flare_angle = 60.0 # we need to know the opening angle to compute the corrected gap size, sorry but im lazy...
-        if self.bowtie_radius > 0 + 1e-12 and self.antenna_type == "bow-tie": # + to avoid floating point errors
-            self.gap_size = self.corrected_gap(self.gap_size, self.bowtie_radius, np.deg2rad(self.bowtie_flare_angle))
-        self.bowtie_center     =   [0.0, 0.0]
-        if self.antenna_type == "bow-tie":
+            self.bowtie_amp         =   76/xm
+            self.bowtie_radius      =   12/xm
+            self.bowtie_thickness   =   24/xm # thickness value CANT be zero !!!
+            self.bowtie_flare_angle = 60.0 # we need to know the opening angle to compute the corrected gap size, sorry but im lazy...
+            if self.bowtie_radius > 0 + 1e-12 and self.antenna_type == "bow-tie": # + to avoid floating point errors
+                self.gap_size = self.corrected_gap(self.gap_size, self.bowtie_radius, np.deg2rad(self.bowtie_flare_angle))
+            self.bowtie_center     =   [0.0, 0.0]
             self.xyz_cell   =   [self.bowtie_amp*2+self.gap_size+self.pad*2+self.pml*2,   # x
-                                 self.bowtie_amp+self.pad*2+self.pml*2,                   # y
-                                 self.bowtie_thickness+self.pad*2+self.pml*2]             # z
+                                self.bowtie_amp+self.pad*2+self.pml*2,                   # y
+                                self.bowtie_thickness+self.pad*2+self.pml*2]             # z
             
         # Split bar antenna dimensions
         if self.antenna_type == "split-bar":
             self.gap_size   =   10/xm
-        self.x_width    =   124/2.0/xm
-        self.y_length   =   5/xm
-        self.z_height   =   5/xm
-        if self.antenna_type == "split-bar":
+            self.x_width    =   124/2.0/xm
+            self.y_length   =   5/xm
+            self.z_height   =   5/xm
             self.splitbar_center     =   [mp.Vector3(self.x_width/2.0 + self.gap_size/2.0, 0.0, 0.0), # left bar
                                 mp.Vector3((-1)*(self.x_width/2.0 + self.gap_size/2.0), 0.0, 0.0)] # right bar
             self.xyz_cell   =   [self.x_width*2+self.gap_size+self.pad*2+self.pml*2,   # x
-                                 self.y_length+self.pad*2+self.pml*2,                  # y
-                                 self.z_height+self.pad*2+self.pml*2]                  # z
+                                self.y_length+self.pad*2+self.pml*2,                  # y
+                                self.z_height+self.pad*2+self.pml*2]                  # z
         
         # Custom antenna
         if self.antenna_type == "custom-split-bar":
-            self.gap_size   =   30/xm
-        self.Au_part = np.array([1800, 240, 30]) / xm
-        self.material_1 = Au
-        self.Ti_part = np.array([1800, 240, 5]) / xm
-        self.material_2 = Ti
+            self.gap_size   =   10/xm
+            self.Au_part = np.array([1800, 240, 30]) / xm
+            self.material_1 = Au
+            self.Ti_part = np.array([1800, 240, 5]) / xm
+            self.material_2 = Ti
 
-        self.x_width    =   self.Au_part[0]
-        self.y_length   =   self.Au_part[1]
-        
-        # self.SiO2_part = np.array([self.x_width*2+self.gap_size+self.pad*2+self.pml*2,
-        #                            self.y_length+self.pad*2+self.pml*2,
-        #                            100 / xm])
-        # self.material_3 = SiO2
+            self.x_width    =   self.Au_part[0]
+            self.y_length   =   self.Au_part[1]
+            
+            # self.SiO2_part = np.array([self.x_width*2+self.gap_size+self.pad*2+self.pml*2,
+            #                            self.y_length+self.pad*2+self.pml*2,
+            #                            100 / xm])
+            # self.material_3 = SiO2
 
-        self.z_height   =   self.Au_part[2] + self.Ti_part[2] # + self.SiO2_part[2]
-        if self.antenna_type == "custom-split-bar":
+            self.z_height   =   self.Au_part[2] + self.Ti_part[2] # + self.SiO2_part[2]
             self.custom_center     =   [mp.Vector3(self.x_width/2.0 + self.gap_size/2.0, 0.0, 0.0), # left bar
-                                mp.Vector3((-1)*(self.x_width/2.0 + self.gap_size/2.0), 0.0, 0.0)] # right bar
+                                        mp.Vector3((-1)*(self.x_width/2.0 + self.gap_size/2.0), 0.0, 0.0)] # right bar
             self.xyz_cell   =   [self.x_width*2+self.gap_size+self.pad*2+self.pml*2,   # x
-                                 self.y_length+self.pad*2+self.pml*2,                  # y
-                                 self.z_height+self.pad*2+self.pml*2]    
+                                self.y_length+self.pad*2+self.pml*2,                  # y
+                                self.z_height+self.pad*2+self.pml*2]    
         
         if self.sim_dimensions == 2:
             self.xyz_cell[2] = 0.0  # Ensure z dimension is zero for 2D simulations
@@ -98,14 +95,14 @@ class SimParams:
         ###### Source ######
         self.src_type   =   "gaussian"  # options: "continuous", "gaussian"
         self.src_is_integrated = False # if source overlaps with PML regions use True
-        self.lambda0    =   8100/xm # nm
-        self.src_width  =   1000/xm # temporal width (sigma) of the Gaussian envelope; controls spectral bandwidth
+        self.lambda0    =   800/xm # nm
+        self.src_width  =   100/xm # temporal width (sigma) of the Gaussian envelope; controls spectral bandwidth
         self.freq       =   1.0 / self.lambda0
         self.freq_width =   1.0 / self.src_width
         self.component  =   mp.Ex
         self.src_amp    =   1.0
-        self.src_cutoff =   5  # number of widths used to smoothly turn on/off the source; reduces high-frequency artifacts
-        self.xyz_src    =   [0.0, 0.0, self.bowtie_thickness*2.0]
+        self.src_cutoff =   3  # number of widths used to smoothly turn on/off the source; reduces high-frequency artifacts
+        self.xyz_src    =   [0.0, 0.0, self.bowtie_thickness*2.0 if self.antenna_type == "bow-tie" else self.z_height*1.5]  # z position of the source
         # self.src_size   =   [160.0/xm, 100.0/xm, 0.0]
         if self.antenna_type == "bow-tie":
             # self.src_size   =   [(self.bowtie_amp*2+self.gap_size+self.pad*2)*0.9,   # x
@@ -125,6 +122,11 @@ class SimParams:
                                       self.xyz_cell[0],
                                       self.xyz_cell[1],
                                       0.0))
+        self.xy_plane_UP = mp.Volume(center=mp.Vector3(0,0,self.bowtie_thickness if self.antenna_type == "bow-tie" else self.z_height/2.0),
+                                  size=mp.Vector3(
+                                      self.xyz_cell[0],
+                                      self.xyz_cell[1],
+                                      0.0))
         self.xz_plane = mp.Volume(center=mp.Vector3(0,0,0),
                                   size=mp.Vector3(
                                       self.xyz_cell[0],
@@ -135,6 +137,17 @@ class SimParams:
                                       0,
                                       self.xyz_cell[1],
                                       self.xyz_cell[2]))
+        
+        # ###### Harmonic inversion parameters ######
+        # self.harminv_cfg = {
+        #     "component": self.component,
+        #     "point": mp.Vector3(0, 0, 0 if self.antenna_type == "bow-tie" else 0),
+        #     "fcen": self.freq,
+        #     "df": self.freq_width*3,
+        #     "mxbands": 30,
+        #     "filename": "harminv_gap.txt"
+        # }
+        # Nie działa tutaj ze względu na szybkie zanikanie sygnału w gapie... trzeba to robić ręcznie poprzez sweep po freq. w źródle CW
         
         ###### Simulation settings ######
         self.Courant_factor         =   0.5

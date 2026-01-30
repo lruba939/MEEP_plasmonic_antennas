@@ -54,7 +54,7 @@ def run():
     # print_task(6, "Enhanced field calculation in the gap region.")
     # task_6()
 
-    gaps = [30]  # nm
+    gaps = [10]  # nm
     for gap in gaps:
         print(f"--- Starting simulation for gap size: {gap} nm ---")
         p.gap_size = gap / 1000  # Convert nm to um
@@ -71,17 +71,11 @@ def run():
         if not os.path.exists(p.animations_folder_path):
             os.makedirs(p.animations_folder_path)
 
-        #--- Task 8 ---
-        print_task(8, "3D geometry check.")
-        task_8()
-
         #--- Task 7 ---
         print_task(7, "3D.")
         task_7()
 
         p.reset_to_defaults()
-
-
     
 if __name__ == "__main__":
     run()

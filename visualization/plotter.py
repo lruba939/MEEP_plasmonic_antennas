@@ -552,12 +552,6 @@ def animate_field_from_h5(
         The generated animation object.
     """
 
-    import os
-    import h5py
-    import numpy as np
-    import matplotlib.pyplot as plt
-    from matplotlib.animation import FuncAnimation
-
     # --------------------------------------------------
     # Resolve HDF5 file path
     # --------------------------------------------------
@@ -664,5 +658,207 @@ def animate_field_from_h5(
     # --------------------------------------------------
     if not IMG_CLOSE:
         plt.show()
+
+    return anim
+
+def animate_field_from_h5_physical(
+    h5_filename,
+    load_h5data_path=None,
+    save_name=None,
+    save_path=None,
+    dataset_name=None,
+    interval=50,
+    cmap="inferno",
+    vmin=None,
+    vmax=None,
+    transpose_xy=False,
+    IMG_CLOSE=False,
+
+    # --- physical axis definition ---
+    x_phys_range=None,   # (xmin, xmax) e.g. (-2000, 2000)
+    y_phys_range=None,   # (ymin, ymax)
+
+    # --- PML / border crop ---
+    xzeros=0,
+    yzeros=None,
+
+    # --- zoom (fraction of current size) ---
+    x_zoom=1.0,
+    y_zoom=1.0,
+
+    # --- artifact killing (set value to 1) ---
+    mask_left=0,
+    mask_right=0,
+    mask_bottom=0,
+    mask_top=0,
+):
+    """
+    Animate 2D field data stored as data[x, y, time] with:
+    - user-defined physical axes
+    - centered zoom
+    - independent edge masking
+    """
+    # --------------------------------------------------
+    # Sanity checks
+    # --------------------------------------------------
+    if x_phys_range is None or y_phys_range is None:
+        raise ValueError(
+            "You must provide x_phys_range and y_phys_range, "
+            "e.g. x_phys_range=(-2000,2000)"
+        )
+
+    # --------------------------------------------------
+    # Resolve HDF5 path
+    # --------------------------------------------------
+    h5_path = (
+        os.path.join(load_h5data_path, h5_filename)
+        if load_h5data_path is not None
+        else h5_filename
+    )
+
+    # --------------------------------------------------
+    # Load data
+    # --------------------------------------------------
+    with h5py.File(h5_path, "r") as f:
+        if dataset_name is None:
+            dataset_name = list(f.keys())[0]
+        data = np.array(f[dataset_name])
+
+    if data.ndim != 3:
+        raise ValueError(f"Expected data[x,y,time], got {data.shape}")
+
+    Nx0, Ny0, Nt = data.shape
+
+    if yzeros is None:
+        yzeros = xzeros
+
+    # --------------------------------------------------
+    # Crop PML regions (ONCE)
+    # --------------------------------------------------
+    xzeros = min(xzeros, Nx0 // 2)
+    yzeros = min(yzeros, Ny0 // 2)
+
+    data = data[
+        xzeros : Nx0 - xzeros,
+        yzeros : Ny0 - yzeros,
+        :
+    ]
+
+    Nx, Ny, Nt = data.shape
+
+    # --------------------------------------------------
+    # Artifact masking (ONCE, BEFORE scaling)
+    # --------------------------------------------------
+    if mask_left > 0:
+        data[:mask_left, :, :] = 1.0
+    if mask_right > 0:
+        data[-mask_right:, :, :] = 1.0
+    if mask_bottom > 0:
+        data[:, :mask_bottom, :] = 1.0
+    if mask_top > 0:
+        data[:, -mask_top:, :] = 1.0
+
+    # --------------------------------------------------
+    # Zoom (fractional, centered)
+    # --------------------------------------------------
+    cx, cy = Nx // 2, Ny // 2
+
+    hx = int(0.5 * x_zoom * Nx)
+    hy = int(0.5 * y_zoom * Ny)
+
+    x1, x2 = cx - hx, cx + hx
+    y1, y2 = cy - hy, cy + hy
+
+    data = data[x1:x2, y1:y2, :]
+
+    Nx, Ny, Nt = data.shape
+
+    # --------------------------------------------------
+    # Physical axes (mapped from user-defined ranges)
+    # --------------------------------------------------
+    x_min0, x_max0 = x_phys_range
+    y_min0, y_max0 = y_phys_range
+
+    x_full = np.linspace(x_min0, x_max0, Nx0 - 2 * xzeros)
+    y_full = np.linspace(y_min0, y_max0, Ny0 - 2 * yzeros)
+
+    x_phys = x_full[x1:x2]
+    y_phys = y_full[y1:y2]
+
+    extent = [
+        x_phys[0], x_phys[-1],
+        y_phys[0], y_phys[-1]
+    ]
+
+    # --------------------------------------------------
+    # Color scale (AFTER everything)
+    # --------------------------------------------------
+    if vmin is None:
+        vmin = np.min(data)
+    if vmax is None:
+        vmax = np.max(data)
+
+    # --------------------------------------------------
+    # Plot setup
+    # --------------------------------------------------
+    fig, ax = plt.subplots()
+
+    frame0 = data[:, :, 0]
+    if transpose_xy:
+        frame0 = frame0.T
+
+    img = ax.imshow(
+        frame0,
+        origin="lower",
+        cmap=cmap,
+        vmin=vmin,
+        vmax=vmax,
+        extent=extent,
+        aspect="auto",
+    )
+
+    ax.set_xlabel("x [nm]")
+    ax.set_ylabel("y [nm]")
+
+    plt.colorbar(img, ax=ax)
+
+    # --------------------------------------------------
+    # Animation update
+    # --------------------------------------------------
+    def update(t):
+        frame = data[:, :, t]
+        if transpose_xy:
+            frame = frame.T
+        img.set_array(frame)
+        ax.set_title(f"frame {t}/{Nt-1}")
+        return (img,)
+
+    anim = FuncAnimation(
+        fig,
+        update,
+        frames=Nt,
+        interval=interval,
+        blit=True,
+    )
+
+    # --------------------------------------------------
+    # Save animation
+    # --------------------------------------------------
+    if save_path is not None:
+        os.makedirs(save_path, exist_ok=True)
+
+        if save_name is None:
+            base = os.path.splitext(os.path.basename(h5_filename))[0]
+            save_name = f"{base}.mp4"
+
+        anim.save(os.path.join(save_path, save_name), writer="ffmpeg")
+
+    # --------------------------------------------------
+    # Show / close
+    # --------------------------------------------------
+    if not IMG_CLOSE:
+        plt.show()
+    else:
+        plt.close(fig)
 
     return anim

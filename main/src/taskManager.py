@@ -296,6 +296,7 @@ def task_7():
         sim,
         volumes={
             "xyplanar": p.xy_plane,
+            "xyplanarUP": p.xy_plane_UP,
             "xzplanar": p.xz_plane,
             "yzplanar": p.yz_plane,
             },
@@ -350,6 +351,7 @@ def task_7():
         sim,
         volumes={
         "xyplanar-empty": p.xy_plane,
+        "xyplanar-emptyUP": p.xy_plane_UP,
         "xzplanar-empty": p.xz_plane,
         "yzplanar-empty": p.yz_plane
         },
@@ -410,7 +412,90 @@ def task_7():
         cmap="RdBu",
         IMG_CLOSE=p.IMG_CLOSE
     )
+
+    animate_field_from_h5_physical(
+        h5_filename="enhancement_xy_exyz.h5",
+        load_h5data_path=p.path_to_save,
+        save_name="enhancement_ZOOM_xy_exyz.mp4",
+        save_path=p.animations_folder_path,
+        dataset_name=None,
+        interval=50,
+        cmap="inferno",
+        vmin=None,
+        vmax=None,
+        transpose_xy=True,
+        IMG_CLOSE=p.IMG_CLOSE,
+
+        # --- physical axis definition ---
+        x_phys_range=[-p.xyz_cell[0]/2.0*1e3, p.xyz_cell[0]/2.0*1e3],
+        y_phys_range=[-p.xyz_cell[1]/2.0*1e3, p.xyz_cell[1]/2.0*1e3],
+
+        # --- PML / border crop ---
+        xzeros=0,
+        yzeros=None,
+
+        # --- zoom (fraction of size) ---
+        x_zoom=0.15,
+        y_zoom=1.0,
+
+        # --- artifact killing (set to 1) ---
+        mask_left=0,
+        mask_right=0,
+        mask_bottom=20,
+        mask_top=20,
+    )
+
+    ### XY UP plane
+    enhancement_divided_by_maxes_arr(
+        ["xyplanarUP_ex.h5", "xyplanarUP_ey.h5", "xyplanarUP_ez.h5"],
+        ["xyplanar-emptyUP_ex.h5", "xyplanar-emptyUP_ey.h5", "xyplanar-emptyUP_ez.h5"],
+        save_to="enhancement_xyUP_exyz.h5",
+        path=p.path_to_save,
+        out_dataset_name="enhancement"
+    )
+
+    animate_field_from_h5(
+        h5_filename="enhancement_xyUP_exyz.h5",
+        save_name="enhancement_xyUP_exyz.mp4",
+        load_h5data_path=p.path_to_save,
+        save_path=p.animations_folder_path,
+        transpose_xy=True,
+        cmap="RdBu",
+        IMG_CLOSE=p.IMG_CLOSE
+    )
     
+    animate_field_from_h5_physical(
+        h5_filename="enhancement_xyUP_exyz.h5",
+        load_h5data_path=p.path_to_save,
+        save_name="enhancement_ZOOM_xyUP_exyz.mp4",
+        save_path=p.animations_folder_path,
+        dataset_name=None,
+        interval=50,
+        cmap="inferno",
+        vmin=None,
+        vmax=None,
+        transpose_xy=True,
+        IMG_CLOSE=p.IMG_CLOSE,
+
+        # --- physical axis definition ---
+        x_phys_range=[-p.xyz_cell[0]/2.0*1e3, p.xyz_cell[0]/2.0*1e3],
+        y_phys_range=[-p.xyz_cell[1]/2.0*1e3, p.xyz_cell[1]/2.0*1e3],
+
+        # --- PML / border crop ---
+        xzeros=0,
+        yzeros=None,
+
+        # --- zoom (fraction of size) ---
+        x_zoom=0.15,
+        y_zoom=1.0,
+
+        # --- artifact killing (set to 1) ---
+        mask_left=0,
+        mask_right=0,
+        mask_bottom=20,
+        mask_top=20,
+    )
+
     ### XZ plane
     enhancement_divided_by_maxes_arr(
         ["xzplanar_ex.h5", "xzplanar_ey.h5", "xzplanar_ez.h5"],
@@ -430,6 +515,39 @@ def task_7():
         IMG_CLOSE=p.IMG_CLOSE
     )
 
+    animate_field_from_h5_physical(
+        h5_filename="enhancement_xz_exyz.h5",
+        load_h5data_path=p.path_to_save,
+        save_name="enhancement_ZOOM_xz_exyz.mp4",
+        save_path=p.animations_folder_path,
+        dataset_name=None,
+        interval=50,
+        cmap="inferno",
+        vmin=None,
+        vmax=None,
+        transpose_xy=True,
+        IMG_CLOSE=p.IMG_CLOSE,
+
+        # --- physical axis definition ---
+        x_phys_range=[-p.xyz_cell[0]/2.0*1e3, p.xyz_cell[0]/2.0*1e3],
+        y_phys_range=[-p.xyz_cell[2]/2.0*1e3, p.xyz_cell[2]/2.0*1e3],
+
+        # --- PML / border crop ---
+        xzeros=0,
+        yzeros=None,
+
+        # --- zoom (fraction of size) ---
+        x_zoom=0.15,
+        y_zoom=0.50,
+
+        # --- artifact killing (set to 1) ---
+        mask_left=0,
+        mask_right=0,
+        mask_bottom=20,
+        mask_top=20,
+    )
+    sim.reset_meep()
+
     ### YZ plane
     enhancement_divided_by_maxes_arr(
         ["yzplanar_ex.h5", "yzplanar_ey.h5", "yzplanar_ez.h5"],
@@ -447,6 +565,38 @@ def task_7():
         transpose_xy=True,
         cmap="RdBu",
         IMG_CLOSE=p.IMG_CLOSE
+    )
+
+    animate_field_from_h5_physical(
+        h5_filename="enhancement_yz_exyz.h5",
+        load_h5data_path=p.path_to_save,
+        save_name="enhancement_ZOOM_yz_exyz.mp4",
+        save_path=p.animations_folder_path,
+        dataset_name=None,
+        interval=50,
+        cmap="inferno",
+        vmin=None,
+        vmax=None,
+        transpose_xy=True,
+        IMG_CLOSE=p.IMG_CLOSE,
+
+        # --- physical axis definition ---
+        x_phys_range=[-p.xyz_cell[1]/2.0*1e3, p.xyz_cell[1]/2.0*1e3],
+        y_phys_range=[-p.xyz_cell[2]/2.0*1e3, p.xyz_cell[2]/2.0*1e3],
+
+        # --- PML / border crop ---
+        xzeros=0,
+        yzeros=None,
+
+        # --- zoom (fraction of size) ---
+        x_zoom=1.0,
+        y_zoom=1.0,
+
+        # --- artifact killing (set to 1) ---
+        mask_left=0,
+        mask_right=0,
+        mask_bottom=20,
+        mask_top=20,
     )
 
 # TASK 8 -------------------------------
@@ -498,6 +648,5 @@ def task_8():
                       IMG_CLOSE =   p.IMG_CLOSE,
                       Title="Dielectric constant in YZ plane",
                       disable_ticks=False,
-                      name_to_save=os.path.join(p.path_to_save, "dielectric_YZ_plane.png"))
-    
+                      name_to_save=os.path.join(p.path_to_save, "dielectric_YZ_plane.png"))    
     sim.reset_meep()
