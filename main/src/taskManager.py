@@ -650,3 +650,97 @@ def task_8():
                       disable_ticks=False,
                       name_to_save=os.path.join(p.path_to_save, "dielectric_YZ_plane.png"))    
     sim.reset_meep()
+    
+def task_9():
+    ####################
+    ### Calculations ###
+    ####################
+    
+    ### XY plane
+    structure_XY = {
+        "type": "splitbar",
+        "bars": [
+            {"center": ((p.x_width/2.0 + p.gap_size/2.0)*1e3, 0), "width": p.Au_part[0]*1e3, "height": p.Au_part[1]*1e3},
+            {"center": (-(p.x_width/2.0 + p.gap_size/2.0)*1e3, 0), "width": p.Au_part[0]*1e3, "height": p.Au_part[1]*1e3},
+        ]
+    }
+    
+    # animate_field_from_h5_physical(
+    #     h5_filename="enhancement_xy_exyz.h5",
+    #     load_h5data_path=p.path_to_save,
+    #     save_name="enhancement_ZOOM_xy_exyz_WITH_STRUCTURE.mp4",
+    #     save_path=p.animations_folder_path,
+    #     dataset_name=None,
+    #     interval=50,
+    #     cmap="inferno",
+    #     vmin=None,
+    #     vmax=None,
+    #     transpose_xy=True,
+    #     IMG_CLOSE=p.IMG_CLOSE,
+
+    #     # --- physical axis definition ---
+    #     x_phys_range=[-p.xyz_cell[0]/2.0*1e3, p.xyz_cell[0]/2.0*1e3],
+    #     y_phys_range=[-p.xyz_cell[1]/2.0*1e3, p.xyz_cell[1]/2.0*1e3],
+
+    #     # --- PML / border crop ---
+    #     xzeros=0,
+    #     yzeros=None,
+
+    #     # --- zoom (fraction of size) ---
+    #     x_zoom=0.15,
+    #     y_zoom=1.0,
+
+    #     # --- artifact killing (set to 1) ---
+    #     mask_left=0,
+    #     mask_right=0,
+    #     mask_bottom=20,
+    #     mask_top=20,
+        
+    #     # --- structure overlay ---
+    #     structure=structure_XY
+    # )
+    
+    plot_field_frame_from_h5_physical(
+        frame_index=258,
+        h5_filename="enhancement_xy_exyz.h5",
+        load_h5data_path=p.path_to_save,
+        # save_name="enhancement_frame_xy_exyz_WITH_STRUCTURE.png",
+        # save_path=p.animations_folder_path,
+        dataset_name=None,
+        cmap="inferno",
+        vmin=None,
+        vmax=None,
+        transpose_xy=True,
+        IMG_CLOSE=False,
+
+        # --- physical axis definition ---
+        x_phys_range=[-p.xyz_cell[0]/2.0*1e3, p.xyz_cell[0]/2.0*1e3],
+        y_phys_range=[-p.xyz_cell[1]/2.0*1e3, p.xyz_cell[1]/2.0*1e3],
+
+        # --- PML / border crop ---
+        xzeros=0,
+        yzeros=None,
+
+        # --- zoom (fraction of size) ---
+        x_zoom=0.15,
+        y_zoom=1.0,
+
+        # --- artifact killing (set to 1) ---
+        mask_left=0,
+        mask_right=0,
+        mask_bottom=20,
+        mask_top=20,
+        
+        # --- averaging ---
+        threshold=550,
+
+        # --- structure overlay ---
+        structure=structure_XY,
+        
+        # --- plot text ---
+        title="Field enhancement |E|^2 in XY plane",
+        mean_prefix="|E^2| = ",
+        mean_position=(0.02, 0.95),
+        mean_color="white",
+        mean_fontsize=12
+    )

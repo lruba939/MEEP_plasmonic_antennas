@@ -7,6 +7,7 @@ import os
 import h5py
 from matplotlib.animation import FuncAnimation
 from mpl_toolkits.mplot3d import Axes3D
+from matplotlib.patches import Rectangle
 
 # Global settings for plotting
 
@@ -686,25 +687,28 @@ def animate_field_from_h5_physical(
     x_zoom=1.0,
     y_zoom=1.0,
 
-    # --- artifact killing (set value to 1) ---
+    # --- artifact killing ---
     mask_left=0,
     mask_right=0,
     mask_bottom=0,
     mask_top=0,
+
+    # --- structure overlay ---
+    structure=None,
 ):
     """
     Animate 2D field data stored as data[x, y, time] with:
-    - user-defined physical axes
+    - physical axes
     - centered zoom
-    - independent edge masking
+    - optional structure overlay
     """
+
     # --------------------------------------------------
     # Sanity checks
     # --------------------------------------------------
     if x_phys_range is None or y_phys_range is None:
         raise ValueError(
-            "You must provide x_phys_range and y_phys_range, "
-            "e.g. x_phys_range=(-2000,2000)"
+            "You must provide x_phys_range and y_phys_range"
         )
 
     # --------------------------------------------------
@@ -733,7 +737,7 @@ def animate_field_from_h5_physical(
         yzeros = xzeros
 
     # --------------------------------------------------
-    # Crop PML regions (ONCE)
+    # Crop PML regions
     # --------------------------------------------------
     xzeros = min(xzeros, Nx0 // 2)
     yzeros = min(yzeros, Ny0 // 2)
@@ -747,7 +751,7 @@ def animate_field_from_h5_physical(
     Nx, Ny, Nt = data.shape
 
     # --------------------------------------------------
-    # Artifact masking (ONCE, BEFORE scaling)
+    # Artifact masking
     # --------------------------------------------------
     if mask_left > 0:
         data[:mask_left, :, :] = 1.0
@@ -759,7 +763,7 @@ def animate_field_from_h5_physical(
         data[:, -mask_top:, :] = 1.0
 
     # --------------------------------------------------
-    # Zoom (fractional, centered)
+    # Zoom (centered)
     # --------------------------------------------------
     cx, cy = Nx // 2, Ny // 2
 
@@ -770,11 +774,10 @@ def animate_field_from_h5_physical(
     y1, y2 = cy - hy, cy + hy
 
     data = data[x1:x2, y1:y2, :]
-
     Nx, Ny, Nt = data.shape
 
     # --------------------------------------------------
-    # Physical axes (mapped from user-defined ranges)
+    # Physical axes
     # --------------------------------------------------
     x_min0, x_max0 = x_phys_range
     y_min0, y_max0 = y_phys_range
@@ -787,11 +790,11 @@ def animate_field_from_h5_physical(
 
     extent = [
         x_phys[0], x_phys[-1],
-        y_phys[0], y_phys[-1]
+        y_phys[0], y_phys[-1],
     ]
 
     # --------------------------------------------------
-    # Color scale (AFTER everything)
+    # Color scale
     # --------------------------------------------------
     if vmin is None:
         vmin = np.min(data)
@@ -819,8 +822,14 @@ def animate_field_from_h5_physical(
 
     ax.set_xlabel("x [nm]")
     ax.set_ylabel("y [nm]")
-
     plt.colorbar(img, ax=ax)
+
+    # --------------------------------------------------
+    # Structure overlay (STATIC)
+    # --------------------------------------------------
+    if structure is not None:
+        if structure["type"] == "splitbar":
+            draw_splitbar_outline(ax, structure["bars"])
 
     # --------------------------------------------------
     # Animation update
@@ -846,11 +855,9 @@ def animate_field_from_h5_physical(
     # --------------------------------------------------
     if save_path is not None:
         os.makedirs(save_path, exist_ok=True)
-
         if save_name is None:
             base = os.path.splitext(os.path.basename(h5_filename))[0]
             save_name = f"{base}.mp4"
-
         anim.save(os.path.join(save_path, save_name), writer="ffmpeg")
 
     # --------------------------------------------------
@@ -862,3 +869,279 @@ def animate_field_from_h5_physical(
         plt.close(fig)
 
     return anim
+
+def draw_splitbar_outline(
+    ax,
+    bars,
+    linestyle=":",
+    linewidth=1.5,
+    alpha=0.5,
+    color="white",
+    zorder=10,
+):
+    """
+    Draw dashed outlines of split-bar antenna.
+
+    Parameters
+    ----------
+    ax : matplotlib.axes.Axes
+        Axis to draw on.
+
+    bars : list of dict
+        Each dict must contain:
+            - center : (x, y) in physical units
+            - width  : bar length
+            - height : bar thickness
+
+    linestyle : str
+        Matplotlib linestyle (default '--').
+
+    linewidth : float
+        Line width.
+
+    alpha : float
+        Transparency.
+
+    color : str
+        Line color.
+
+    zorder : int
+        Draw order (should be above field image).
+    """
+
+    for bar in bars:
+        cx, cy = bar["center"]
+        w = bar["width"]
+        h = bar["height"]
+
+        rect = Rectangle(
+            (cx - w / 2, cy - h / 2),
+            w,
+            h,
+            fill=False,
+            edgecolor=color,
+            linestyle=linestyle,
+            linewidth=linewidth,
+            alpha=alpha,
+            zorder=zorder,
+        )
+        ax.add_patch(rect)
+        
+def plot_field_frame_from_h5_physical(
+    h5_filename,
+    frame_index,
+    load_h5data_path=None,
+    dataset_name=None,
+    cmap="inferno",
+    vmin=None,
+    vmax=None,
+    transpose_xy=False,
+
+    # --- physical axis definition ---
+    x_phys_range=None,
+    y_phys_range=None,
+
+    # --- PML / border crop ---
+    xzeros=0,
+    yzeros=None,
+
+    # --- zoom ---
+    x_zoom=1.0,
+    y_zoom=1.0,
+
+    # --- artifact killing ---
+    mask_left=0,
+    mask_right=0,
+    mask_bottom=0,
+    mask_top=0,
+
+    # --- averaging ---
+    threshold=1.5,
+
+    # --- structure overlay ---
+    structure=None,
+
+    # --- plot text ---
+    title=None,
+    mean_prefix="|E^2| = ",
+    mean_position=(0.02, 0.95),
+    mean_color="white",
+    mean_fontsize=12,
+
+    # --- misc ---
+    IMG_CLOSE=False,
+):
+    """
+    Plot a single 2D field frame with:
+    - physical axes
+    - zoom & crop
+    - optional structure overlay
+    - mean value computed above threshold
+    """
+
+    # --------------------------------------------------
+    # Sanity checks
+    # --------------------------------------------------
+    if x_phys_range is None or y_phys_range is None:
+        raise ValueError("You must provide x_phys_range and y_phys_range")
+
+    # --------------------------------------------------
+    # Resolve HDF5 path
+    # --------------------------------------------------
+    h5_path = (
+        os.path.join(load_h5data_path, h5_filename)
+        if load_h5data_path is not None
+        else h5_filename
+    )
+
+    # --------------------------------------------------
+    # Load data
+    # --------------------------------------------------
+    with h5py.File(h5_path, "r") as f:
+        if dataset_name is None:
+            dataset_name = list(f.keys())[0]
+        data = np.array(f[dataset_name])
+
+    if data.ndim != 3:
+        raise ValueError(f"Expected data[x,y,time], got {data.shape}")
+
+    Nx0, Ny0, Nt = data.shape
+
+    if frame_index < 0 or frame_index >= Nt:
+        raise ValueError(f"frame_index must be in [0, {Nt-1}]")
+
+    if yzeros is None:
+        yzeros = xzeros
+
+    # --------------------------------------------------
+    # Crop PML
+    # --------------------------------------------------
+    xzeros = min(xzeros, Nx0 // 2)
+    yzeros = min(yzeros, Ny0 // 2)
+
+    data = data[
+        xzeros : Nx0 - xzeros,
+        yzeros : Ny0 - yzeros,
+        :
+    ]
+
+    Nx, Ny, Nt = data.shape
+
+    # --------------------------------------------------
+    # Artifact masking
+    # --------------------------------------------------
+    if mask_left > 0:
+        data[:mask_left, :, :] = 1.0
+    if mask_right > 0:
+        data[-mask_right:, :, :] = 1.0
+    if mask_bottom > 0:
+        data[:, :mask_bottom, :] = 1.0
+    if mask_top > 0:
+        data[:, -mask_top:, :] = 1.0
+
+    # --------------------------------------------------
+    # Zoom (centered)
+    # --------------------------------------------------
+    cx, cy = Nx // 2, Ny // 2
+    hx = int(0.5 * x_zoom * Nx)
+    hy = int(0.5 * y_zoom * Ny)
+
+    x1, x2 = cx - hx, cx + hx
+    y1, y2 = cy - hy, cy + hy
+
+    data = data[x1:x2, y1:y2, :]
+    Nx, Ny, Nt = data.shape
+
+    # --------------------------------------------------
+    # Physical axes
+    # --------------------------------------------------
+    x_min0, x_max0 = x_phys_range
+    y_min0, y_max0 = y_phys_range
+
+    x_full = np.linspace(x_min0, x_max0, Nx0 - 2 * xzeros)
+    y_full = np.linspace(y_min0, y_max0, Ny0 - 2 * yzeros)
+
+    x_phys = x_full[x1:x2]
+    y_phys = y_full[y1:y2]
+
+    extent = [
+        x_phys[0], x_phys[-1],
+        y_phys[0], y_phys[-1],
+    ]
+
+    # --------------------------------------------------
+    # Extract frame
+    # --------------------------------------------------
+    frame = data[:, :, frame_index]
+    if transpose_xy:
+        frame = frame.T
+
+    # --------------------------------------------------
+    # Color scale
+    # --------------------------------------------------
+    if vmin is None:
+        vmin = np.min(frame)
+    if vmax is None:
+        vmax = np.max(frame)
+
+    # --------------------------------------------------
+    # Mean value above threshold
+    # --------------------------------------------------
+    mask = frame >= threshold
+    mean_val = np.mean(frame[mask]) if np.any(mask) else np.nan
+
+    # --------------------------------------------------
+    # Plot
+    # --------------------------------------------------
+    fig, ax = plt.subplots()
+
+    img = ax.imshow(
+        frame,
+        origin="lower",
+        cmap=cmap,
+        vmin=vmin,
+        vmax=vmax,
+        extent=extent,
+        aspect="auto",
+    )
+
+    ax.set_xlabel("x [nm]")
+    ax.set_ylabel("y [nm]")
+
+    if title is not None:
+        ax.set_title(title)
+
+    plt.colorbar(img, ax=ax)
+
+    # --------------------------------------------------
+    # Structure overlay (STATIC)
+    # --------------------------------------------------
+    if structure is not None:
+        if structure["type"] == "splitbar":
+            draw_splitbar_outline(ax, structure["bars"])
+
+    # --------------------------------------------------
+    # Mean value annotation
+    # --------------------------------------------------
+    text = f"{mean_prefix}{mean_val:.3g}"
+    ax.text(
+        mean_position[0],
+        mean_position[1],
+        text,
+        transform=ax.transAxes,
+        color=mean_color,
+        fontsize=mean_fontsize,
+        ha="left",
+        va="top",
+        bbox=dict(facecolor="black", alpha=0.4, edgecolor="none"),
+    )
+
+    # --------------------------------------------------
+    # Show / close
+    # --------------------------------------------------
+    if not IMG_CLOSE:
+        plt.show()
+    else:
+        plt.close(fig)
+
+    return mean_val

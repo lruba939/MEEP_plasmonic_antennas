@@ -54,28 +54,37 @@ def run():
     # print_task(6, "Enhanced field calculation in the gap region.")
     # task_6()
 
-    gaps = [10]  # nm
-    for gap in gaps:
-        print(f"--- Starting simulation for gap size: {gap} nm ---")
-        p.gap_size = gap / 1000  # Convert nm to um
+    # gaps = [10]  # nm
+    # for gap in gaps:
+    #     print(f"--- Starting simulation for gap size: {gap} nm ---")
+    #     p.gap_size = gap / 1000  # Convert nm to um
 
-        ### Set paths to save results
-        SIM_NAME = f"splitbar-AuTi-gap-{int(gap)}nm-lambda-8100nm-L-1800nm"
-        #############################
+    #     ### Set paths to save results
+    #     SIM_NAME = f"splitbar-AuTi-gap-{int(gap)}nm-lambda-8100nm-L-1800nm"
+    #     #############################
         
-        p.path_to_save = os.path.join("results", SIM_NAME)
-        p.animations_folder_path = os.path.join(p.path_to_save, "animations")
+    #     p.path_to_save = os.path.join("results", SIM_NAME)
+    #     p.animations_folder_path = os.path.join(p.path_to_save, "animations")
 
-        if not os.path.exists(p.path_to_save):
-            os.makedirs(p.path_to_save)
-        if not os.path.exists(p.animations_folder_path):
-            os.makedirs(p.animations_folder_path)
+    #     if not os.path.exists(p.path_to_save):
+    #         os.makedirs(p.path_to_save)
+    #     if not os.path.exists(p.animations_folder_path):
+    #         os.makedirs(p.animations_folder_path)
 
-        #--- Task 7 ---
-        print_task(7, "3D.")
-        task_7()
+    #     #--- Task 7 ---
+    #     print_task(7, "3D.")
+    #     task_7()
 
-        p.reset_to_defaults()
+    #     p.reset_to_defaults()
+    
+    ### Set paths to save results
+    SIM_NAME = f"splitbar-AuTi-gap-10nm-lambda-8100nm-L-1800nm"
+    #############################
+    
+    p.path_to_save = os.path.join("results", SIM_NAME)
+    p.animations_folder_path = os.path.join(p.path_to_save, "animations")
+    
+    task_9()
     
 if __name__ == "__main__":
     run()
