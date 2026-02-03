@@ -652,118 +652,209 @@ def task_8():
     sim.reset_meep()
     
 def task_9():
-    ####################
-    ### Calculations ###
-    ####################
-    
-    ### XY plane
-    structure_XY = {
-        "type": "splitbar",
-        "bars": [
-            {"center": ((p.x_width/2.0 + p.gap_size/2.0)*1e3, 0), "width": p.Au_part[0]*1e3, "height": p.Au_part[1]*1e3},
-            {"center": (-(p.x_width/2.0 + p.gap_size/2.0)*1e3, 0), "width": p.Au_part[0]*1e3, "height": p.Au_part[1]*1e3},
-        ]
+    """
+    Task 9:
+    - Animate field enhancement for XY / XZ / YZ planes
+    - Plot max-frame field maps with structure + ROI
+    - Collect mean |E|^2 in gap vs time for each plane
+    - Plot all mean curves on a single axes using multi_line_plotter_same_axes
+    """
+
+    # ============================================================
+    # Plane configuration
+    # ============================================================
+
+    planes = {
+        "XY": {
+            "filename": "enhancement_xy_exyz.h5",
+            "save_anim": "enh_xy_exyz_with_struct.mp4",
+            "x_phys_range": [-p.xyz_cell[0] / 2 * 1e3, p.xyz_cell[0] / 2 * 1e3],
+            "y_phys_range": [-p.xyz_cell[1] / 2 * 1e3, p.xyz_cell[1] / 2 * 1e3],
+            "x_zoom": 0.15,
+            "y_zoom": 1.0,
+            "xlabel": "X [nm]",
+            "ylabel": "Y [nm]",
+            "structure": {
+                "type": "splitbar",
+                "bars": [
+                    {
+                        "center": ((p.x_width / 2 + p.gap_size / 2) * 1e3, 0),
+                        "width": p.Au_part[0] * 1e3,
+                        "height": p.Au_part[1] * 1e3,
+                    },
+                    {
+                        "center": (-(p.x_width / 2 + p.gap_size / 2) * 1e3, 0),
+                        "width": p.Au_part[0] * 1e3,
+                        "height": p.Au_part[1] * 1e3,
+                    },
+                ],
+            },
+            "roi": {
+                "type": "rectangle",
+                "center": (0, 0),
+                "width": p.gap_size * 1e3,
+                "height": p.Au_part[1] * 1e3,
+            },
+        },
+
+        "XZ": {
+            "filename": "enhancement_xz_exyz.h5",
+            "save_anim": "enh_xz_exyz_with_struct.mp4",
+            "x_phys_range": [-p.xyz_cell[0] / 2 * 1e3, p.xyz_cell[0] / 2 * 1e3],
+            "y_phys_range": [-p.xyz_cell[2] / 2 * 1e3, p.xyz_cell[2] / 2 * 1e3],
+            "x_zoom": 0.15,
+            "y_zoom": 0.5,
+            "xlabel": "X [nm]",
+            "ylabel": "Z [nm]",
+            "structure": {
+                "type": "splitbar",
+                "bars": [
+                    {
+                        "center": ((p.x_width / 2 + p.gap_size / 2) * 1e3, -2.5),
+                        "width": p.Au_part[0] * 1e3,
+                        "height": p.z_height * 1e3,
+                    },
+                    {
+                        "center": (-(p.x_width / 2 + p.gap_size / 2) * 1e3, -2.5),
+                        "width": p.Au_part[0] * 1e3,
+                        "height": p.z_height * 1e3,
+                    },
+                ],
+            },
+            "roi": {
+                "type": "rectangle",
+                "center": (0, -2.5),
+                "width": p.gap_size * 1e3,
+                "height": p.z_height * 1e3,
+            },
+        },
+
+        "YZ": {
+            "filename": "enhancement_yz_exyz.h5",
+            "save_anim": "enh_yz_exyz_with_struct.mp4",
+            "x_phys_range": [-p.xyz_cell[1] / 2 * 1e3, p.xyz_cell[1] / 2 * 1e3],
+            "y_phys_range": [-p.xyz_cell[2] / 2 * 1e3, p.xyz_cell[2] / 2 * 1e3],
+            "x_zoom": 1.0,
+            "y_zoom": 0.5,
+            "xlabel": "Y [nm]",
+            "ylabel": "Z [nm]",
+            "structure": {
+                "type": "splitbar",
+                "bars": [
+                    {
+                        "center": (0, -2.5),
+                        "width": p.Au_part[1] * 1e3,
+                        "height": p.z_height * 1e3,
+                    },
+                    {
+                        "center": (0, -2.5),
+                        "width": p.Au_part[1] * 1e3,
+                        "height": p.z_height * 1e3,
+                    },
+                ],
+            },
+            "roi": {
+                "type": "rectangle",
+                "center": (0, -2.5),
+                "width": p.Au_part[1] * 1e3,
+                "height": p.z_height * 1e3,
+            },
+        },
     }
-    
-    roi_XY = {
-        "type": "rectangle",
-        "center": (0, 0),     # gap center
-        "width": p.gap_size*1e3,          # gap width
-        "height": p.Au_part[1]*1e3,         # gap height
-    }
-    
-    # animate_field_from_h5_physical(
-    #     h5_filename="enhancement_xy_exyz.h5",
-    #     load_h5data_path=p.path_to_save,
-    #     save_name="enhancement_ZOOM_xy_exyz_WITH_STRUCTURE.mp4",
-    #     save_path=p.animations_folder_path,
-    #     dataset_name=None,
-    #     interval=50,
-    #     cmap="inferno",
-    #     vmin=None,
-    #     vmax=None,
-    #     transpose_xy=True,
-    #     IMG_CLOSE=p.IMG_CLOSE,
 
-    #     # --- physical axis definition ---
-    #     x_phys_range=[-p.xyz_cell[0]/2.0*1e3, p.xyz_cell[0]/2.0*1e3],
-    #     y_phys_range=[-p.xyz_cell[1]/2.0*1e3, p.xyz_cell[1]/2.0*1e3],
+    # ============================================================
+    # Containers for line plots
+    # ============================================================
 
-    #     # --- PML / border crop ---
-    #     xzeros=0,
-    #     yzeros=None,
+    line_xdata = []
+    line_ydata = []
+    line_labels = []
 
-    #     # --- zoom (fraction of size) ---
-    #     x_zoom=0.15,
-    #     y_zoom=1.0,
+    # ============================================================
+    # Main loop over planes
+    # ============================================================
 
-    #     # --- artifact killing (set to 1) ---
-    #     mask_left=0,
-    #     mask_right=0,
-    #     mask_bottom=20,
-    #     mask_top=20,
-        
-    #     # --- structure overlay ---
-    #     structure=structure_XY
-    # )
-    
-    frame_mean, frame_max = analyze_roi_from_h5_physical(
-        h5_filename="enhancement_xy_exyz.h5",
-        load_h5data_path=p.path_to_save,
-        roi=roi_XY,
-        x_phys_range=[-p.xyz_cell[0]/2.0*1e3, p.xyz_cell[0]/2.0*1e3],
-        y_phys_range=[-p.xyz_cell[1]/2.0*1e3, p.xyz_cell[1]/2.0*1e3]
+    for plane, cfg in planes.items():
+        print(f"Processing {plane} plane")
+
+        # ---------- Animation ----------
+        animate_field_from_h5_physical(
+            h5_filename=cfg["filename"],
+            load_h5data_path=p.path_to_save,
+            save_name=cfg["save_anim"],
+            save_path=p.animations_folder_path,
+            interval=50,
+            cmap="inferno",
+            transpose_xy=True,
+            IMG_CLOSE=p.IMG_CLOSE,
+            x_phys_range=cfg["x_phys_range"],
+            y_phys_range=cfg["y_phys_range"],
+            x_zoom=cfg["x_zoom"],
+            y_zoom=cfg["y_zoom"],
+            mask_left=0,
+            mask_right=0,
+            mask_bottom=20,
+            mask_top=20,
+            structure=cfg["structure"],
+            title=f"Field enhancement |E|² ({plane})",
+            xlabel=cfg["xlabel"],
+            ylabel=cfg["ylabel"],
+        )
+
+        # ---------- ROI analysis ----------
+        frame_mean, frame_max = analyze_roi_from_h5_physical(
+            h5_filename=cfg["filename"],
+            load_h5data_path=p.path_to_save,
+            roi=cfg["roi"],
+            x_phys_range=cfg["x_phys_range"],
+            y_phys_range=cfg["y_phys_range"],
+        )
+
+        # ---------- Max-frame plot ----------
+        plot_field_frame_from_h5_physical(
+            frame_index=int(frame_max[0]),
+            h5_filename=cfg["filename"],
+            load_h5data_path=p.path_to_save,
+            cmap="inferno",
+            transpose_xy=True,
+            IMG_CLOSE=p.IMG_CLOSE,
+            x_phys_range=cfg["x_phys_range"],
+            y_phys_range=cfg["y_phys_range"],
+            x_zoom=cfg["x_zoom"],
+            y_zoom=cfg["y_zoom"],
+            mask_left=0,
+            mask_right=0,
+            mask_bottom=20,
+            mask_top=20,
+            roi=cfg["roi"],
+            structure=cfg["structure"],
+            title=f"Field enhancement |E|² ({plane})",
+            xlabel=cfg["xlabel"],
+            ylabel=cfg["ylabel"],
+            save_path=p.animations_folder_path,
+            save_name=f"MAP_{plane}.png",
+        )
+
+        # ---------- Collect data for joint line plot ----------
+        line_xdata.append(frame_mean[:, 0])
+        line_ydata.append(frame_mean[:, 1])
+        line_labels.append(f"{plane}")
+
+    # ============================================================
+    # Joint line plot
+    # ============================================================
+    colors = cm2c(cm_inferno, 9)
+    multi_line_plotter_same_axes(
+        xdata_list=line_xdata,
+        ydata_list=line_ydata,
+        labels=line_labels,
+        colors=[colors[0], colors[5], colors[7]],
+        linestyles=["-", "--", "-."],
+        grid=True,
+        xlabel="Time step",
+        ylabel="|E|²",
+        title="Mean |E|² in gap vs time",
+        legend=True,
+        save_path=p.animations_folder_path,
+        save_name="MEAN_ENHANCEMENT_ALL_PLANES.png",
     )
-
-    print("Max frame:", frame_max[0])
-    print("Max value:", frame_max[1])
-    
-    plot_field_frame_from_h5_physical(
-        frame_index=int(frame_max[0]),
-        h5_filename="enhancement_xy_exyz.h5",
-        load_h5data_path=p.path_to_save,
-        # save_name="enhancement_frame_xy_exyz_WITH_STRUCTURE.png",
-        # save_path=p.animations_folder_path,
-        dataset_name=None,
-        cmap="inferno",
-        vmin=None,
-        vmax=None,
-        transpose_xy=True,
-        IMG_CLOSE=False,
-
-        # --- physical axis definition ---
-        x_phys_range=[-p.xyz_cell[0]/2.0*1e3, p.xyz_cell[0]/2.0*1e3],
-        y_phys_range=[-p.xyz_cell[1]/2.0*1e3, p.xyz_cell[1]/2.0*1e3],
-
-        # --- PML / border crop ---
-        xzeros=0,
-        yzeros=None,
-
-        # --- zoom (fraction of size) ---
-        x_zoom=0.15,
-        y_zoom=1.0,
-
-        # --- artifact killing (set to 1) ---
-        mask_left=0,
-        mask_right=0,
-        mask_bottom=20,
-        mask_top=20,
-        
-        # --- ROI for averaging ---
-        roi=roi_XY,
-
-        # --- structure overlay ---
-        structure=structure_XY,
-        
-        # --- plot text ---
-        title="Field enhancement |E|^2 in XY plane",
-        mean_prefix="|E^2| = ",
-        mean_position=(0.02, 0.95),
-        mean_color="white",
-        mean_fontsize=12
-    )
-    
-    line_plotter(frame_mean[:,0], frame_mean[:,1],
-                 title="Mean |E|^2 in gap over time",
-                 xlabel="Time step",
-                 ylabel="Mean |E|^2")

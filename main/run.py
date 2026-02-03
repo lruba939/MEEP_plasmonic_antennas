@@ -77,14 +77,32 @@ def run():
 
     #     p.reset_to_defaults()
     
-    ### Set paths to save results
-    SIM_NAME = f"splitbar-AuTi-gap-10nm-lambda-8100nm-L-1800nm"
-    #############################
+    # ### Set paths to save results
+    # SIM_NAME = f"splitbar-AuTi-gap-10nm-lambda-8100nm-L-1800nm"
+    # #############################
     
-    p.path_to_save = os.path.join("results", SIM_NAME)
-    p.animations_folder_path = os.path.join(p.path_to_save, "animations")
+    # p.path_to_save = os.path.join("results", SIM_NAME)
+    # p.animations_folder_path = os.path.join(p.path_to_save, "animations")
     
-    task_9()
+    # task_9()
     
+    gaps = [10, 30, 50, 70, 90, 110]  # nm
+    for gap in gaps:
+        print(f"--- Starting postprocesing for gap size: {gap} nm ---")
+        p.gap_size = gap / 1000  # Convert nm to um
+
+        ### Set paths to save results
+        SIM_NAME = f"splitbar-AuTi-gap-{int(gap)}nm-lambda-8100nm-L-1800nm"
+        #############################
+        
+        p.path_to_save = os.path.join("results", SIM_NAME)
+        p.animations_folder_path = os.path.join(p.path_to_save, "animations")
+
+        #--- Task 9 ---
+        print_task(9, "Postprocesing - animations and plots.")
+        task_9()
+
+        p.reset_to_defaults()
+
 if __name__ == "__main__":
     run()

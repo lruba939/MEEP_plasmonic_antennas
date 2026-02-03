@@ -209,7 +209,8 @@ def map_grid_plotter(data_list, n, m, **kwargs):
     plt.show()
     
 def line_plotter(xdata, ydata, ax=None, xlabel=r"x [-]", ylabel=r"y [-]", color="black",
-                    linestyle="-", xlim=None, ylim=None, equal_aspect=False, title=None, label=None, show=True):
+                    linestyle="-", xlim=None, ylim=None, equal_aspect=False, title=None, label=None, show=False,
+                    save_path=None, save_name=None):
     """
     Plot a line graph with customizable axes, limits, and styling.
     Parameters
@@ -277,6 +278,13 @@ def line_plotter(xdata, ydata, ax=None, xlabel=r"x [-]", ylabel=r"y [-]", color=
 
     if title is not None:
         ax.set_title(title)
+
+    # --------------------------------------------------
+    # Save animation
+    # --------------------------------------------------
+    if save_path is not None:
+        os.makedirs(save_path, exist_ok=True)
+        plt.savefig(os.path.join(save_path, save_name), dpi=300, bbox_inches="tight", format="png")
         
     if show:
         plt.show()
@@ -286,7 +294,8 @@ def line_plotter(xdata, ydata, ax=None, xlabel=r"x [-]", ylabel=r"y [-]", color=
 def multi_line_plotter_same_axes(xdata_list, ydata_list, colors=None, linestyles=None, labels=None, 
                                   xlabel=r"x [-]", ylabel=r"y [-]",
                                   xlim=None, ylim=None, equal_aspect=False, title=None,
-                                  legend=True):
+                                  legend=True, show=False, grid=False,
+                                  save_path=None, save_name=None):
     """
     Plot multiple lines on the same axes with customizable styling.
     This function creates a single matplotlib figure with multiple line plots overlaid
@@ -348,7 +357,13 @@ def multi_line_plotter_same_axes(xdata_list, ydata_list, colors=None, linestyles
         ax.legend()
 
     plt.tight_layout()
-    plt.show()
+    if grid:
+        plt.grid(True)
+    if save_path is not None:
+        os.makedirs(save_path, exist_ok=True)
+        plt.savefig(os.path.join(save_path, save_name), dpi=300, bbox_inches="tight", format="png")
+    if show:
+        plt.show()
 
 def make_field_animation(
     collected_data,
@@ -698,6 +713,11 @@ def animate_field_from_h5_physical(
 
     # --- structure overlay ---
     structure=None,
+
+    # --- labels ---
+    title="Field enhancement |E|²",
+    xlabel="X [nm]",
+    ylabel="Y [nm]",
 ):
     """
     Animate 2D field data stored as data[x, y, time] with:
@@ -823,8 +843,9 @@ def animate_field_from_h5_physical(
         aspect="auto",
     )
 
-    ax.set_xlabel("x [nm]")
-    ax.set_ylabel("y [nm]")
+    ax.set_title(title)
+    ax.set_xlabel(xlabel)
+    ax.set_ylabel(ylabel)
     plt.colorbar(img, ax=ax)
 
     # --------------------------------------------------
@@ -976,6 +997,14 @@ def plot_field_frame_from_h5_physical(
 
     # --- misc ---
     IMG_CLOSE=False,
+
+    # --- save ---
+    save_path=None,
+    save_name=None,
+
+    # --- labels ---
+    xlabel="X [nm]",
+    ylabel="Y [nm]",
 ):
     """
     Plot a single 2D field frame with:
@@ -1115,8 +1144,8 @@ def plot_field_frame_from_h5_physical(
         aspect="auto",
     )
 
-    ax.set_xlabel("x [nm]")
-    ax.set_ylabel("y [nm]")
+    ax.set_xlabel(xlabel)
+    ax.set_ylabel(ylabel)
 
     if title is not None:
         ax.set_title(title)
@@ -1166,6 +1195,16 @@ def plot_field_frame_from_h5_physical(
             va="top",
             bbox=dict(facecolor="black", alpha=0.4, edgecolor="none"),
         )
+    
+    # --------------------------------------------------
+    # Save animation
+    # --------------------------------------------------
+    if save_path is not None:
+        os.makedirs(save_path, exist_ok=True)
+        if save_name is None:
+            base = os.path.splitext(os.path.basename(h5_filename))[0]
+            save_name = f"{base}.png"
+        plt.savefig(os.path.join(save_path, save_name), dpi=300, bbox_inches="tight", format="png")
 
     # --------------------------------------------------
     # Show / close
