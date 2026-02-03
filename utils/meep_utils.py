@@ -859,3 +859,137 @@ def collect_time_max_from_h5(
         max_map[:, -fw:] = 0
 
     return max_map
+
+def analyze_roi_from_h5_physical(
+    h5_filename,
+    roi,
+    load_h5data_path=None,
+    dataset_name=None,
+
+    # --- physical axis definition ---
+    x_phys_range=None,   # (xmin, xmax)
+    y_phys_range=None,   # (ymin, ymax)
+
+    # --- PML / border crop ---
+    xzeros=0,
+    yzeros=None,
+):
+    """
+    Analyze mean field value inside a physical ROI over time
+    using the FULL simulation domain (no zoom).
+
+    Parameters
+    ----------
+    h5_filename : str
+        Name of HDF5 file with data[x,y,time].
+
+    roi : dict
+        ROI definition:
+        {
+            "type": "rectangle",
+            "center": (x, y),
+            "width": w,
+            "height": h,
+        }
+
+    Returns
+    -------
+    frame_mean : ndarray (Nt, 2)
+        [[frame_index, mean_value], ...]
+
+    frame_max : ndarray (2,)
+        [frame_index_of_max, max_mean_value]
+    """
+    # --------------------------------------------------
+    # Sanity checks
+    # --------------------------------------------------
+    if x_phys_range is None or y_phys_range is None:
+        raise ValueError("You must provide x_phys_range and y_phys_range")
+
+    if roi["type"] != "rectangle":
+        raise NotImplementedError("Only rectangular ROI is supported")
+
+    # --------------------------------------------------
+    # Resolve HDF5 path
+    # --------------------------------------------------
+    h5_path = (
+        os.path.join(load_h5data_path, h5_filename)
+        if load_h5data_path is not None
+        else h5_filename
+    )
+
+    # --------------------------------------------------
+    # Load data
+    # --------------------------------------------------
+    with h5py.File(h5_path, "r") as f:
+        if dataset_name is None:
+            dataset_name = list(f.keys())[0]
+        data = np.array(f[dataset_name])
+
+    if data.ndim != 3:
+        raise ValueError(f"Expected data[x,y,time], got {data.shape}")
+
+    Nx0, Ny0, Nt = data.shape
+
+    if yzeros is None:
+        yzeros = xzeros
+
+    # --------------------------------------------------
+    # Crop PML
+    # --------------------------------------------------
+    xzeros = min(xzeros, Nx0 // 2)
+    yzeros = min(yzeros, Ny0 // 2)
+
+    data = data[
+        xzeros : Nx0 - xzeros,
+        yzeros : Ny0 - yzeros,
+        :
+    ]
+
+    Nx, Ny, Nt = data.shape
+
+    # --------------------------------------------------
+    # Physical axes (FULL domain)
+    # --------------------------------------------------
+    x_min0, x_max0 = x_phys_range
+    y_min0, y_max0 = y_phys_range
+
+    x_phys = np.linspace(x_min0, x_max0, Nx)
+    y_phys = np.linspace(y_min0, y_max0, Ny)
+
+    # --------------------------------------------------
+    # ROI mask (ONCE)
+    # --------------------------------------------------
+    roi_mask = roi_mask_from_rectangle(
+        x_phys,
+        y_phys,
+        center=roi["center"],
+        width=roi["width"],
+        height=roi["height"],
+    )
+
+    if roi_mask.shape != (Nx, Ny):
+        raise ValueError(
+            f"ROI mask shape {roi_mask.shape} does not match data shape {(Nx, Ny)}"
+        )
+
+    # --------------------------------------------------
+    # Mean value per frame
+    # --------------------------------------------------
+    mean_vals = np.zeros(Nt)
+
+    for t in range(Nt):
+        frame_raw = data[:, :, t]   # NEVER transpose
+        mean_vals[t] = np.mean(frame_raw[roi_mask])
+
+    # --------------------------------------------------
+    # Outputs
+    # --------------------------------------------------
+    frames = np.arange(Nt)
+    frame_mean = np.column_stack((frames, mean_vals))
+
+    t_max = int(np.argmax(mean_vals))
+    max_val = mean_vals[t_max]
+    frame_max = np.array([t_max, max_val])
+
+    return frame_mean, frame_max

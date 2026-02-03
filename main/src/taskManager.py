@@ -665,6 +665,13 @@ def task_9():
         ]
     }
     
+    roi_XY = {
+        "type": "rectangle",
+        "center": (0, 0),     # gap center
+        "width": p.gap_size*1e3,          # gap width
+        "height": p.Au_part[1]*1e3,         # gap height
+    }
+    
     # animate_field_from_h5_physical(
     #     h5_filename="enhancement_xy_exyz.h5",
     #     load_h5data_path=p.path_to_save,
@@ -700,8 +707,19 @@ def task_9():
     #     structure=structure_XY
     # )
     
+    frame_mean, frame_max = analyze_roi_from_h5_physical(
+        h5_filename="enhancement_xy_exyz.h5",
+        load_h5data_path=p.path_to_save,
+        roi=roi_XY,
+        x_phys_range=[-p.xyz_cell[0]/2.0*1e3, p.xyz_cell[0]/2.0*1e3],
+        y_phys_range=[-p.xyz_cell[1]/2.0*1e3, p.xyz_cell[1]/2.0*1e3]
+    )
+
+    print("Max frame:", frame_max[0])
+    print("Max value:", frame_max[1])
+    
     plot_field_frame_from_h5_physical(
-        frame_index=258,
+        frame_index=int(frame_max[0]),
         h5_filename="enhancement_xy_exyz.h5",
         load_h5data_path=p.path_to_save,
         # save_name="enhancement_frame_xy_exyz_WITH_STRUCTURE.png",
@@ -731,8 +749,8 @@ def task_9():
         mask_bottom=20,
         mask_top=20,
         
-        # --- averaging ---
-        threshold=550,
+        # --- ROI for averaging ---
+        roi=roi_XY,
 
         # --- structure overlay ---
         structure=structure_XY,
@@ -744,3 +762,8 @@ def task_9():
         mean_color="white",
         mean_fontsize=12
     )
+    
+    line_plotter(frame_mean[:,0], frame_mean[:,1],
+                 title="Mean |E|^2 in gap over time",
+                 xlabel="Time step",
+                 ylabel="Mean |E|^2")

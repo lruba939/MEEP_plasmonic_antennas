@@ -209,7 +209,7 @@ def map_grid_plotter(data_list, n, m, **kwargs):
     plt.show()
     
 def line_plotter(xdata, ydata, ax=None, xlabel=r"x [-]", ylabel=r"y [-]", color="black",
-                    linestyle="-", xlim=None, ylim=None, equal_aspect=False, title=None, label=None):
+                    linestyle="-", xlim=None, ylim=None, equal_aspect=False, title=None, label=None, show=True):
     """
     Plot a line graph with customizable axes, limits, and styling.
     Parameters
@@ -277,6 +277,9 @@ def line_plotter(xdata, ydata, ax=None, xlabel=r"x [-]", ylabel=r"y [-]", color=
 
     if title is not None:
         ax.set_title(title)
+        
+    if show:
+        plt.show()
 
     return ax
 
@@ -938,14 +941,14 @@ def plot_field_frame_from_h5_physical(
     transpose_xy=False,
 
     # --- physical axis definition ---
-    x_phys_range=None,
-    y_phys_range=None,
+    x_phys_range=None,   # (xmin, xmax)
+    y_phys_range=None,   # (ymin, ymax)
 
     # --- PML / border crop ---
     xzeros=0,
     yzeros=None,
 
-    # --- zoom ---
+    # --- zoom (fraction of current size) ---
     x_zoom=1.0,
     y_zoom=1.0,
 
@@ -955,11 +958,11 @@ def plot_field_frame_from_h5_physical(
     mask_bottom=0,
     mask_top=0,
 
-    # --- averaging ---
-    threshold=1.5,
-
     # --- structure overlay ---
     structure=None,
+
+    # --- ROI for averaging ---
+    roi=None,   # dict, e.g. {"type":"rectangle","center":(0,0),"width":20,"height":10}
 
     # --- plot text ---
     title=None,
@@ -968,17 +971,19 @@ def plot_field_frame_from_h5_physical(
     mean_color="white",
     mean_fontsize=12,
 
+    # --- debug ---
+    draw_roi=True,
+
     # --- misc ---
     IMG_CLOSE=False,
 ):
     """
     Plot a single 2D field frame with:
     - physical axes
-    - zoom & crop
+    - crop & zoom
     - optional structure overlay
-    - mean value computed above threshold
+    - ROI-based averaging in physical coordinates
     """
-
     # --------------------------------------------------
     # Sanity checks
     # --------------------------------------------------
@@ -1072,31 +1077,36 @@ def plot_field_frame_from_h5_physical(
     # --------------------------------------------------
     # Extract frame
     # --------------------------------------------------
-    frame = data[:, :, frame_index]
+    frame_raw = data[:, :, frame_index]   # ALWAYS (x, y)
+
+    frame_plot = frame_raw
     if transpose_xy:
-        frame = frame.T
+        frame_plot = frame_raw.T
 
     # --------------------------------------------------
-    # Color scale
+    # ROI-based averaging (NO transpose here!)
     # --------------------------------------------------
-    if vmin is None:
-        vmin = np.min(frame)
-    if vmax is None:
-        vmax = np.max(frame)
+    mean_val = np.nan
+    roi_mask = None
 
-    # --------------------------------------------------
-    # Mean value above threshold
-    # --------------------------------------------------
-    mask = frame >= threshold
-    mean_val = np.mean(frame[mask]) if np.any(mask) else np.nan
-
+    if roi is not None:
+        if roi["type"] == "rectangle":
+            roi_mask = roi_mask_from_rectangle(
+                x_phys,
+                y_phys,
+                center=roi["center"],
+                width=roi["width"],
+                height=roi["height"],
+            )
+            mean_val = np.mean(frame_raw[roi_mask])
+            
     # --------------------------------------------------
     # Plot
     # --------------------------------------------------
     fig, ax = plt.subplots()
 
     img = ax.imshow(
-        frame,
+        frame_plot,
         origin="lower",
         cmap=cmap,
         vmin=vmin,
@@ -1114,27 +1124,48 @@ def plot_field_frame_from_h5_physical(
     plt.colorbar(img, ax=ax)
 
     # --------------------------------------------------
-    # Structure overlay (STATIC)
+    # Structure overlay
     # --------------------------------------------------
     if structure is not None:
         if structure["type"] == "splitbar":
             draw_splitbar_outline(ax, structure["bars"])
 
     # --------------------------------------------------
+    # ROI overlay (debug / optional)
+    # --------------------------------------------------
+    if roi is not None and draw_roi:
+        cx, cy = roi["center"]
+        w = roi["width"]
+        h = roi["height"]
+
+        roi_rect = Rectangle(
+            (cx - w / 2, cy - h / 2),
+            w,
+            h,
+            fill=False,
+            edgecolor="cyan",
+            linestyle=":",
+            linewidth=0.8,
+            zorder=11,
+        )
+        ax.add_patch(roi_rect)
+
+    # --------------------------------------------------
     # Mean value annotation
     # --------------------------------------------------
-    text = f"{mean_prefix}{mean_val:.3g}"
-    ax.text(
-        mean_position[0],
-        mean_position[1],
-        text,
-        transform=ax.transAxes,
-        color=mean_color,
-        fontsize=mean_fontsize,
-        ha="left",
-        va="top",
-        bbox=dict(facecolor="black", alpha=0.4, edgecolor="none"),
-    )
+    if roi is not None:
+        text = f"{mean_prefix}{mean_val:.3g}"
+        ax.text(
+            mean_position[0],
+            mean_position[1],
+            text,
+            transform=ax.transAxes,
+            color=mean_color,
+            fontsize=mean_fontsize,
+            ha="left",
+            va="top",
+            bbox=dict(facecolor="black", alpha=0.4, edgecolor="none"),
+        )
 
     # --------------------------------------------------
     # Show / close
@@ -1145,3 +1176,36 @@ def plot_field_frame_from_h5_physical(
         plt.close(fig)
 
     return mean_val
+
+def roi_mask_from_rectangle(x_phys, y_phys, center, width, height):
+    """
+    Create boolean mask for a rectangular ROI in physical coordinates.
+
+    Parameters
+    ----------
+    x_phys, y_phys : 1D numpy arrays
+        Physical coordinates corresponding to data grid (after crop & zoom).
+
+    center : tuple (cx, cy)
+        Center of ROI in physical units.
+
+    width, height : float
+        ROI size in physical units.
+
+    Returns
+    -------
+    mask : 2D boolean numpy array [Nx, Ny]
+    """
+
+    cx, cy = center
+    half_w = width / 2
+    half_h = height / 2
+
+    X, Y = np.meshgrid(x_phys, y_phys, indexing="ij")
+
+    mask = (
+        (X >= cx - half_w) & (X <= cx + half_w) &
+        (Y >= cy - half_h) & (Y <= cy + half_h)
+    )
+
+    return mask
