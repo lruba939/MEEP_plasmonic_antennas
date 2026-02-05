@@ -2,7 +2,7 @@
 import os
 import numpy as np
 import meep as mp
-from meep.materials import Au, Ti, SiO2
+from meep.materials import Au, Ti, SiO2, Pd
 # !!! Fitting parameters for all materials are defined for a unit distance of 1 µm.
 xm = 1000 # nm to um conversion factor
 
@@ -72,7 +72,7 @@ class SimParams:
             self.Au_part = np.array([1800, 240, 30]) / xm
             self.material_1 = Au
             self.Ti_part = np.array([1800, 240, 5]) / xm
-            self.material_2 = Ti
+            self.material_2 = Pd
 
             self.x_width    =   self.Au_part[0]
             self.y_length   =   self.Au_part[1]
@@ -95,8 +95,8 @@ class SimParams:
         ###### Source ######
         self.src_type   =   "gaussian"  # options: "continuous", "gaussian"
         self.src_is_integrated = False # if source overlaps with PML regions use True
-        self.lambda0    =   800/xm # nm
-        self.src_width  =   100/xm # temporal width (sigma) of the Gaussian envelope; controls spectral bandwidth
+        self.lambda0    =   8100/xm # nm
+        self.src_width  =   1000/xm # temporal width (sigma) of the Gaussian envelope; controls spectral bandwidth
         self.freq       =   1.0 / self.lambda0
         self.freq_width =   1.0 / self.src_width
         self.component  =   mp.Ex
