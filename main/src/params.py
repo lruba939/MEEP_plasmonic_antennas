@@ -69,25 +69,24 @@ class SimParams:
         # Custom antenna
         if self.antenna_type == "custom-split-bar":
             self.gap_size   =   10/xm
-            self.Au_part = np.array([1800, 240, 30]) / xm
+            self.First_layer = np.array([1800, 240, 30]) / xm
             self.material_1 = Au
-            self.Ti_part = np.array([1800, 240, 5]) / xm
-            self.material_2 = Pd
+            self.Second_layer = np.array([1800, 240, 5]) / xm
+            self.material_2 = Ti
+            self.Third_layer = np.array([self.First_layer[0]*2+self.gap_size+self.pad*2,
+                                         self.First_layer[1]+self.pad*2,
+                                         100 / xm])
+            self.material_3 = SiO2
 
-            self.x_width    =   self.Au_part[0]
-            self.y_length   =   self.Au_part[1]
+            self.x_width    =   self.First_layer[0]
+            self.y_length   =   self.First_layer[1]
             
-            # self.SiO2_part = np.array([self.x_width*2+self.gap_size+self.pad*2+self.pml*2,
-            #                            self.y_length+self.pad*2+self.pml*2,
-            #                            100 / xm])
-            # self.material_3 = SiO2
-
-            self.z_height   =   self.Au_part[2] + self.Ti_part[2] # + self.SiO2_part[2]
+            self.z_height   =   self.First_layer[2] + self.Second_layer[2] + self.Third_layer[2]
             self.custom_center     =   [mp.Vector3(self.x_width/2.0 + self.gap_size/2.0, 0.0, 0.0), # left bar
                                         mp.Vector3((-1)*(self.x_width/2.0 + self.gap_size/2.0), 0.0, 0.0)] # right bar
             self.xyz_cell   =   [self.x_width*2+self.gap_size+self.pad*2+self.pml*2,   # x
                                 self.y_length+self.pad*2+self.pml*2,                  # y
-                                self.z_height+self.pad*2+self.pml*2]    
+                                self.z_height+self.pad*2+self.pml*2]                  # z
         
         if self.sim_dimensions == 2:
             self.xyz_cell[2] = 0.0  # Ensure z dimension is zero for 2D simulations
@@ -132,7 +131,7 @@ class SimParams:
                                       self.xyz_cell[0],
                                       0,
                                       self.xyz_cell[2]))
-        self.yz_plane = mp.Volume(center=mp.Vector3(0,0,0),
+        self.yz_plane = mp.Volume(center=mp.Vector3(self.gap_size*1.2,0,0),
                                   size=mp.Vector3(
                                       0,
                                       self.xyz_cell[1],

@@ -91,27 +91,31 @@ def make_custom_split_bar():
     custom_split_bar = [
         # RIGHT BAR
         mp.Block(
-            mp.Vector3(p.x_width, p.y_length, p.Au_part[2]),
+            mp.Vector3(p.x_width, p.y_length, p.First_layer[2]),
             center = p.custom_center[0], # right bar
             material = p.material_1,
         ),
         mp.Block(
-            mp.Vector3(p.x_width, p.y_length, p.Ti_part[2]),
-            center = p.custom_center[0] - mp.Vector3(0, 0, p.Au_part[2]/2.0 + p.Ti_part[2]/2.0) , # right bar
+            mp.Vector3(p.x_width, p.y_length, p.Second_layer[2]),
+            center = p.custom_center[0] - mp.Vector3(0, 0, p.First_layer[2]/2.0 + p.Second_layer[2]/2.0) , # right bar
             material = p.material_2,
         ),
-        
         # LEFT BAR
         mp.Block(
-            mp.Vector3(p.x_width, p.y_length, p.Au_part[2]),
+            mp.Vector3(p.x_width, p.y_length, p.First_layer[2]),
             center = p.custom_center[1], # left bar
             material = p.material_1,
         ),
-
         mp.Block(
-            mp.Vector3(p.x_width, p.y_length, p.Ti_part[2]),
-            center = p.custom_center[1] - mp.Vector3(0, 0, p.Au_part[2]/2.0 + p.Ti_part[2]/2.0) , # left bar
+            mp.Vector3(p.x_width, p.y_length, p.Second_layer[2]),
+            center = p.custom_center[1] - mp.Vector3(0, 0, p.First_layer[2]/2.0 + p.Second_layer[2]/2.0) , # left bar
             material = p.material_2,
+        ),
+        # substrate
+        mp.Block(
+            mp.Vector3(p.Third_layer[0], p.Third_layer[1], p.Third_layer[2]),
+            center = mp.Vector3(0, 0, (-1)*(p.First_layer[2]/2.0 + p.Second_layer[2]/2.0 + p.Third_layer[2]/2.0)) , # left bar
+            material = p.material_3,
         )
     ]
     return custom_split_bar
