@@ -121,7 +121,7 @@ class SimParams:
                                       self.xyz_cell[0],
                                       self.xyz_cell[1],
                                       0.0))
-        self.xy_plane_UP = mp.Volume(center=mp.Vector3(0,0,self.bowtie_thickness if self.antenna_type == "bow-tie" else self.z_height/2.0),
+        self.xy_plane_UP = mp.Volume(center=mp.Vector3(0,0,self.bowtie_thickness if self.antenna_type == "bow-tie" else self.First_layer[2]/2.0),
                                   size=mp.Vector3(
                                       self.xyz_cell[0],
                                       self.xyz_cell[1],
@@ -131,7 +131,7 @@ class SimParams:
                                       self.xyz_cell[0],
                                       0,
                                       self.xyz_cell[2]))
-        self.yz_plane = mp.Volume(center=mp.Vector3(self.gap_size*1.2,0,0),
+        self.yz_plane = mp.Volume(center=mp.Vector3(0,0,0),
                                   size=mp.Vector3(
                                       0,
                                       self.xyz_cell[1],

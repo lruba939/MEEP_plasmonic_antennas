@@ -551,13 +551,13 @@ def task_9():
                 "bars": [
                     {
                         "center": ((p.x_width / 2 + p.gap_size / 2) * 1e3, 0),
-                        "width": p.Au_part[0] * 1e3,
-                        "height": p.Au_part[1] * 1e3,
+                        "width": p.First_layer[0] * 1e3,
+                        "height": p.First_layer[1] * 1e3,
                     },
                     {
                         "center": (-(p.x_width / 2 + p.gap_size / 2) * 1e3, 0),
-                        "width": p.Au_part[0] * 1e3,
-                        "height": p.Au_part[1] * 1e3,
+                        "width": p.First_layer[0] * 1e3,
+                        "height": p.First_layer[1] * 1e3,
                     },
                 ],
             },
@@ -565,7 +565,7 @@ def task_9():
                 "type": "rectangle",
                 "center": (0, 0),
                 "width": p.gap_size * 1e3,
-                "height": p.Au_part[1] * 1e3,
+                "height": p.First_layer[1] * 1e3,
             },
         },
 
@@ -583,13 +583,13 @@ def task_9():
                 "bars": [
                     {
                         "center": ((p.x_width / 2 + p.gap_size / 2) * 1e3, 0),
-                        "width": p.Au_part[0] * 1e3,
-                        "height": p.Au_part[1] * 1e3,
+                        "width": p.First_layer[0] * 1e3,
+                        "height": p.First_layer[1] * 1e3,
                     },
                     {
                         "center": (-(p.x_width / 2 + p.gap_size / 2) * 1e3, 0),
-                        "width": p.Au_part[0] * 1e3,
-                        "height": p.Au_part[1] * 1e3,
+                        "width": p.First_layer[0] * 1e3,
+                        "height": p.First_layer[1] * 1e3,
                     },
                 ],
             },
@@ -597,7 +597,7 @@ def task_9():
                 "type": "rectangle",
                 "center": (0, 0),
                 "width": p.gap_size * 1e3,
-                "height": p.Au_part[1] * 1e3,
+                "height": p.First_layer[1] * 1e3,
             },
         },
 
@@ -615,13 +615,13 @@ def task_9():
                 "bars": [
                     {
                         "center": ((p.x_width / 2 + p.gap_size / 2) * 1e3, -2.5),
-                        "width": p.Au_part[0] * 1e3,
-                        "height": p.z_height * 1e3,
+                        "width": p.First_layer[0] * 1e3,
+                        "height": (p.First_layer[2]+p.Second_layer[2]) * 1e3,
                     },
                     {
                         "center": (-(p.x_width / 2 + p.gap_size / 2) * 1e3, -2.5),
-                        "width": p.Au_part[0] * 1e3,
-                        "height": p.z_height * 1e3,
+                        "width": p.First_layer[0] * 1e3,
+                        "height": (p.First_layer[2]+p.Second_layer[2]) * 1e3,
                     },
                 ],
             },
@@ -629,7 +629,7 @@ def task_9():
                 "type": "rectangle",
                 "center": (0, -2.5),
                 "width": p.gap_size * 1e3,
-                "height": p.z_height * 1e3,
+                "height": (p.First_layer[2]+p.Second_layer[2]) * 1e3,
             },
         },
 
@@ -647,21 +647,21 @@ def task_9():
                 "bars": [
                     {
                         "center": (0, -2.5),
-                        "width": p.Au_part[1] * 1e3,
-                        "height": p.z_height * 1e3,
+                        "width": p.First_layer[1] * 1e3,
+                        "height": (p.First_layer[2]+p.Second_layer[2]) * 1e3,
                     },
                     {
                         "center": (0, -2.5),
-                        "width": p.Au_part[1] * 1e3,
-                        "height": p.z_height * 1e3,
+                        "width": p.First_layer[1] * 1e3,
+                        "height": (p.First_layer[2]+p.Second_layer[2]) * 1e3,
                     },
                 ],
             },
             "roi": {
                 "type": "rectangle",
                 "center": (0, -2.5),
-                "width": p.Au_part[1] * 1e3,
-                "height": p.z_height * 1e3,
+                "width": p.First_layer[1] * 1e3,
+                "height": (p.First_layer[2]+p.Second_layer[2]) * 1e3,
             },
         },
     }
