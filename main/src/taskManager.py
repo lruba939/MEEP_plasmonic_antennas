@@ -13,11 +13,8 @@ from utils.meep_utils import *
 p = params.SimParams()
 con = containters.SimContainers()
 
-# TASK 0 -------------------------------
-# Triggering calculations and saving the most general results.
-
-def task_0():
-    
+# TASK -------------------------------
+def save_and_show_params():
     p.showParams()
 
     if not os.path.exists(p.path_to_save):
@@ -27,26 +24,13 @@ def task_0():
     
     p.saveParams(filename=os.path.join(p.path_to_save, "simulation_params.txt"))
 
-    simulation.start_empty_cell_calc() # MUST BE CALLED FIRST
+    return 0
+
+# TASK -------------------------------
+def save_2D_plot(volume):
     sim = simulation.make_sim()
-    simulation.start_calc(sim)
-
-    # np.savez(
-    #     os.path.join(p.path_to_save, "data_general.npz"),
-    #     Ey = con.E_comp_data_container,
-    #     Ey_empty = con.empty_cell_E_comp_data_container,
-    #     eps = con.eps_data_container
-    #     )
-    
-    return sim
-
-# TASK 1 -------------------------------
-# Make medium - a split bar antenna.
-
-def task_1():
-    p.showParams()
-    sim = simulation.make_sim()
-    sim.plot2D()
+    sim.plot2D(fields=p.component, output_plane=volume,
+           eps_parameters={'contour':True, 'countur_linewidth':2.0})
     plt.savefig(os.path.join(p.path_to_save, "2Dplot.png"), dpi=300, bbox_inches="tight", format="png")
     if p.IMG_CLOSE:
         plt.show(block=False)
@@ -57,9 +41,8 @@ def task_1():
 
     return 0
 
-# TASK 2 -------------------------------
+# TASK -------------------------------
 # Plotting the dielectric constant of a system.
-
 def task_2(plot=False, recalculate=False):
     
     p.showParams()

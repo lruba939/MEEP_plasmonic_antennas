@@ -21,7 +21,7 @@ class SimParams:
         mp.Simulation.eps_averaging = False
         self.sim_dimensions = 3
 
-        self.resolution =   500
+        self.resolution =   250
         self.symmetries = [
             mp.Mirror(direction=mp.X, phase=-1),
             mp.Mirror(direction=mp.Y, phase=+1)
@@ -75,7 +75,7 @@ class SimParams:
             self.material_2 = Ti
             self.Third_layer = np.array([self.First_layer[0]*2+self.gap_size+self.pad*2,
                                          self.First_layer[1]+self.pad*2,
-                                         100 / xm])
+                                         70 / xm])
             self.material_3 = SiO2
 
             self.x_width    =   self.First_layer[0]
@@ -136,17 +136,11 @@ class SimParams:
                                       0,
                                       self.xyz_cell[1],
                                       self.xyz_cell[2]))
-        
-        # ###### Harmonic inversion parameters ######
-        # self.harminv_cfg = {
-        #     "component": self.component,
-        #     "point": mp.Vector3(0, 0, 0 if self.antenna_type == "bow-tie" else 0),
-        #     "fcen": self.freq,
-        #     "df": self.freq_width*3,
-        #     "mxbands": 30,
-        #     "filename": "harminv_gap.txt"
-        # }
-        # Nie działa tutaj ze względu na szybkie zanikanie sygnału w gapie... trzeba to robić ręcznie poprzez sweep po freq. w źródle CW
+        self.yz_VIS_plane = mp.Volume(center=mp.Vector3(self.gap_size*1.5,0,0),
+                                  size=mp.Vector3(
+                                      0,
+                                      self.xyz_cell[1],
+                                      self.xyz_cell[2]))
         
         ###### Simulation settings ######
         self.Courant_factor         =   0.5
