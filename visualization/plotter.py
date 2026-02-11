@@ -1248,3 +1248,42 @@ def roi_mask_from_rectangle(x_phys, y_phys, center, width, height):
     )
 
     return mask
+
+
+def show_data_img(datas_arr, abs_bool, norm_bool, cmap_arr, alphas, name_to_save=None, IMG_CLOSE=False, Title=None, disable_ticks=True, log10_scale=False):
+    """
+    Displays a series of images from a given array of data.
+
+    Parameters:
+    datas_arr (list of np.ndarray): A list of 2D arrays containing the data to be visualized.
+    norm_bool (list of bool): A list of boolean values indicating whether to normalize each corresponding data array.
+    cmap_arr (list of str): A list of colormap names to be used for each corresponding data array.
+    alphas (list of float): A list of alpha values for transparency for each corresponding data array.
+
+    The function iterates through the provided data arrays, normalizes them if specified, 
+    and displays each image using matplotlib's imshow function with the specified colormap 
+    and transparency settings. The x and y axis ticks are turned off for a cleaner visualization.
+    """
+    for idx, data in enumerate(datas_arr):
+        if abs_bool[idx]:
+            data = np.abs(data) # complex -> real
+        if norm_bool[idx]:
+            max_data = np.max(data)
+            data = data / max_data # normalization
+        if log10_scale:
+            data = np.log10(data + 1e-12) # log scale with small offset to avoid log(0)
+        plt.imshow(data.transpose(), interpolation="spline36", cmap=cmap_arr[idx], alpha=alphas[idx])
+        plt.colorbar(shrink=0.6)  # Show color scale
+    if disable_ticks:
+        plt.xticks([])  # Turn off x-axis numbers
+        plt.yticks([])  # Turn off y-axis numbers
+    if Title is not None:
+        plt.title(Title)
+    if name_to_save is not None:
+        plt.savefig(f"{name_to_save}.png", dpi=300, bbox_inches="tight", format="png")
+    if IMG_CLOSE:
+        plt.show(block=False)
+        plt.pause(2)
+        plt.close("all")
+    else:
+        plt.show()

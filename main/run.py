@@ -49,8 +49,11 @@ def run():
 
     #      p.reset_to_defaults()
     
-    p.IMG_CLOSE = False
-    save_2D_plot(p.yz_VIS_plane)
+    # p.IMG_CLOSE = False
+    # save_2D_plot(p.yz_VIS_plane)
+    
+    draw_dielectric_constant(sampling_wavelength=200)
+    draw_dielectric_constant()
     
 if __name__ == "__main__":
     run()

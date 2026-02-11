@@ -1,5 +1,4 @@
 from . import params
-from . import containters
 from . import simulation
 
 import meep as mp
@@ -11,7 +10,6 @@ from utils.meep_utils import *
 
 # inicialize singleton of all parameters
 p = params.SimParams()
-con = containters.SimContainers()
 
 # TASK -------------------------------
 def save_and_show_params():
@@ -23,42 +21,20 @@ def save_and_show_params():
         os.makedirs(p.animations_folder_path)
     
     p.saveParams(filename=os.path.join(p.path_to_save, "simulation_params.txt"))
-
     return 0
 
 # TASK -------------------------------
-def save_2D_plot(volume):
+def save_2D_plot(volume, save_name="2Dplot.png", IMG_SAVE=True):
     sim = simulation.make_sim()
-    sim.plot2D(fields=p.component, output_plane=volume,
-           eps_parameters={'contour':True, 'countur_linewidth':2.0})
-    plt.savefig(os.path.join(p.path_to_save, "2Dplot.png"), dpi=300, bbox_inches="tight", format="png")
+    sim.plot2D(output_plane=volume)
+    if IMG_SAVE:
+        plt.savefig(os.path.join(p.path_to_save, save_name), dpi=300, bbox_inches="tight", format="png")
     if p.IMG_CLOSE:
         plt.show(block=False)
         plt.pause(2)
         plt.close("all")
     else:
         plt.show()
-
-    return 0
-
-# TASK -------------------------------
-# Plotting the dielectric constant of a system.
-def task_2(plot=False, recalculate=False):
-    
-    p.showParams()
-
-    if recalculate:    
-        sim = simulation.make_sim()
-        simulation.start_calc(sim)
-      
-    if plot:
-        show_data_img(datas_arr =   [con.eps_data_container],
-                      norm_bool =   [True],
-                      abs_bool  =   [True],
-                      cmap_arr  =   ["binary"],
-                      alphas    =   [1.0],
-                      IMG_CLOSE =   p.IMG_CLOSE)
-    
     return 0
 
 # TASK 3 -------------------------------
@@ -456,55 +432,91 @@ def task_7():
 
 # TASK 8 -------------------------------
 
-def task_8():
+def draw_dielectric_constant(sampling_wavelength=None, log10_scale=False):
+    """
+    Generate dielectric constant maps in XY, XZ and YZ planes.
+
+    For each plane (XY, XZ, YZ):
+    - the dielectric constant is extracted using sim.get_array(),
+    - a 2D map is plotted and saved to disk,
+    - the wavelength is included in the plot title and filename.
+
+    Parameters
+    ----------
+    sampling_wavelength : float or None
+        Wavelength in nm at which ε is sampled.
+        If None, the default simulation wavelength is used.
+
+    log10_scale : bool
+        If True, apply log10 scaling to the plotted dielectric map.
+
+    Returns
+    -------
+    int
+        Returns 0 after successful execution.
+    """
+    
     sim = simulation.make_sim()
-    sim.run(until=0.2)
-    ### XY plane
-    eps_xy = sim.get_array(
-        vol=p.xy_plane,
-        frequency=p.freq,
-        component=mp.Dielectric
-    )
-    show_data_img(datas_arr =   [eps_xy],
-                      norm_bool =   [True],
-                      abs_bool  =   [True],
-                      cmap_arr  =   ["binary"],
-                      alphas    =   [1.0],
-                      IMG_CLOSE =   p.IMG_CLOSE,
-                      Title="Dielectric constant in XY plane",
-                      disable_ticks=False,
-                      name_to_save=os.path.join(p.path_to_save, "dielectric_XY_plane.png"))
-    ### XZ plane
-    eps_xz = sim.get_array(
-        vol=p.xz_plane,
-        frequency=p.freq,
-        component=mp.Dielectric
-    )
-    show_data_img(datas_arr =   [eps_xz],
-                      norm_bool =   [True],
-                      abs_bool  =   [True],
-                      cmap_arr  =   ["binary"],
-                      alphas    =   [1.0],
-                      IMG_CLOSE =   p.IMG_CLOSE,
-                      Title="Dielectric constant in XZ plane",
-                      disable_ticks=False,
-                      name_to_save=os.path.join(p.path_to_save, "dielectric_XZ_plane.png"))
-    ### YZ plane
-    eps_yz = sim.get_array(
-        vol=p.yz_plane,
-        frequency=p.freq,
-        component=mp.Dielectric
-    )
-    show_data_img(datas_arr =   [eps_yz],
-                      norm_bool =   [True],
-                      abs_bool  =   [True],
-                      cmap_arr  =   ["binary"],
-                      alphas    =   [1.0],
-                      IMG_CLOSE =   p.IMG_CLOSE,
-                      Title="Dielectric constant in YZ plane",
-                      disable_ticks=False,
-                      name_to_save=os.path.join(p.path_to_save, "dielectric_YZ_plane.png"))    
+    sim.run(until=0)  # Run for 0 time to initialize the fields and materials
+
+    if sampling_wavelength is not None:
+        wavelength = sampling_wavelength
+        sampling_wavelength = sampling_wavelength / 1000  # Convert nm to um
+        frequency = 1 / sampling_wavelength
+    else:
+        wavelength = p.lambda0*1e3  # Convert um to nm for title
+        frequency = p.freq
+
+    # ============================================================
+    # Plane configuration
+    # ============================================================
+
+    planes = {
+        "XY": {
+            "volume": p.xy_plane,
+            "title": f"Dielectric constant in XY plane\nWavelength {int(wavelength)} nm",
+            "save_name": f"dielectric_XY_plane_{int(wavelength)}nm.png",
+        },
+        "XZ": {
+            "volume": p.xz_plane,
+            "title": f"Dielectric constant in XZ plane\nWavelength {int(wavelength)} nm",
+            "save_name": f"dielectric_XZ_plane_{int(wavelength)}nm.png",
+        },
+        "YZ": {
+            "volume": p.yz_VIS_plane,
+            "title": f"Dielectric constant in YZ plane\nWavelength {int(wavelength)} nm",
+            "save_name": f"dielectric_YZ_plane_{int(wavelength)}nm.png",
+        },
+    }
+
+    # ============================================================
+    # Iteration over planes
+    # ============================================================
+
+    for plane, cfg in planes.items():
+        print(f"Processing dielectric map for {plane} plane")
+
+        eps_data = sim.get_array(
+            vol=cfg["volume"],
+            frequency=frequency,
+            component=mp.Dielectric,
+        )
+
+        show_data_img(
+            datas_arr=[eps_data],
+            abs_bool=[True],
+            norm_bool=[True],
+            cmap_arr=["binary"],
+            alphas=[1.0],
+            IMG_CLOSE=p.IMG_CLOSE,
+            Title=cfg["title"],
+            disable_ticks=False,
+            name_to_save=os.path.join(p.path_to_save, cfg["save_name"]),
+            log10_scale=log10_scale,
+        )
+
     sim.reset_meep()
+    return 0
     
 def task_9():
     """
