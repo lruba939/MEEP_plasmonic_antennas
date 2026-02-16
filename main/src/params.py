@@ -21,7 +21,7 @@ class SimParams:
         mp.Simulation.eps_averaging = False
         self.sim_dimensions = 3
 
-        self.resolution =   350
+        self.resolution =   150
         self.symmetries = [
             mp.Mirror(direction=mp.X, phase=-1),
             mp.Mirror(direction=mp.Y, phase=+1)
@@ -68,14 +68,14 @@ class SimParams:
         
         # Custom antenna
         if self.antenna_type == "custom-split-bar":
-            self.gap_size   =   10/xm
+            self.gap_size   =   50/xm
             self.First_layer = np.array([1800, 240, 30]) / xm
             self.material_1 = Au
             self.Second_layer = np.array([1800, 240, 5]) / xm
             self.material_2 = Ti
             self.Third_layer = np.array([self.First_layer[0]*2+self.gap_size+self.pad*2,
                                          self.First_layer[1]+self.pad*2,
-                                         70 / xm])
+                                         100 / xm])
             self.material_3 = SiO2
 
             self.x_width    =   self.First_layer[0]
@@ -121,7 +121,7 @@ class SimParams:
                                       self.xyz_cell[0],
                                       self.xyz_cell[1],
                                       0.0))
-        self.xy_plane_UP = mp.Volume(center=mp.Vector3(0,0,self.bowtie_thickness if self.antenna_type == "bow-tie" else self.First_layer[2]/2.0),
+        self.xy_plane_TOP = mp.Volume(center=mp.Vector3(0,0,self.bowtie_thickness if self.antenna_type == "bow-tie" else self.First_layer[2]/2.0),
                                   size=mp.Vector3(
                                       self.xyz_cell[0],
                                       self.xyz_cell[1],
@@ -144,10 +144,10 @@ class SimParams:
         
         ###### Simulation settings ######
         self.Courant_factor         =   0.5
-        self.sim_time               =   9000/xm
+        self.sim_time               =   5000/xm
         # self.animations_step        =   self.Courant_factor * (1 / self.resolution) # From dt = S * dx / c, where c=1 in MEEP units
         self.animations_step        =   22/xm
-        self.animations_until       =   9000/xm
+        self.animations_until       =   5000/xm
         self.animations_fps         =   15
         self.path_to_save           =   "results/"
         self.animations_folder_path =   os.path.join(self.path_to_save, "animations")
