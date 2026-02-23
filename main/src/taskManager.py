@@ -38,7 +38,7 @@ def save_2D_plot(volume, save_name="2Dplot.png", IMG_SAVE=True):
     return 0
 
 # TASK -------------------------------
-def draw_dielectric_constant(sampling_wavelength=None, log10_scale=False):
+def draw_dielectric_constant(sampling_wavelength=None, log10_scale=False, sim=None):
     """
     Generate dielectric constant maps in XY, XZ and YZ planes.
 
@@ -62,7 +62,8 @@ def draw_dielectric_constant(sampling_wavelength=None, log10_scale=False):
         Returns 0 after successful execution.
     """
     
-    sim = simulation.make_sim()
+    if sim is None:
+        sim = simulation.make_sim()
     sim.run(until=0)  # Run for 0 time to initialize the fields and materials
 
     if sampling_wavelength is not None:

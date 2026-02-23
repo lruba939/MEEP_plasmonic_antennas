@@ -21,7 +21,7 @@ class SimParams:
         mp.Simulation.eps_averaging = False
         self.sim_dimensions = 3
 
-        self.resolution =   150
+        self.resolution =   250
         self.symmetries = [
             mp.Mirror(direction=mp.X, phase=-1),
             mp.Mirror(direction=mp.Y, phase=+1)
@@ -36,9 +36,9 @@ class SimParams:
         
         ### Diferent antenna types parameters ###
         # Antenna type is a string defining the type of antenna to be used in the simulation
-        # self.antenna_type = "bow-tie"  # options: "bow-tie", "split-bar", "custom-split-bar"
+        self.antenna_type = "bow-tie"  # options: "bow-tie", "split-bar", "custom-split-bar"
         # self.antenna_type = "split-bar"
-        self.antenna_type = "custom-split-bar"
+        # self.antenna_type = "custom-split-bar"
 
         # Bow tie antenna dimensions
         if self.antenna_type == "bow-tie":
