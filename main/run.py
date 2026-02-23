@@ -35,9 +35,9 @@ def run():
         if not os.path.exists(p.animations_folder_path):
             os.makedirs(p.animations_folder_path)
 
-        # #--- Task 7 ---
-        # print_task(7, "3D calculations.")
-        # compute_fields()
+        #--- Task 7 ---
+        print_task(7, "3D calculations.")
+        compute_fields()
 
         #--- Task 9 ---
         print_task(9, "Postprocesing - animations and plots.")
@@ -45,11 +45,11 @@ def run():
 
         p.reset_to_defaults()
     
-    # p.IMG_CLOSE = False
-    # save_2D_plot(p.xy_plane)
+    p.IMG_CLOSE = False
+    save_2D_plot(p.xy_plane)
     
-    # draw_dielectric_constant(sampling_wavelength=200)
-    # draw_dielectric_constant()
+    draw_dielectric_constant(sampling_wavelength=200)
+    draw_dielectric_constant()
     
     
 if __name__ == "__main__":
