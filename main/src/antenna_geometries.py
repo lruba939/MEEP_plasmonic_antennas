@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 import numpy as np
 import meep as mp
 from meep.materials import Au, Ti, SiO2
-from src.geometry import clear_edges, fillet_polygon
+from src.geometry import *
 xm = 1000
 
 # =========================================================
@@ -44,6 +44,12 @@ class BowTieEquilateral(AntennaBase):
     # -----------------------------------------------------
 
     def build_geometry(self):
+
+        if self.radius > 1e-12:
+            self.gap = corrected_gap(
+                self.gap,
+                self.radius,
+                np.deg2rad(60))
 
         # Right triangle tip
         P1 = np.array([

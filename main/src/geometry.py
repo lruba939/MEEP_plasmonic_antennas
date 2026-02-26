@@ -5,9 +5,13 @@ import numpy as np
 # inicialize singleton of all parameters
 p = params.SimParams()
 
-# cell is the whole sim box
-def make_cell():
-    cell = mp.Vector3(p.xyz_cell[0], p.xyz_cell[1], p.xyz_cell[2])
+def make_cell(x=None, y=None, z=None, config=None):
+    if config is not None:
+        cell = mp.Vector3(config.cell_size[0],
+            config.cell_size[1],
+            config.cell_size[2])
+    else:
+        cell = mp.Vector3(x, y, z)
     return cell
 
 # geometry
@@ -279,3 +283,25 @@ def fillet_polygon(
         )
 
     return geometry
+
+def corrected_gap(g_target, R, theta):
+        """
+        Compute the nominal gap that must be used in geometry so that,
+        after corner rounding with radius R, the effective gap equals g_target.
+
+        Parameters
+        ----------
+        g_target : float
+            Desired physical gap after rounding
+        R : float
+            Fillet radius
+        theta : float
+            Opening angle of the corner (radians)
+
+        Returns
+        -------
+        g_input : float
+            Gap to use in the sharp geometry
+        """
+        delta = R / np.sin(theta / 2.0) - R
+        return g_target - 2.0 * delta

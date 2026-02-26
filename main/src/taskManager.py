@@ -1,6 +1,7 @@
 from . import params
 from . import simulation
 from utils.meep_utils import *
+from utils.logger import *
 
 import meep as mp
 from visualization.plotter import *
@@ -11,24 +12,16 @@ import os
 # inicialize singleton of all parameters
 p = params.SimParams()
 
-# TASK -------------------------------
-def save_and_show_params():
-    p.showParams()
-
-    if not os.path.exists(p.path_to_save):
-        os.makedirs(p.path_to_save)
-    if not os.path.exists(p.animations_folder_path):
-        os.makedirs(p.animations_folder_path)
-    
-    p.saveParams(filename=os.path.join(p.path_to_save, "simulation_params.txt"))
+def save_and_show_config(config, antenna):
+    show_experiment(config, antenna)
+    save_experiment(config, antenna)
     return 0
 
 # TASK -------------------------------
-def save_2D_plot(volume, save_name="2Dplot.png", IMG_SAVE=True):
-    sim = simulation.make_sim()
+def save_2D_plot(volume, sim, save_name="2Dplot.png", IMG_SAVE=True, path_to_save=None):
     sim.plot2D(output_plane=volume)
     if IMG_SAVE:
-        plt.savefig(os.path.join(p.path_to_save, save_name), dpi=300, bbox_inches="tight", format="png")
+        plt.savefig(os.path.join(path_to_save, save_name), dpi=300, bbox_inches="tight", format="png")
     if p.IMG_CLOSE:
         plt.show(block=False)
         plt.pause(2)
