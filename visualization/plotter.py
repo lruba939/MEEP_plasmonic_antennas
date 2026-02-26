@@ -1383,3 +1383,102 @@ def draw_dielectric_constant(sim, config, visvol, sampling_wavelength=None, log1
 
     sim.reset_meep()
     return 0
+
+def animate_raw_fields(
+    config,
+    mode="BOTH",
+    animate_E=True,
+    animate_H=False,
+    animate_DPWR=False,
+    component="X",
+):
+    """
+    Generate animations for fields map.
+
+    Parameters
+    ----------
+    mode : str
+        "WITH_ANTENNA", "EMPTY", or "BOTH"
+
+    animate_E : bool
+        Animate E-field component.
+
+    animate_H : bool
+        Animate H-field component.
+
+    animate_DPWR : bool
+        Animate power density field.
+
+    component : str
+        Field component: "X", "Y", or "Z".
+    """
+
+    valid_modes = ["WITH_ANTENNA", "EMPTY", "BOTH"]
+    valid_components = ["X", "Y", "Z"]
+
+    if mode not in valid_modes:
+        raise ValueError(f"mode must be one of {valid_modes}")
+
+    if component not in valid_components:
+        raise ValueError(f"component must be one of {valid_components}")
+
+    comp = component.lower()
+
+    planes = [
+        "xyplanar",
+        "xyplanarTOP",
+        "xzplanar",
+        "yzplanar",
+    ]
+
+    # ============================================================
+    # FUNCTION TO ANIMATE SINGLE FILE
+    # ============================================================
+
+    def animate_file(filename):
+        animate_field_from_h5(
+            h5_filename=filename,
+            save_name=filename.replace(".h5", ".mp4"),
+            load_h5data_path=config.path_to_save,
+            save_path=config.animations_folder_path,
+            transpose_xy=True,
+            cmap="RdBu",
+            IMG_CLOSE=config.IMG_CLOSE,
+        )
+
+    # ============================================================
+    # WITH ANTENNA
+    # ============================================================
+
+    if mode in ["WITH_ANTENNA", "BOTH"]:
+        print("Animating WITH antenna")
+
+        for plane in planes:
+
+            if animate_E:
+                animate_file(f"{plane}_e{comp}.h5")
+
+            if animate_H:
+                animate_file(f"{plane}_h{comp}.h5")
+
+            if animate_DPWR:
+                animate_file(f"{plane}_dpwr.h5")
+
+    # ============================================================
+    # EMPTY
+    # ============================================================
+
+    if mode in ["EMPTY", "BOTH"]:
+        print("Animating EMPTY structure")
+
+        for plane in planes:
+
+            if animate_E:
+                animate_file(f"{plane}-empty_e{comp}.h5")
+
+            if animate_H:
+                animate_file(f"{plane}-empty_h{comp}.h5")
+
+            if animate_DPWR:
+                animate_file(f"{plane}-empty_dpwr.h5")
+    return 0
