@@ -1,10 +1,9 @@
+import numpy as np
+import os, h5py, meep
 import matplotlib.pyplot as plt
 from matplotlib import rcParams
 from matplotlib.cm import get_cmap
 from matplotlib import animation
-import numpy as np
-import os
-import h5py
 from matplotlib.animation import FuncAnimation
 from mpl_toolkits.mplot3d import Axes3D
 from matplotlib.patches import Rectangle
@@ -1287,3 +1286,100 @@ def show_data_img(datas_arr, abs_bool, norm_bool, cmap_arr, alphas, name_to_save
         plt.close("all")
     else:
         plt.show()
+
+def save_2D_plot(sim, volume, save_name="2Dplot.png", IMG_SAVE=True, path_to_save=None, IMG_CLOSE=False):
+    sim.plot2D(output_plane=volume)
+    if IMG_SAVE:
+        plt.savefig(os.path.join(path_to_save, save_name), dpi=300, bbox_inches="tight", format="png")
+    if IMG_CLOSE:
+        plt.show(block=False)
+        plt.pause(2)
+        plt.close("all")
+    else:
+        plt.show()
+    return 0
+
+def draw_dielectric_constant(sim, config, visvol, sampling_wavelength=None, log10_scale=False):
+    """
+    Generate dielectric constant maps in XY, XZ and YZ planes.
+
+    For each plane (XY, XZ, YZ):
+    - the dielectric constant is extracted using sim.get_array(),
+    - a 2D map is plotted and saved to disk,
+    - the wavelength is included in the plot title and filename.
+
+    Parameters
+    ----------
+    sampling_wavelength : float or None
+        Wavelength in nm at which ε is sampled.
+        If None, the default simulation wavelength is used.
+
+    log10_scale : bool
+        If True, apply log10 scaling to the plotted dielectric map.
+
+    Returns
+    -------
+    int
+        Returns 0 after successful execution.
+    """
+    
+    sim.run(until=0)  # Run for 0 time to initialize the fields and materials
+
+    if sampling_wavelength is not None:
+        wavelength = sampling_wavelength
+        sampling_wavelength = sampling_wavelength / 1000  # Convert nm to um
+        frequency = 1 / sampling_wavelength
+    else:
+        wavelength = config.lambda0*1e3  # Convert um to nm for title
+        frequency = config.frequency
+
+    # ============================================================
+    # Plane configuration
+    # ============================================================
+
+    planes = {
+        "XY": {
+            "volume": visvol.vis_volume["XY"],
+            "title": f"Dielectric constant in XY plane\nWavelength {int(wavelength)} nm",
+            "save_name": f"dielectric_XY_plane_{int(wavelength)}nm.png",
+        },
+        "XZ": {
+            "volume": visvol.vis_volume["XZ"],
+            "title": f"Dielectric constant in XZ plane\nWavelength {int(wavelength)} nm",
+            "save_name": f"dielectric_XZ_plane_{int(wavelength)}nm.png",
+        },
+        "YZ": {
+            "volume": visvol.vis_volume["YZ"],
+            "title": f"Dielectric constant in YZ plane\nWavelength {int(wavelength)} nm",
+            "save_name": f"dielectric_YZ_plane_{int(wavelength)}nm.png",
+        },
+    }
+
+    # ============================================================
+    # Iteration over planes
+    # ============================================================
+
+    for plane, cfg in planes.items():
+        print(f"Processing dielectric map for {plane} plane")
+
+        eps_data = sim.get_array(
+            vol=cfg["volume"],
+            frequency=frequency,
+            component=meep.Dielectric,
+        )
+
+        show_data_img(
+            datas_arr=[eps_data],
+            abs_bool=[True],
+            norm_bool=[True],
+            cmap_arr=["binary"],
+            alphas=[1.0],
+            IMG_CLOSE=config.IMG_CLOSE,
+            Title=cfg["title"],
+            disable_ticks=False,
+            name_to_save=os.path.join(config.path_to_save, cfg["save_name"]),
+            log10_scale=log10_scale,
+        )
+
+    sim.reset_meep()
+    return 0

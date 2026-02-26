@@ -17,7 +17,7 @@ class SimParams:
     
     def _init_parameters(self):
         # SYSTEM
-        self.IMG_CLOSE =  True
+        self.IMG_CLOSE =  False
         mp.Simulation.eps_averaging = False
         self.sim_dimensions = 3
 

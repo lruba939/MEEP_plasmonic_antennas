@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 import numpy as np
 import meep as mp
 from meep.materials import Au, Ti, SiO2
-from src.geometry import *
+from utils.geometry_utils import *
 xm = 1000
 
 # =========================================================
@@ -32,6 +32,7 @@ class BowTieEquilateral(AntennaBase):
                  thickness,
                  radius,
                  material,
+                 z_offset=0.0,
                  center=(0.0, 0.0)):
 
         self.gap = gap
@@ -39,6 +40,7 @@ class BowTieEquilateral(AntennaBase):
         self.thickness = thickness
         self.radius = radius
         self.material = material
+        self.z_offset = z_offset
         self.center = np.array(center)
 
     # -----------------------------------------------------
@@ -80,16 +82,19 @@ class BowTieEquilateral(AntennaBase):
             mp.Vector3(*(P3 * mirror))
         ]
 
+        x_centroid = self.amp * 2/3 + self.gap/2.0
         bow_tie = [
             mp.Prism(
                 tip_right,
                 height=self.thickness,
-                material=self.material
+                material=self.material,
+                center=mp.Vector3(x_centroid, 0, self.z_offset)
             ),
             mp.Prism(
                 tip_left,
                 height=self.thickness,
-                material=self.material
+                material=self.material,
+                center=mp.Vector3(-x_centroid, 0, self.z_offset)
             )
         ]
 
@@ -99,25 +104,31 @@ class BowTieEquilateral(AntennaBase):
             bow_tie += clear_edges(
                 points=[P1, P2, P3],
                 radius=self.radius,
-                height=self.thickness
+                height=self.thickness,
+                z_offset=self.z_offset
             )
 
             bow_tie += clear_edges(
                 points=[P1 * mirror, P2 * mirror, P3 * mirror],
                 radius=self.radius,
-                height=self.thickness
+                height=self.thickness,
+                z_offset=self.z_offset
             )
 
             bow_tie += fillet_polygon(
                 points=[P1, P2, P3],
                 radius=self.radius,
-                height=self.thickness
+                height=self.thickness,
+                material=self.material,
+                z_offset=self.z_offset
             )
 
             bow_tie += fillet_polygon(
                 points=[P1 * mirror, P2 * mirror, P3 * mirror],
                 radius=self.radius,
-                height=self.thickness
+                height=self.thickness,
+                material=self.material,
+                z_offset=self.z_offset
             )
 
         return bow_tie

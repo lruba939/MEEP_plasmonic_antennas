@@ -3,6 +3,15 @@ import meep as mp
 from meep.materials import Au, Ti, SiO2, Pd
 
 # --------------------------------------------------------
+# MAIN LOGGER FUNCTION
+# --------------------------------------------------------
+
+def save_and_show_config(config, antenna):
+    show_experiment(config, antenna)
+    save_experiment(config, antenna)
+    return 0
+
+# --------------------------------------------------------
 # MATERIAL NAME RESOLVER
 # --------------------------------------------------------
 
