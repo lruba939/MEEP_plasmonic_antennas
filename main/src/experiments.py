@@ -58,18 +58,21 @@ def experiment_bow_tie_test():
             dimensions=3
             )
         # =====================================================
-        for plane in ["XY", "XZ"]:
+        print_task(1, "2D projections.")
+        for plane in ["XY", "XZ", "YZ"]:
             Name2D = f"antenna_gap_{gap}nm_{plane}.png"
             save_2D_plot(sim, antenna_vols.vis_volume[plane], save_name=Name2D, path_to_save=config.path_to_save, IMG_CLOSE=config.IMG_CLOSE)
+        # =====================================================
+        print_task(2, "Dielectric const. plots.")
         draw_dielectric_constant(sim, config, antenna_vols, sampling_wavelength=200)
         draw_dielectric_constant(sim, config, antenna_vols)
         # =====================================================
-        print_task(7, "3D calculations.")
+        print_task(3, "3D calculations.")
         compute_fields(sim, sim_empty, antenna_vols, config)
         # =====================================================
-        print_task(8, "Postprocesing - animations and plots.")
+        print_task(4, "Postprocesing - raw animations.")
         animate_raw_fields(config=config, mode="BOTH")
         # =====================================================
-        print_task(9, "Postprocesing - animations and plots.")
-        animate_enhancement_fields(config=config)
+        print_task(5, "Postprocesing - animations and plots.")
+        animate_enhancement_fields(config=config, antenna=antenna)
     return 0
