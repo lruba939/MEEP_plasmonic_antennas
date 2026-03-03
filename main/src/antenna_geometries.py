@@ -36,6 +36,7 @@ class BowTieEquilateral(AntennaBase):
                  center=(0.0, 0.0)):
 
         self.gap = gap
+        self.corected_gap = gap
         self.amp = amp
         self.thickness = thickness
         self.radius = radius
@@ -48,14 +49,15 @@ class BowTieEquilateral(AntennaBase):
     def build_geometry(self):
 
         if self.radius > 1e-12:
-            self.gap = corrected_gap(
+            self.corected_gap = corrected_gap(
                 self.gap,
                 self.radius,
                 np.deg2rad(60))
+            # print(f"Corrected gap for radius {self.radius*1e3:.1f} nm: {self.gap*1e3:.2f} nm")
 
         # Right triangle tip
         P1 = np.array([
-            self.center[0] + self.gap/2.0,
+            self.center[0] + self.corected_gap/2.0,
             self.center[1]
         ])
 
@@ -82,7 +84,7 @@ class BowTieEquilateral(AntennaBase):
             mp.Vector3(*(P3 * mirror))
         ]
 
-        x_centroid = self.amp * 2/3 + self.gap/2.0
+        x_centroid = self.amp * 2/3 + self.corected_gap/2.0
         bow_tie = [
             mp.Prism(
                 tip_right,

@@ -602,7 +602,7 @@ def compute_fields(
                 )
     return 0
 
-def animate_enhancement_fields(config, antenna, field='E'):
+def animate_enhancement_fields(config, antenna, field='E', animate=True):
     """
     Task 9:
     - Animate field enhancement for XY / XZ / YZ planes
@@ -621,7 +621,6 @@ def animate_enhancement_fields(config, antenna, field='E'):
     # ============================================================
     # Plane configuration
     # ============================================================
-
     planes = {
         "XY": {
             "filename": f"enhancement_xyplanar_{field}2.h5",
@@ -707,28 +706,29 @@ def animate_enhancement_fields(config, antenna, field='E'):
     for plane, cfg in planes.items():
         print(f"Processing {plane} plane")
 
-        # ---------- Animation ----------
-        animate_field_from_h5_physical(
-            h5_filename=cfg["filename"],
-            load_h5data_path=config.path_to_save,
-            save_name=cfg["save_anim"],
-            save_path=config.animations_folder_path,
-            interval=50,
-            cmap="inferno",
-            transpose_xy=True,
-            IMG_CLOSE=config.IMG_CLOSE,
-            x_phys_range=cfg["x_phys_range"],
-            y_phys_range=cfg["y_phys_range"],
-            x_zoom=cfg["x_zoom"],
-            y_zoom=cfg["y_zoom"],
-            mask_left=0,
-            mask_right=0,
-            mask_bottom=5,
-            mask_top=5,
-            title=f"Field enhancement |E|² ({plane})",
-            xlabel=cfg["xlabel"],
-            ylabel=cfg["ylabel"],
-        )
+        if animate:
+            # ---------- Animation ----------
+            animate_field_from_h5_physical(
+                h5_filename=cfg["filename"],
+                load_h5data_path=config.path_to_save,
+                save_name=cfg["save_anim"],
+                save_path=config.animations_folder_path,
+                interval=50,
+                cmap="inferno",
+                transpose_xy=True,
+                IMG_CLOSE=config.IMG_CLOSE,
+                x_phys_range=cfg["x_phys_range"],
+                y_phys_range=cfg["y_phys_range"],
+                x_zoom=cfg["x_zoom"],
+                y_zoom=cfg["y_zoom"],
+                mask_left=0,
+                mask_right=0,
+                mask_bottom=5,
+                mask_top=5,
+                title=f"Field enhancement |E|² ({plane})",
+                xlabel=cfg["xlabel"],
+                ylabel=cfg["ylabel"],
+            )
 
         # ---------- ROI analysis ----------
         frame_mean, frame_max = analyze_roi_from_h5_physical(
@@ -738,6 +738,8 @@ def animate_enhancement_fields(config, antenna, field='E'):
             x_phys_range=cfg["x_phys_range"],
             y_phys_range=cfg["y_phys_range"],
         )
+
+        print(f"Max mean enhancement in ROI for {plane}: {frame_max[1]:.2f} at frame {frame_max[0]}")
 
         # ---------- Max-frame plot ----------
         plot_field_frame_from_h5_physical(
@@ -785,5 +787,6 @@ def animate_enhancement_fields(config, antenna, field='E'):
         legend=True,
         save_path=config.animations_folder_path,
         save_name="MEAN_ENHANCEMENT_ALL_PLANES.png",
+        IMG_CLOSE=config.IMG_CLOSE,
     )
     return 0

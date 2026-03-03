@@ -5,7 +5,7 @@ from src.experiments import *
 
 def run():
     # =====================================================
-    experiment_bow_tie_test()
+    debug_roi_ench()
     
 if __name__ == "__main__":
     run()

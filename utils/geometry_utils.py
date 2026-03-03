@@ -274,4 +274,5 @@ def corrected_gap(g_target, R, theta):
             Gap to use in the sharp geometry
         """
         delta = R / np.sin(theta / 2.0) - R
+        # print(f"Gap correction: For target gap {g_target*1e3:.2f} nm, radius {R*1e3:.1f} nm, and angle {np.rad2deg(theta):.1f} deg, the correction is {delta*1e3:.2f} nm.")
         return g_target - 2.0 * delta
