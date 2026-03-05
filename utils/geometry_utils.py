@@ -141,7 +141,7 @@ def triangle_centroid(A, B, C):
     """
     return (A + B + C) / 3.0
 
-def clear_edges(
+def clear_edges_bowtie(
     points,
     radius,
     height,
@@ -276,3 +276,52 @@ def corrected_gap(g_target, R, theta):
         delta = R / np.sin(theta / 2.0) - R
         # print(f"Gap correction: For target gap {g_target*1e3:.2f} nm, radius {R*1e3:.1f} nm, and angle {np.rad2deg(theta):.1f} deg, the correction is {delta*1e3:.2f} nm.")
         return g_target - 2.0 * delta
+
+def clear_rectangle_corners(
+        points,
+        radius,
+        height,
+        z_offset):
+    """
+    Remove triangular corners from rectangle.
+    
+    points : [(x,y)]
+        rectangle vertices
+    r : float
+        cut size
+    """
+
+    geometry = []
+
+    # środek prostokąta
+    cx = sum(p[0] for p in points) / len(points)
+    cy = sum(p[1] for p in points) / len(points)
+
+    for (x, y) in points:
+
+        sx = -1 if x > cx else 1
+        sy = -1 if y > cy else 1
+
+        P0 = (x, y)
+        P1 = (x + sx * radius, y)
+        P2 = (x, y + sy * radius)
+
+        triangle = [
+            mp.Vector3(P0[0], P0[1], 0),
+            mp.Vector3(P1[0], P1[1], 0),
+            mp.Vector3(P2[0], P2[1], 0)
+        ]
+
+        tx = (P0[0] + P1[0] + P2[0]) / 3
+        ty = (P0[1] + P1[1] + P2[1]) / 3
+
+        geometry.append(
+            mp.Prism(
+                triangle,
+                height=height,
+                material=mp.air,
+                center=mp.Vector3(tx, ty, z_offset)
+            )
+        )
+
+    return geometry

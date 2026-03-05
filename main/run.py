@@ -5,7 +5,7 @@ from src.experiments import *
 
 def run():
     # =====================================================
-    debug_roi_ench()
+    new_geo()
     
 if __name__ == "__main__":
     run()

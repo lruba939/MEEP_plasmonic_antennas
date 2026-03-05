@@ -14,7 +14,7 @@ class SimulationConfig:
         # =====================================================
         # SYMULATION
         # =====================================================
-        self.resolution = 500
+        self.resolution = 2000
         self.courant = 0.5
         self.sim_time = 5000 / xm  # w jednostkach Meep (µm)
         self.sim_time_step = 22 / xm
