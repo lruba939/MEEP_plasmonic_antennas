@@ -5,7 +5,7 @@ from src.experiments import *
 
 def run():
     # =====================================================
-    new_geo()
+    split_bar_AuTiSiO2()
     
 if __name__ == "__main__":
     run()

@@ -1164,7 +1164,10 @@ def show_data_img(datas_arr, abs_bool, norm_bool, cmap_arr, alphas, name_to_save
         plt.show()
 
 def save_2D_plot(sim, volume, save_name="2Dplot.png", IMG_SAVE=True, path_to_save=None, IMG_CLOSE=False):
-    sim.plot2D(output_plane=volume)
+    sim.plot2D(output_plane=volume,
+            eps_parameters={'alpha':0.8, 'cmap':'binary', 'interpolation':'spline36', 'frequency':1/0.2},
+            boundary_parameters={'hatch':'o', 'linewidth':1.5, 'facecolor':'y', 'edgecolor':'b', 'alpha':0.3})
+
     if IMG_SAVE:
         plt.savefig(os.path.join(path_to_save, save_name), dpi=300, bbox_inches="tight", format="png")
     if IMG_CLOSE:

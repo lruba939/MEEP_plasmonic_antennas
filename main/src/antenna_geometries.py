@@ -105,32 +105,22 @@ class BowTieEquilateral(AntennaBase):
 
             bow_tie += clear_edges_bowtie(
                 points=[P1, P2, P3],
-                radius=self.radius,
-                height=self.thickness,
-                z_offset=self.z_offset
+                antenna=self
             )
 
             bow_tie += clear_edges_bowtie(
                 points=[P1 * mirror, P2 * mirror, P3 * mirror],
-                radius=self.radius,
-                height=self.thickness,
-                z_offset=self.z_offset
+                antenna=self
             )
 
-            bow_tie += fillet_polygon(
+            bow_tie += fillet_bowtie(
                 points=[P1, P2, P3],
-                radius=self.radius,
-                height=self.thickness,
-                material=self.material,
-                z_offset=self.z_offset
+                antenna=self
             )
 
-            bow_tie += fillet_polygon(
+            bow_tie += fillet_bowtie(
                 points=[P1 * mirror, P2 * mirror, P3 * mirror],
-                radius=self.radius,
-                height=self.thickness,
-                material=self.material,
-                z_offset=self.z_offset
+                antenna=self
             )
 
         return bow_tie
@@ -208,76 +198,20 @@ class SplitBar(AntennaBase):
 
             split_bar += clear_rectangle_corners(
                 points=[P1, P2, P3, P4],
-                radius=self.radius,
-                height=self.thickness,
-                z_offset=self.z_offset,
+                antenna=self
             )
             split_bar += clear_rectangle_corners(
                 points=[P1 * mirror, P2 * mirror, P3 * mirror, P4 * mirror],
-                radius=self.radius,
-                height=self.thickness,
-                z_offset=self.z_offset,
+                antenna=self
             )
-            if self.radius >= self.width/2.0:
-                split_bar.append(
-                    mp.Cylinder(
-                        center=mp.Vector3(self.center[0] + self.gap/2.0 + self.radius,
-                                          self.center[1],
-                                          self.z_offset),
-                        radius=self.radius,
-                        height=self.thickness,
-                        axis=mp.Vector3(0, 0, 1),
-                        material=self.material
-                    )
-                )
-                split_bar.append(
-                    mp.Cylinder(
-                        center=mp.Vector3(self.center[0] + self.gap/2.0 + self.length - self.radius,
-                                          self.center[1],
-                                          self.z_offset),
-                        radius=self.radius,
-                        height=self.thickness,
-                        axis=mp.Vector3(0, 0, 1),
-                        material=self.material
-                    )
-                )
-                split_bar.append(
-                    mp.Cylinder(
-                        center=mp.Vector3(self.center[0] - self.gap/2.0 - self.radius,
-                                          self.center[1],
-                                          self.z_offset),
-                        radius=self.radius,
-                        height=self.thickness,
-                        axis=mp.Vector3(0, 0, 1),
-                        material=self.material
-                    )
-                )
-                split_bar.append(
-                    mp.Cylinder(
-                        center=mp.Vector3(self.center[0] - self.gap/2.0 - self.length + self.radius,
-                                          self.center[1],
-                                          self.z_offset),
-                        radius=self.radius,
-                        height=self.thickness,
-                        axis=mp.Vector3(0, 0, 1),
-                        material=self.material
-                    )
-                )
-            else:
-                split_bar += fillet_polygon(
-                    points=[P1, P2, P3, P4],
-                    radius=self.radius,
-                    height=self.thickness,
-                    material=self.material,
-                    z_offset=self.z_offset,
-                )
-                split_bar += fillet_polygon(
-                    points=[P1 * mirror, P2 * mirror, P3 * mirror, P4 * mirror],
-                    radius=self.radius,
-                    height=self.thickness,
-                    material=self.material,
-                    z_offset=self.z_offset,
-                )
+            split_bar += fillet_rectangle(
+                points=[P1, P2, P3, P4],
+                antenna=self
+            )
+            split_bar += fillet_rectangle(
+                points=[P1 * mirror, P2 * mirror, P3 * mirror, P4 * mirror],
+                antenna=self
+            )
 
         return split_bar
 
@@ -287,6 +221,76 @@ class SplitBar(AntennaBase):
 
         return [
             self.length + self.gap,
+            self.width,
+            self.thickness
+        ]
+    
+# =========================================================
+# SplitBar
+# =========================================================
+
+class Bar(AntennaBase):
+
+    def __init__(self,
+                 length,
+                 width,
+                 thickness,
+                 material,
+                 z_offset=0.0,
+                 center=(0.0, 0.0),
+                 radius=0.0):
+
+        self.length = length
+        self.width = width
+        self.thickness = thickness
+        self.material = material
+        self.z_offset = z_offset
+        self.center = np.array(center)
+        self.radius = radius
+
+        if self.radius > self.width/2.0:
+            print(f"Warning: radius {self.radius*1e3:.1f} nm is too large for width {self.width*1e3:.1f} nm. Consider reducing the radius to avoid geometry issues.")
+
+    def build_geometry(self):
+
+        bar = [
+            mp.Block(
+                mp.Vector3(self.length, self.width, self.thickness),
+                center = mp.Vector3(self.center[0],
+                                    self.center[1],
+                                    self.z_offset),
+                material = self.material,
+            )
+        ]
+
+        # Fillets / rounding
+        if self.radius > 1e-12:
+            P1 = np.array([self.center[0] + self.length/2.0,
+                  self.center[1] + self.width/2.0])
+            P2 = np.array([self.center[0] + self.length/2.0,
+                  self.center[1] - self.width/2.0])
+            P3 = np.array([self.center[0] - self.length/2.0,
+                  self.center[1] + self.width/2.0])
+            P4 = np.array([self.center[0] - self.length/2.0,
+                  self.center[1] - self.width/2.0])
+
+            bar += clear_rectangle_corners(
+                points=[P1, P2, P3, P4],
+                antenna=self
+            )
+            bar += fillet_rectangle(
+                points=[P1, P2, P3, P4],
+                antenna=self
+            )
+
+        return bar
+
+    # -----------------------------------------------------
+
+    def bounding_box(self):
+
+        return [
+            self.length,
             self.width,
             self.thickness
         ]

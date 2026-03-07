@@ -14,65 +14,6 @@ def make_cell(x=None, y=None, z=None, config=None):
         cell = mp.Vector3(x, y, z)
     return cell
 
-# # geometry
-# def make_medium():
-#     if p.antenna_type == "split-bar":
-#         geometry = make_split_bar()
-#     elif p.antenna_type == "custom-split-bar":
-#         geometry = make_custom_split_bar()
-#     else:
-#         raise ValueError(f"Unknown antenna type: {p.antenna_type}")
-#     return geometry
-
-# def make_split_bar():
-#     split_bar = [
-#         mp.Block(
-#             mp.Vector3(p.x_width, p.y_length, p.z_height),
-#             center = p.splitbar_center[0], # upper bar
-#             material = p.material,
-#         ),
-        
-#         mp.Block(
-#             mp.Vector3(p.x_width, p.y_length, p.z_height),
-#             center = p.splitbar_center[1], # lower bar
-#             material = p.material,
-#         )
-#     ]
-#     return split_bar
-
-# def make_custom_split_bar():
-#     custom_split_bar = [
-#         # RIGHT BAR
-#         mp.Block(
-#             mp.Vector3(p.x_width, p.y_length, p.First_layer[2]),
-#             center = p.custom_center[0], # right bar
-#             material = p.material_1,
-#         ),
-#         mp.Block(
-#             mp.Vector3(p.x_width, p.y_length, p.Second_layer[2]),
-#             center = p.custom_center[0] - mp.Vector3(0, 0, p.First_layer[2]/2.0 + p.Second_layer[2]/2.0) , # right bar
-#             material = p.material_2,
-#         ),
-#         # LEFT BAR
-#         mp.Block(
-#             mp.Vector3(p.x_width, p.y_length, p.First_layer[2]),
-#             center = p.custom_center[1], # left bar
-#             material = p.material_1,
-#         ),
-#         mp.Block(
-#             mp.Vector3(p.x_width, p.y_length, p.Second_layer[2]),
-#             center = p.custom_center[1] - mp.Vector3(0, 0, p.First_layer[2]/2.0 + p.Second_layer[2]/2.0) , # left bar
-#             material = p.material_2,
-#         ),
-#         # substrate
-#         mp.Block(
-#             mp.Vector3(p.Third_layer[0], p.Third_layer[1], p.Third_layer[2]),
-#             center = mp.Vector3(0, 0, (-1)*(p.First_layer[2]/2.0 + p.Second_layer[2]/2.0 + p.Third_layer[2]/2.0)) , # left bar
-#             material = p.material_3,
-#         )
-#     ]
-#     return custom_split_bar
-
 # rounded edges !!!
 
 def unit(v):
@@ -141,13 +82,7 @@ def triangle_centroid(A, B, C):
     """
     return (A + B + C) / 3.0
 
-def clear_edges_bowtie(
-    points,
-    radius,
-    height,
-    z_offset,
-    overshoot=0.01
-):
+def clear_edges_bowtie(points, antenna, overshoot=0.01):
     """
     Clear all corners of a 2D polygon using air-cut prisms.
 
@@ -171,14 +106,18 @@ def clear_edges_bowtie(
     geometry = []
     N = len(points)
 
+    r = antenna.radius
+    h = antenna.thickness
+    z = antenna.z_offset
+
     for i in range(N):
         P_center = points[i]
         P_left   = points[(i - 1) % N]
         P_right  = points[(i + 1) % N]
 
         # --- fillet geometry ---
-        T1, T2 = tangent_points(P_center, P_left, P_right, radius)
-        P_cut  = safe_cut_point(P_center, P_left, P_right, radius, overshoot)
+        T1, T2 = tangent_points(P_center, P_left, P_right, r)
+        P_cut  = safe_cut_point(P_center, P_left, P_right, r, overshoot)
 
         # --- air cut (corner removal) ---
         air_triangle = [
@@ -192,22 +131,15 @@ def clear_edges_bowtie(
         geometry.append(
             mp.Prism(
                 air_triangle,
-                height=height,
+                height=h,
                 material=mp.air,
-                center=mp.Vector3(centroid[0], centroid[1], z_offset)
+                center=mp.Vector3(centroid[0], centroid[1], z)
             )
         )
 
     return geometry
 
-def fillet_polygon(
-    points,
-    radius,
-    height,
-    material,
-    z_offset,
-    axis=np.array([0, 0, 1])
-):
+def fillet_bowtie(points, antenna, axis=np.array([0, 0, 1])):
     """
     Fillets all corners of a 2D polygon using material cylinders.
 
@@ -230,6 +162,10 @@ def fillet_polygon(
         List of mp.GeometricObject (Cylinders)
     """
 
+    r = antenna.radius
+    h = antenna.thickness
+    z = antenna.z_offset
+
     geometry = []
     N = len(points)
 
@@ -239,18 +175,126 @@ def fillet_polygon(
         P_right  = points[(i + 1) % N]
 
         # --- fillet geometry ---
-        C = inscribed_circle_center(P_center, P_left, P_right, radius)
+        C = inscribed_circle_center(P_center, P_left, P_right, r)
 
         # --- fillet cylinder ---
         geometry.append(
             mp.Cylinder(
-                center=mp.Vector3(C[0], C[1], z_offset),
-                radius=radius,
-                height=height,
+                center=mp.Vector3(C[0], C[1], z),
+                radius=r,
+                height=h,
                 axis=mp.Vector3(*axis),
-                material=material
+                material=antenna.material
             )
         )
+
+    return geometry
+
+def clear_rectangle_corners(points, antenna):
+    """
+    Remove triangular corners from rectangle.
+    
+    points : [(x,y)]
+        rectangle vertices
+    r : float
+        cut size
+    """
+
+    geometry = []
+
+    # środek prostokąta
+    cx = sum(p[0] for p in points) / len(points)
+    cy = sum(p[1] for p in points) / len(points)
+
+    r = antenna.radius
+    h = antenna.thickness
+    z = antenna.z_offset
+
+    for (x, y) in points:
+
+        sx = -1 if x > cx else 1
+        sy = -1 if y > cy else 1
+
+        P0 = (x, y)
+        P1 = (x + sx * r, y)
+        P2 = (x, y + sy * r)
+
+        triangle = [
+            mp.Vector3(P0[0], P0[1], 0),
+            mp.Vector3(P1[0], P1[1], 0),
+            mp.Vector3(P2[0], P2[1], 0)
+        ]
+
+        tx = (P0[0] + P1[0] + P2[0]) / 3
+        ty = (P0[1] + P1[1] + P2[1]) / 3
+
+        geometry.append(
+            mp.Prism(
+                triangle,
+                height=h,
+                material=mp.air,
+                center=mp.Vector3(tx, ty, z)
+            )
+        )
+
+    return geometry
+
+def fillet_rectangle(points, antenna, axis=np.array([0,0,1])):
+
+    geometry = []
+    points = np.array(points)
+
+    cx, cy = np.mean(points, axis=0)
+
+    r = antenna.radius
+    w = antenna.width
+    if hasattr(antenna, "gap"):
+        g = antenna.gap
+    else:
+        g = 0.0
+    L = antenna.length
+    x0, y0 = antenna.center
+    z = antenna.z_offset
+
+    def add_cyl(x, y):
+        geometry.append(
+            mp.Cylinder(
+                center=mp.Vector3(x, y, z),
+                radius=r,
+                height=antenna.thickness,
+                axis=axis,
+                material=antenna.material
+            )
+        )
+
+    # --- semicircle caps ---
+    if r >= w/2:
+
+        if g > 0:
+            xs = [
+                x0 + g/2 + r,
+                x0 + g/2 + L - r,
+                x0 - g/2 - r,
+                x0 - g/2 - L + r,
+            ]
+        else:
+            xs = [
+                x0 + L/2 - r,
+                x0 - L/2 + r,
+            ]
+
+        for x in xs:
+            add_cyl(x, y0)
+
+    # --- normal corner fillets ---
+    else:
+
+        for P in points:
+
+            sx = -1 if P[0] > cx else 1
+            sy = -1 if P[1] > cy else 1
+
+            add_cyl(P[0] + sx*r, P[1] + sy*r)
 
     return geometry
 
@@ -276,52 +320,3 @@ def corrected_gap(g_target, R, theta):
         delta = R / np.sin(theta / 2.0) - R
         # print(f"Gap correction: For target gap {g_target*1e3:.2f} nm, radius {R*1e3:.1f} nm, and angle {np.rad2deg(theta):.1f} deg, the correction is {delta*1e3:.2f} nm.")
         return g_target - 2.0 * delta
-
-def clear_rectangle_corners(
-        points,
-        radius,
-        height,
-        z_offset):
-    """
-    Remove triangular corners from rectangle.
-    
-    points : [(x,y)]
-        rectangle vertices
-    r : float
-        cut size
-    """
-
-    geometry = []
-
-    # środek prostokąta
-    cx = sum(p[0] for p in points) / len(points)
-    cy = sum(p[1] for p in points) / len(points)
-
-    for (x, y) in points:
-
-        sx = -1 if x > cx else 1
-        sy = -1 if y > cy else 1
-
-        P0 = (x, y)
-        P1 = (x + sx * radius, y)
-        P2 = (x, y + sy * radius)
-
-        triangle = [
-            mp.Vector3(P0[0], P0[1], 0),
-            mp.Vector3(P1[0], P1[1], 0),
-            mp.Vector3(P2[0], P2[1], 0)
-        ]
-
-        tx = (P0[0] + P1[0] + P2[0]) / 3
-        ty = (P0[1] + P1[1] + P2[1]) / 3
-
-        geometry.append(
-            mp.Prism(
-                triangle,
-                height=height,
-                material=mp.air,
-                center=mp.Vector3(tx, ty, z_offset)
-            )
-        )
-
-    return geometry
