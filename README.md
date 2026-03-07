@@ -29,3 +29,19 @@ Based on Novotny L.'s publication, *Effective wavelength scaling for optical ant
 that allows one to calculate the half-wavelength of a dipole antenna and the effective wavelength for gold and silver.
 
 ![effwave](Assets/eff_wave_novotny2007.png)
+
+## To Do:
+- [x] Get rid of params.py file
+    - [x] Remove calculations
+    - [x] Remove geometry definitions
+    - [x] New config.py
+- [x] Split geometry.py into make_geometry and geometry utilities
+- [x] Move geometry definitions to separate files
+    - [x] Add bow-tie antenna
+    - [ ] Add split-bar antenna
+    - [ ] Add Half-dipol antenna
+- [x] Make a manager of experiments
+- [ ] Refactor the plotter
+    - [ ] Add structure to animations
+    - [ ] Add functions for 3D drawing of the used structure
+- [ ] Integrate Novotny (2007) calculations into the main code
