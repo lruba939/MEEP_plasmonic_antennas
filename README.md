@@ -38,8 +38,8 @@ that allows one to calculate the half-wavelength of a dipole antenna and the eff
 - [x] Split geometry.py into make_geometry and geometry utilities
 - [x] Move geometry definitions to separate files
     - [x] Add bow-tie antenna
-    - [ ] Add split-bar antenna
-    - [ ] Add Half-dipol antenna
+    - [x] Add split-bar antenna
+    - [x] Add Half-dipol antenna
 - [x] Make a manager of experiments
 - [ ] Refactor the plotter
     - [ ] Add structure to animations
