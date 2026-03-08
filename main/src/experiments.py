@@ -83,7 +83,7 @@ def split_bar_AuTiSiO2():
 
     config.resolution = 500
 
-    for gap in [10, 30, 50, 70, 90, 100]:
+    for gap in [10, 30, 50, 70, 90, 110]:
         SIM_NAME = f"split_bar_antenna_gap_{gap}nm_AuTiSiO2_test"
         config.path_to_save, config.animations_folder_path = create_directory(SIM_NAME)
         # =====================================================
@@ -172,8 +172,34 @@ def split_bar_AuTiSiO2():
         print_task(4, "Postprocesing - raw animations.")
         animate_raw_fields(config=config, mode="BOTH")
         # =====================================================
+        draw_params = {
+            "XY": {"x_zoom": 0.10,
+                   "y_zoom": 0.6,
+                   "roi": {
+                        "center": (0, 0),
+                        "width": AuTop.gap * 1e3,
+                        "height": AuTop.width * 1e3,
+                    },
+            },
+            "XZ": {"x_zoom": 0.1,
+                   "y_zoom": 0.2,
+                   "roi": {
+                        "center": (0, -1e3*TiBetween.thickness/2.0),
+                        "width": AuTop.gap * 1e3,
+                        "height": (AuTop.thickness + TiBetween.thickness) * 1e3,
+                    },
+            },
+            "YZ": {"x_zoom": 0.4,
+                   "y_zoom": 0.2,
+                   "roi": {
+                        "center": (0, -1e3*TiBetween.thickness/2.0),
+                        "width": AuTop.width * 1e3,
+                        "height": (AuTop.thickness + TiBetween.thickness) * 1e3,
+                    },
+            },
+        }
         print_task(5, "Postprocesing - animations and plots.")
-        animate_enhancement_fields(config=config, antenna=AuTop)
+        animate_enhancement_fields(config=config, draw_params=draw_params)
 
     return 0
 
@@ -218,3 +244,5 @@ def draw_scatter_plot_for_enh():
     plt.xlim(5, 95)  # (optional) make sure the plot range covers them
 
     plt.show()
+
+    return 0
