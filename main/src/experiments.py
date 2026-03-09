@@ -83,7 +83,7 @@ def split_bar_AuTiSiO2():
 
     config.resolution = 500
 
-    for gap in [10, 30, 50, 70, 90, 110]:
+    for gap in [30, 50, 70, 90, 110]:
         SIM_NAME = f"split_bar_antenna_gap_{gap}nm_AuTiSiO2_test"
         config.path_to_save, config.animations_folder_path = create_directory(SIM_NAME)
         # =====================================================

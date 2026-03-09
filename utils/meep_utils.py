@@ -602,7 +602,7 @@ def compute_fields(
                 )
     return 0
 
-def animate_enhancement_fields(config, antenna, field='E', animate=True):
+def animate_enhancement_fields(config, draw_params, field='E', animate=True):
     """
     Task 9:
     - Animate field enhancement for XY / XZ / YZ planes
@@ -627,15 +627,15 @@ def animate_enhancement_fields(config, antenna, field='E', animate=True):
             "save_anim": f"enh_xy_{field}2.mp4",
             "x_phys_range": [-config.cell_size[0] / 2 * 1e3, config.cell_size[0] / 2 * 1e3],
             "y_phys_range": [-config.cell_size[1] / 2 * 1e3, config.cell_size[1] / 2 * 1e3],
-            "x_zoom": 1.0,
-            "y_zoom": 1.0,
+            "x_zoom": draw_params["XY"]["x_zoom"],
+            "y_zoom": draw_params["XY"]["y_zoom"],
             "xlabel": "X [nm]",
             "ylabel": "Y [nm]",
             "roi": {
                 "type": "rectangle",
-                "center": (0, 0),
-                "width": antenna.gap * 1e3,
-                "height": antenna.radius * 1.5 * 1e3,
+                "center": draw_params["XY"]["roi"]["center"],
+                "width": draw_params["XY"]["roi"]["width"],
+                "height": draw_params["XY"]["roi"]["height"],
             },
         },
 
@@ -644,15 +644,15 @@ def animate_enhancement_fields(config, antenna, field='E', animate=True):
             "save_anim": f"enh_xy_TOP_{field}2.mp4",
             "x_phys_range": [-config.cell_size[0] / 2 * 1e3, config.cell_size[0] / 2 * 1e3],
             "y_phys_range": [-config.cell_size[1] / 2 * 1e3, config.cell_size[1] / 2 * 1e3],
-            "x_zoom": 1.0,
-            "y_zoom": 1.0,
+            "x_zoom": draw_params["XY"]["x_zoom"],
+            "y_zoom": draw_params["XY"]["y_zoom"],
             "xlabel": "X [nm]",
             "ylabel": "Y [nm]",
             "roi": {
                 "type": "rectangle",
-                "center": (0, 0),
-                "width": antenna.gap * 1e3,
-                "height": antenna.radius * 1.5 * 1e3,
+                "center": draw_params["XY"]["roi"]["center"],
+                "width": draw_params["XY"]["roi"]["width"],
+                "height": draw_params["XY"]["roi"]["height"],
             },
         },
 
@@ -661,15 +661,15 @@ def animate_enhancement_fields(config, antenna, field='E', animate=True):
             "save_anim": f"enh_xz_{field}2.mp4",
             "x_phys_range": [-config.cell_size[0] / 2 * 1e3, config.cell_size[0] / 2 * 1e3],
             "y_phys_range": [-config.cell_size[2] / 2 * 1e3, config.cell_size[2] / 2 * 1e3],
-            "x_zoom": 1.0,
-            "y_zoom": 1.0,
+            "x_zoom": draw_params["XZ"]["x_zoom"],
+            "y_zoom": draw_params["XZ"]["y_zoom"],
             "xlabel": "X [nm]",
             "ylabel": "Z [nm]",
             "roi": {
                 "type": "rectangle",
-                "center": (0, 0),
-                "width": antenna.gap * 1e3,
-                "height": antenna.thickness * 1e3,
+                "center": draw_params["XZ"]["roi"]["center"],
+                "width": draw_params["XZ"]["roi"]["width"],
+                "height": draw_params["XZ"]["roi"]["height"],
             },
         },
 
@@ -678,15 +678,15 @@ def animate_enhancement_fields(config, antenna, field='E', animate=True):
             "save_anim": f"enh_yz_{field}2.mp4",
             "x_phys_range": [-config.cell_size[1] / 2 * 1e3, config.cell_size[1] / 2 * 1e3],
             "y_phys_range": [-config.cell_size[2] / 2 * 1e3, config.cell_size[2] / 2 * 1e3],
-            "x_zoom": 1.0,
-            "y_zoom": 1.0,
+            "x_zoom": draw_params["YZ"]["x_zoom"],
+            "y_zoom": draw_params["YZ"]["y_zoom"],
             "xlabel": "Y [nm]",
             "ylabel": "Z [nm]",
             "roi": {
                 "type": "rectangle",
-                "center": (0, 0),
-                "width": antenna.radius * 1.5 * 1e3,
-                "height": antenna.thickness * 1e3,
+                "center": draw_params["YZ"]["roi"]["center"],
+                "width": draw_params["YZ"]["roi"]["width"],
+                "height": draw_params["YZ"]["roi"]["height"],
             },
         },
     }
