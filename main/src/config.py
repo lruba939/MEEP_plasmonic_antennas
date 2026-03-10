@@ -43,8 +43,8 @@ class SimulationConfig:
 
         self.src_type = "gaussian"  # "continuous" or "gaussian"
         self.src_is_integrated = False # if source overlaps with PML regions use True
-        self.lambda0 = 8100 / 1000
-        self.src_width = 1000 / 1000
+        self.lambda0 = 8100 / xm
+        self.src_width = 1000 / xm
         self.src_amp = 1.0
         self.src_cutoff = 3 # number of widths used to smoothly turn on/off the source; reduces high-frequency artifacts
         self.component = mp.Ex

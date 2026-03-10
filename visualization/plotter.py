@@ -1361,3 +1361,79 @@ def animate_raw_fields(
             if animate_DPWR:
                 animate_file(f"{plane}-empty_dpwr.h5")
     return 0
+
+def plot_mean_E2_vs_time_from_h5(
+    h5_filename,
+    load_h5data_path=None,
+    dataset_name=None,
+    xzeros=0,
+    yzeros=None,
+    time_step=1.0
+):
+
+    # ------------------------------
+    # resolve path
+    # ------------------------------
+    if load_h5data_path is not None:
+        h5_path = os.path.join(load_h5data_path, h5_filename)
+    else:
+        h5_path = h5_filename
+
+    print("Opening:", h5_path)
+
+    # ------------------------------
+    # open file
+    # ------------------------------
+    with h5py.File(h5_path, "r") as f:
+
+        if dataset_name is None:
+            dataset_name = list(f.keys())[0]
+
+        dset = f[dataset_name]
+
+        Nx, Ny, Nt = dset.shape
+
+        print("Dataset shape:", dset.shape)
+
+        if yzeros is None:
+            yzeros = xzeros
+
+        mean_E2 = np.zeros(Nt)
+
+        # ------------------------------
+        # iterate over frames
+        # ------------------------------
+        for t in range(Nt):
+
+            frame = dset[:, :, t]
+
+            frame = frame[
+                xzeros:Nx-xzeros,
+                yzeros:Ny-yzeros
+            ]
+
+            mean_E2[t] = np.mean(frame)
+
+            if t % 50 == 0:
+                print(f"frame {t}/{Nt}")
+
+    # ------------------------------
+    # time axis
+    # ------------------------------
+    time = np.arange(Nt) * time_step
+
+    print("Mean E² values:", mean_E2)
+    print("Time axis:", time)
+
+    # ------------------------------
+    # plot
+    # ------------------------------
+    plt.figure()
+    plt.plot(time, mean_E2)
+    plt.xlabel("time")
+    plt.ylabel("<E²>")
+    plt.title("Mean field intensity vs time")
+    plt.grid(True)
+    plt.show()
+
+    return time, mean_E2

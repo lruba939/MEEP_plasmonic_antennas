@@ -5,7 +5,8 @@ from src.experiments import *
 
 def run():
     # =====================================================
-    split_bar_AuTiSiO2()
+    # split_bar_AuTiSiO2()
+    field_shape()
     
 if __name__ == "__main__":
     run()

@@ -246,3 +246,63 @@ def draw_scatter_plot_for_enh():
     plt.show()
 
     return 0
+
+def field_shape():
+    # =====================================================
+    config = SimulationConfig()
+
+    config.resolution = 500
+    config.sim_time = 12000 / xm
+    config.sim_time_step = 100 / xm
+    config.src_width = 2000 / xm
+
+    gap = 50
+    # =====================================================
+    SIM_NAME = f"SOURCE_SHAPE"
+    config.path_to_save, config.animations_folder_path = create_directory(SIM_NAME)
+    # =====================================================
+    antenna = BowTieEquilateral(
+        gap=gap/xm,
+        amp=76/xm,
+        thickness=24/xm,
+        radius=12/xm,
+        material=Au,
+        z_offset=0.0
+    )
+    cell = make_cell(config=config)
+    antenna_vols = VolumeSet(cell, antenna=antenna, top_z=antenna.thickness)
+
+    save_and_show_config(config, antenna)
+
+    sim = mp.Simulation(
+        cell_size=cell,
+        boundary_layers=[mp.PML(config.pml)],
+        geometry=antenna.build_geometry(),
+        sources=make_source(config),
+        resolution = config.resolution,
+        k_point = mp.Vector3(),
+        symmetries=config.symmetries,
+        dimensions=3
+        )
+    sim_empty = mp.Simulation(
+        cell_size=cell,
+        boundary_layers=[mp.PML(config.pml)],
+        geometry=[],
+        sources=make_source(config),
+        resolution = config.resolution,
+        k_point = mp.Vector3(),
+        symmetries=config.symmetries,
+        dimensions=3
+        )
+    # =====================================================
+    print_task(3, "3D calculations.")
+    compute_fields(sim, sim_empty, antenna_vols, config, mode="EMPTY")
+    # =====================================================
+    plot_mean_E2_vs_time_from_h5(
+        "xyplanar-empty_ex.h5",
+        load_h5data_path=config.path_to_save,
+        xzeros=20,
+        time_step=config.sim_time_step
+    )
+    # =====================================================
+    return 0
