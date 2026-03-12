@@ -157,7 +157,7 @@ def save_experiment(config, antennas, filename=None):
 def warning_PML2wav(config):
     PML2wav_ratio = config.pml / config.lambda0
     if PML2wav_ratio < 0.5:
-        PML2wav_ratio_warning = "\n\n\nWARNING! PML should be at least 0.5 length of used wavelength!!!\n\n\n"
+        PML2wav_ratio_warning = "\n\nWARNING! PML should be at least 0.5 times the wavelength used!!!\n"
         print(PML2wav_ratio_warning)
         return PML2wav_ratio_warning
          

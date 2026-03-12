@@ -32,7 +32,6 @@ that allows one to calculate the half-wavelength of a dipole antenna and the eff
 
 ## To Do:
 - [ ] Warning before calculations that we asume PML
-- [ ] Warning about PML and wavelength
 - [ ] Flux monitors:
 	- [ ] Transimtance monitor
 	- [ ] Reflectance monitor
@@ -58,6 +57,7 @@ that allows one to calculate the half-wavelength of a dipole antenna and the eff
 - [x] Source visualization procces:
 	- [x] Spectrum of source intensity in time
 	- [x] Conclusions
+- [x] Warning about PML and wavelength
 
 
 

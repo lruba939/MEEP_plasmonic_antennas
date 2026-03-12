@@ -5,9 +5,7 @@ from src.experiments import *
 
 def run():
     # =====================================================
-    # split_bar_AuTiSiO2()
-    # field_shape()
-    experiment_bow_tie_test()
+    TRA_TEST()
     
 if __name__ == "__main__":
     run()

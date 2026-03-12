@@ -151,7 +151,7 @@ def collect_fields_with_output(
     # Single sim.run()
     # --------------------------------------------------
     sim.run(*run_actions, until=until)
-    return 0
+    return sim
 
 def enhancement_divided_by_maxes_arr(
     h5_target,
@@ -482,7 +482,8 @@ def compute_fields(
     mode="BOTH",
     calc_E=True,
     calc_H=False,
-    calc_DPWR=False
+    calc_DPWR=False,
+    fluxes=True,
 ):
     """
     Run field simulations and compute enhancement maps.
@@ -519,26 +520,34 @@ def compute_fields(
     }
 
     # ============================================================
-    # WITH ANTENNA
+    # Flux monitors
     # ============================================================
+    if fluxes:
+        fcen = config.frequency
+        df = config.frequency_width
+        nfreq = config.nfreq
 
-    if mode in ["WITH_ANTENNA", "BOTH"]:
-        print("Running simulation WITH antenna")
-
-        collect_fields_with_output(
-            sim_antenna,
-            volumes=planes,
-            delta_t=config.sim_time_step,
-            until=config.sim_time,
-            start_time=0,
-            path=config.path_to_save,
-            calc_E_fields=calc_E,
-            calc_H_fields=calc_H,
-            calc_Dpwr=calc_DPWR,
+        refl_fr = mp.FluxRegion(
+            center=mp.Vector3(0, 0, config.z_reflection),
+            size=mp.Vector3(
+                config.cell_size[0]-2*config.pad-2*config.pml,
+                config.cell_size[1]-2*config.pad-2*config.pml,
+                0)
         )
 
-        sim_antenna.reset_meep()
+        tran_fr = mp.FluxRegion(
+            center=mp.Vector3(0, 0, config.z_transmission),
+            size=mp.Vector3(
+                config.cell_size[0]-2*config.pad-2*config.pml,
+                config.cell_size[1]-2*config.pad-2*config.pml,
+                0)
+        )
 
+        refl_empty = sim_empty.add_flux(fcen, df, nfreq, refl_fr)
+        tran_empty = sim_empty.add_flux(fcen, df, nfreq, tran_fr)
+        refl = sim_antenna.add_flux(fcen, df, nfreq, refl_fr)
+        tran = sim_antenna.add_flux(fcen, df, nfreq, tran_fr)
+    
     # ============================================================
     # EMPTY STRUCTURE
     # ============================================================
@@ -548,7 +557,7 @@ def compute_fields(
 
         empty_planes = {f"{k}-empty": v for k, v in planes.items()}
 
-        collect_fields_with_output(
+        sim_empty = collect_fields_with_output(
             sim_empty,
             volumes=empty_planes,
             delta_t=config.sim_time_step,
@@ -559,8 +568,43 @@ def compute_fields(
             calc_H_fields=calc_H,
             calc_Dpwr=calc_DPWR,
         )
+        if fluxes:
+            incident_flux = mp.get_fluxes(tran_empty)
+            refl_data = sim_empty.get_flux_data(refl_empty)
+            sim_antenna.load_minus_flux_data(refl, refl_data)
 
         sim_empty.reset_meep()
+
+    # ============================================================
+    # WITH ANTENNA
+    # ============================================================
+
+    if mode in ["WITH_ANTENNA", "BOTH"]:
+        print("Running simulation WITH antenna")
+
+        sim_antenna = collect_fields_with_output(
+            sim_antenna,
+            volumes=planes,
+            delta_t=config.sim_time_step,
+            until=config.sim_time,
+            start_time=0,
+            path=config.path_to_save,
+            calc_E_fields=calc_E,
+            calc_H_fields=calc_H,
+            calc_Dpwr=calc_DPWR,
+        )
+        if fluxes:
+            refl_flux = mp.get_fluxes(refl)
+            tran_flux = mp.get_fluxes(tran)
+            flux_freqs = mp.get_flux_freqs(tran)
+
+        sim_antenna.reset_meep()
+
+    # ============================================================
+    # TRAN AND REFL CALCULATION
+    # ============================================================
+    if fluxes and mode == "BOTH":
+        compute_T_R_A(incident_flux, tran_flux, refl_flux, flux_freqs, config.path_to_save)
 
     # ============================================================
     # ENHANCEMENT CALCULATION
@@ -725,7 +769,7 @@ def animate_enhancement_fields(config, draw_params, field='E', animate=True):
                 mask_right=0,
                 mask_bottom=5,
                 mask_top=5,
-                title=f"Field enhancement |E|²/|E₀|² ({plane})",
+                title=f"Field enhancement |E|²/|E0|² ({plane})",
                 xlabel=cfg["xlabel"],
                 ylabel=cfg["ylabel"],
             )
@@ -758,7 +802,7 @@ def animate_enhancement_fields(config, draw_params, field='E', animate=True):
             mask_bottom=5,
             mask_top=5,
             roi=cfg["roi"],
-            title=f"Field enhancement |E|²/|E₀|² ({plane})",
+            title=f"Field enhancement |E|²/|E0|² ({plane})",
             xlabel=cfg["xlabel"],
             ylabel=cfg["ylabel"],
             save_path=config.animations_folder_path,
@@ -782,11 +826,100 @@ def animate_enhancement_fields(config, draw_params, field='E', animate=True):
         linestyles=["-", "--", "-.", ":"],
         grid=True,
         xlabel="Time step",
-        ylabel="|E|²/|E₀|²",
-        title="Mean |E|²/|E₀|² in gap vs time",
+        ylabel="|E|²/|E0|²",
+        title="Mean |E|²/|E0|² in gap vs time",
         legend=True,
         save_path=config.animations_folder_path,
         save_name="MEAN_ENHANCEMENT_ALL_PLANES.png",
         IMG_CLOSE=config.IMG_CLOSE,
     )
+    return 0
+
+def compute_T_R_A(
+    incident_flux,
+    tran_flux,
+    refl_flux,
+    flux_freqs,
+    save_path=None,
+    save_name="spectra_TRA.txt"
+):
+    """
+    Compute reflection (R), transmission (T), absorption (A)
+    and wavelength from Meep flux monitors.
+
+    Parameters
+    ----------
+    incident_flux : list or array
+        Flux through transmission monitor in empty simulation.
+
+    tran_flux : list or array
+        Flux through transmission monitor with structure.
+
+    refl_flux : list or array
+        Flux through reflection monitor with structure.
+
+    flux_freqs : list or array
+        Frequencies returned by mp.get_flux_freqs().
+
+    save_path : str or None
+        Directory where results will be saved.
+
+    save_name : str
+        Name of the output file.
+
+    Returns
+    -------
+    wavelength, R, T, A : numpy arrays
+    """
+
+    incident_flux = np.array(incident_flux)
+    tran_flux = np.array(tran_flux)
+    refl_flux = np.array(refl_flux)
+    flux_freqs = np.array(flux_freqs)
+
+    # -----------------------------------------
+    # wavelength
+    # -----------------------------------------
+    wavelength = 1.0 / flux_freqs
+
+    # -----------------------------------------
+    # R T A
+    # -----------------------------------------
+    R = -refl_flux / incident_flux
+    T = tran_flux / incident_flux
+    A = 1.0 - R - T
+
+    # -----------------------------------------
+    # save
+    # -----------------------------------------
+    if save_path is not None:
+        os.makedirs(save_path, exist_ok=True)
+
+        data = np.column_stack((wavelength, R, T, A))
+
+        header = "lambda  R  T  A"
+
+        np.savetxt(
+            os.path.join(save_path, save_name),
+            data,
+            header=header
+        )
+    
+    # -----------------------------------------
+    # plot
+    # -----------------------------------------
+    multi_line_plotter_same_axes(
+        xdata_list=[wavelength, wavelength, wavelength],
+        ydata_list=[R, T, A],
+        labels=["R", "T", "A"],
+        colors=["blue", "red", "green"],
+        linestyles=["-", "--", "-."],
+        xlabel="Wavelength [μm]",
+        ylabel="Fraction",
+        title="Reflection, Transmission, Absorption Spectra",
+        legend=True,
+        save_path=save_path,
+        save_name="spectra_T_R_A.png",
+    )
+
     return 0
