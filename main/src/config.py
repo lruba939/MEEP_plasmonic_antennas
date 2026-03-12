@@ -28,8 +28,8 @@ class SimulationConfig:
         # CELL
         # =====================================================
 
-        self.pml = 30/xm
-        self.pad = 40/xm
+        self.pml = 100/xm
+        self.pad = 100/xm
 
         self.cell_size = [
             180.0 / xm + 2*self.pad + 2*self.pml,   # x

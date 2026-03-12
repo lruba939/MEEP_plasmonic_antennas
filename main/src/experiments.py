@@ -19,7 +19,7 @@ def experiment_bow_tie_test():
     # =====================================================
     config = SimulationConfig()
 
-    for gap in [5, 10, 20, 40, 60]:
+    for gap in [10]:
         # =====================================================
         SIM_NAME = f"split-bar-bigtest_{gap}nm"
         config.path_to_save, config.animations_folder_path = create_directory(SIM_NAME)
@@ -62,19 +62,19 @@ def experiment_bow_tie_test():
         for plane in ["XY", "XZ", "YZ"]:
             Name2D = f"antenna_gap_{gap}nm_{plane}.png"
             save_2D_plot(sim, antenna_vols.vis_volume[plane], save_name=Name2D, path_to_save=config.path_to_save, IMG_CLOSE=config.IMG_CLOSE)
-        # =====================================================
-        print_task(2, "Dielectric const. plots.")
-        draw_dielectric_constant(sim, config, antenna_vols, sampling_wavelength=200)
-        draw_dielectric_constant(sim, config, antenna_vols)
-        # =====================================================
-        print_task(3, "3D calculations.")
-        compute_fields(sim, sim_empty, antenna_vols, config)
-        # =====================================================
-        print_task(4, "Postprocesing - raw animations.")
-        animate_raw_fields(config=config, mode="BOTH")
-        # =====================================================
-        print_task(5, "Postprocesing - animations and plots.")
-        animate_enhancement_fields(config=config, antenna=antenna)
+        # # =====================================================
+        # print_task(2, "Dielectric const. plots.")
+        # draw_dielectric_constant(sim, config, antenna_vols, sampling_wavelength=200)
+        # draw_dielectric_constant(sim, config, antenna_vols)
+        # # =====================================================
+        # print_task(3, "3D calculations.")
+        # compute_fields(sim, sim_empty, antenna_vols, config)
+        # # =====================================================
+        # print_task(4, "Postprocesing - raw animations.")
+        # animate_raw_fields(config=config, mode="BOTH")
+        # # =====================================================
+        # print_task(5, "Postprocesing - animations and plots.")
+        # animate_enhancement_fields(config=config, antenna=antenna)
     return 0
 
 def split_bar_AuTiSiO2():
@@ -203,50 +203,6 @@ def split_bar_AuTiSiO2():
 
     return 0
 
-def draw_scatter_plot_for_enh():
-    Ti_series = np.loadtxt("results/AuTiSiO2.txt")
-    Pd_series = np.loadtxt("results/AuPdSiO2.txt")
-
-    import matplotlib.pyplot as plt
-
-    plt.plot(Ti_series[:,0], Ti_series[:,1],
-             label="XY",
-             marker="o", linestyle="--", markersize=8,
-             color="#eeaf61", alpha=0.8)
-    plt.plot(Ti_series[:,0], Ti_series[:,2],
-             label="XZ",
-             marker="s", linestyle="-.", markersize=8,
-             color="#f85a6a", alpha=0.8)
-    plt.plot(Ti_series[:,0], Ti_series[:,3],
-             label="YZ",
-             marker="d", linestyle=":", markersize=8,
-             color="#ce4993", alpha=0.8)
-    plt.plot(Pd_series[:,0], Pd_series[:,1],
-             label="XY",
-             marker="o", linestyle="--", markersize=8,
-             color="#8ba691", alpha=0.8)
-    plt.plot(Pd_series[:,0], Pd_series[:,2],
-             label="XZ",
-             marker="s", linestyle="-.", markersize=8,
-             color="#273c50", alpha=0.8)
-    plt.plot(Pd_series[:,0], Pd_series[:,3],
-             label="YZ",
-             marker="d", linestyle=":", markersize=8,
-             color="#080b12", alpha=0.8)
-    plt.xlabel("Gap size [nm]")
-    plt.ylabel(r"Enhancement E/E$_0$")
-    plt.title("Enhancement factor for different gap sizes and substrates")
-    plt.legend(loc="upper right")
-
-    # force the x‑axis to use the five values you want
-    ticks = [10, 30, 50, 70, 90]
-    plt.xticks(ticks)            # the labels are the numbers themselves
-    plt.xlim(5, 95)  # (optional) make sure the plot range covers them
-
-    plt.show()
-
-    return 0
-
 def field_shape():
     # =====================================================
     config = SimulationConfig()
@@ -257,24 +213,24 @@ def field_shape():
 
     gap = 50
     
-    # =====================================================
-    SIM_NAME = f"SOURCE_SHAPE"
-    config.path_to_save, config.animations_folder_path = create_directory(SIM_NAME)
-    # =====================================================
-    antenna = BowTieEquilateral(
-        gap=gap/xm,
-        amp=76/xm,
-        thickness=24/xm,
-        radius=12/xm,
-        material=Au,
-        z_offset=0.0
-    )
-    cell = make_cell(config=config)
-    antenna_vols = VolumeSet(cell, antenna=antenna, top_z=antenna.thickness)
+    for res in [800]:
+        # =====================================================
+        SIM_NAME = f"SOURCE_SHAPE_{res}"
+        config.path_to_save, config.animations_folder_path = create_directory(SIM_NAME)
+        # =====================================================
+        antenna = BowTieEquilateral(
+            gap=gap/xm,
+            amp=76/xm,
+            thickness=24/xm,
+            radius=12/xm,
+            material=Au,
+            z_offset=0.0
+        )
+        cell = make_cell(config=config)
+        antenna_vols = VolumeSet(cell, antenna=antenna, top_z=antenna.thickness)
 
-    save_and_show_config(config, antenna)
+        save_and_show_config(config, antenna)
 
-    for res in [550, 600, 650, 700, 750, 800]:
         config.resolution = res
 
         sim = mp.Simulation(
@@ -297,14 +253,17 @@ def field_shape():
             symmetries=config.symmetries,
             dimensions=3
             )
-        # =====================================================
-        print_task(3, "3D calculations.")
-        compute_fields(sim, sim_empty, antenna_vols, config, mode="EMPTY")
+        # # =====================================================
+        # print_task(3, "3D calculations.")
+        # compute_fields(sim, sim_empty, antenna_vols, config, mode="EMPTY")
+        # # =====================================================
+        # print_task(4, "Postprocesing - raw animations.")
+        # animate_raw_fields(config=config, mode="EMPTY")
         # =====================================================
         plot_signal_amplitude_vs_time_from_h5(
             "xyplanar-empty_ex.h5",
             load_h5data_path=config.path_to_save,
-            xzeros=20,
+            xzeros=40,
             time_step=config.sim_time_step,
             save_name=f"source_prof_res{res}"
         )

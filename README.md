@@ -31,13 +31,13 @@ that allows one to calculate the half-wavelength of a dipole antenna and the eff
 ![effwave](Assets/eff_wave_novotny2007.png)
 
 ## To Do:
-- [ ] Source visualization procces:
-	- [ ] Spectrum of source intensity in time
+- [ ] Warning before calculations that we asume PML
+- [ ] Warning about PML and wavelength
 - [ ] Flux monitors:
 	- [ ] Transimtance monitor
 	- [ ] Reflectance monitor
 - [ ] New geometries
-    - [ ] Add bow-tie not equal in amplitude
+    - [ ] Add a bow-tie of different lengths
 - [ ] Refactor the plotter
     - [ ] Add structure to animations
     - [ ] Add functions for 3D drawing of the used structure
@@ -55,6 +55,9 @@ that allows one to calculate the half-wavelength of a dipole antenna and the eff
     - [x] Add bow-tie antenna
     - [x] Add split-bar antenna
     - [x] Add Half-dipol antenna
+- [x] Source visualization procces:
+	- [x] Spectrum of source intensity in time
+	- [x] Conclusions
 
 
 

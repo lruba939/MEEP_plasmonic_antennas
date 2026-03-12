@@ -129,6 +129,8 @@ def save_experiment(config, antennas, filename=None):
             if key.startswith("_"):
                 continue
             f.write(f"{key} = {_format_value(value)}\n")
+        warning_PML2wav_ratio = warning_PML2wav(config)
+        f.write(f"{warning_PML2wav_ratio}\n")
 
         f.write("\nDerived:\n")
         f.write(f"frequency = {config.frequency}\n")
@@ -151,3 +153,15 @@ def save_experiment(config, antennas, filename=None):
                 f.write(f"bounding_box = {antenna.bounding_box()}\n")
 
         f.write("\n#################################\n\n")
+
+def warning_PML2wav(config):
+    PML2wav_ratio = config.pml / config.lambda0
+    if PML2wav_ratio < 0.5:
+        PML2wav_ratio_warning = "\n\n\nWARNING! PML should be at least 0.5 length of used wavelength!!!\n\n\n"
+        print(PML2wav_ratio_warning)
+        return PML2wav_ratio_warning
+         
+
+
+
+    

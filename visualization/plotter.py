@@ -1279,6 +1279,7 @@ def plot_signal_amplitude_vs_time_from_h5(
 
         mean_E = np.zeros(Nt)
         mean_E2 = np.zeros(Nt)
+        mean_E_val2 = np.zeros(Nt)
 
         # ------------------------------
         # iterate over frames
@@ -1294,10 +1295,11 @@ def plot_signal_amplitude_vs_time_from_h5(
 
             mean_E[t] = np.mean(frame)
             mean_E2[t] = np.mean(frame**2)
+            mean_E_val2[t] = mean_E[t]**2
 
             if t % 50 == 0:
                 print(f"frame {t}/{Nt}")
-
+                
     # ------------------------------
     # time axis
     # ------------------------------
@@ -1314,7 +1316,7 @@ def plot_signal_amplitude_vs_time_from_h5(
     np.savetxt(
         os.path.join(load_h5data_path, save_name+".dat"),
         data2save,
-        header="TIME E E2",
+        header="TIME E E2 meanE^2",
         comments="# ",
         fmt="%.3e"
     )
@@ -1330,15 +1332,15 @@ def plot_signal_amplitude_vs_time_from_h5(
     # plot
     # ------------------------------
     multi_line_plotter_same_axes(
-        [time, time],
-        [mean_E, mean_E2],
-        colors = ["tab:red", "k"],
-        linestyles = ["-", "-."],
-        labels = ["<E>", "<E²>"],
+        [time, time, time],
+        [mean_E, mean_E2, mean_E_val2],
+        colors = ["tab:red", "k", "tab:orange"],
+        linestyles = ["-", "-.", ":"],
+        labels = ["<E>", "<E²>", "<E>²"],
         xlabel = "Time",
         ylabel = "Amplitude",
         save_path = load_h5data_path,
         save_name = save_name+".png",
     )
 
-    return time, mean_E2
+    return time, mean_E2, mean_E2
