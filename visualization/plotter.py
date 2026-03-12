@@ -74,138 +74,6 @@ def cm2c(cmap, c_numb, step=6):
         colors_arr.append(cmap(i / step))
     
     return colors_arr
-
-def map_plotter(data, ax=None, cm=cm_inferno, xlabel=r"x [nm]", ylabel=r"y [nm]", 
-                xborder=None, yborder=None, ticks_step=2, vmin=None, vmax=None, 
-                equal_aspect=True, title=None, show_colorbar=True):
-    """
-    Plot a 2D data map with customizable axes, colormap, and formatting options.
-    Parameters
-    ----------
-    data : array-like
-        2D array of data to be plotted.
-    ax : matplotlib.axes.Axes, optional
-        Axes object to plot on. If None, a new figure and axes are created.
-        Default is None.
-    cm : matplotlib.colors.Colormap, optional
-        Colormap to use for the plot. Default is cm_inferno.
-    xlabel : str, optional
-        Label for the x-axis. Default is r"x [nm]".
-    ylabel : str, optional
-        Label for the y-axis. Default is r"y [nm]".
-    xborder : float, optional
-        Half-width of the x-axis limits (symmetric around origin).
-        Must be provided together with yborder. Default is None.
-    yborder : float, optional
-        Half-width of the y-axis limits (symmetric around origin).
-        Must be provided together with xborder. Default is None.
-    ticks_step : int, optional
-        Step size for tick placement. Automatically adjusted if it doesn't
-        divide evenly into borders. Default is 2.
-    vmin : float, optional
-        Minimum value for colormap normalization. Default is None.
-    vmax : float, optional
-        Maximum value for colormap normalization. Default is None.
-    equal_aspect : bool, optional
-        If True, set equal aspect ratio for the plot. Default is True.
-    title : str, optional
-        Title for the plot. Default is None.
-    show_colorbar : bool, optional
-        If True, display a colorbar. Default is True.
-    Returns
-    -------
-    matplotlib.axes.Axes
-        The axes object containing the plotted data.
-    Raises
-    ------
-    ValueError
-        If only one of xborder or yborder is provided (both must be given together).
-    """
-    if ax is None:
-        fig, ax = plt.subplots(figsize=(6, 3.2))
-    
-    if equal_aspect:
-        ax.set_aspect('equal')
-
-    extent = None
-    if xborder is not None and yborder is not None:
-        ax.set_xlim(-xborder, xborder)
-        ax.set_ylim(-yborder, yborder)
-
-        while (xborder % ticks_step != 0 and yborder % ticks_step != 0):
-            ticks_step += 1
-            if ticks_step > 5:
-                ticks_step = 1
-                break
-
-        ax.set_xticks(np.linspace(-xborder, xborder, round(ticks_step * 2) + 1))
-        ax.set_yticks(np.linspace(-yborder, yborder, round(ticks_step * 2) + 1))
-
-        extent = [-xborder, xborder, -yborder, yborder]
-    elif xborder is not None or yborder is not None:
-        print("\n\nPlotting error!\nBoth 'xborder' and 'yborder' must be provided.\n")
-
-    im = ax.imshow(data, interpolation='none', origin='lower', extent=extent, cmap=cm, vmin=vmin, vmax=vmax)
-    ax.tick_params(direction="out", which="both")
-
-    ax.set_xlabel(xlabel)
-    ax.set_ylabel(ylabel)
-
-    if title is not None:
-        ax.set_title(title)
-
-    if show_colorbar:
-        plt.colorbar(im, ax=ax, orientation='vertical')
-
-    return ax
-
-def map_grid_plotter(data_list, n, m, **kwargs):
-    """
-    Displays a grid of map plots from a list of data arrays.
-    This function creates a subplot grid of size n x m and plots each data array
-    from data_list using the map_plotter function. If there are fewer data arrays
-    than subplots, the empty subplots are hidden. The colorbar is disabled for
-    individual plots to save space in the grid layout.
-    Parameters
-    ----------
-    data_list : list
-        List of data arrays to be plotted. Each element will be plotted in a
-        separate subplot using map_plotter.
-    n : int
-        Number of rows in the subplot grid.
-    m : int
-        Number of columns in the subplot grid.
-    **kwargs : dict
-        Additional keyword arguments to pass to map_plotter function.
-    Returns
-    -------
-    None
-        Displays the figure using plt.show().
-    Notes
-    -----
-    - If len(data_list) < n*m, empty subplots will have their axes turned off.
-    - Colorbars are disabled for individual subplots to maintain clean layout.
-    - The figure is automatically adjusted using tight_layout.
-    Examples
-    --------
-    >>> data1 = np.random.rand(10, 10)
-    >>> data2 = np.random.rand(10, 10)
-    >>> map_grid_plotter([data1, data2], n=1, m=2)
-    """
-    fig, axes = plt.subplots(n, m, figsize=(4*m, 4*n))
-    
-    axes = np.atleast_2d(axes).reshape(-1)
-
-    for i, data in enumerate(data_list):
-        if i >= len(axes):
-            break
-        map_plotter(data, ax=axes[i], show_colorbar=False, **kwargs)
-
-    for j in range(len(data_list), len(axes)): # empty subplots if no data
-        axes[j].axis("off")
-
-    plt.tight_layout()
-    plt.show()
     
 def line_plotter(xdata, ydata, ax=None, xlabel=r"x [-]", ylabel=r"y [-]", color="black",
                     linestyle="-", xlim=None, ylim=None, equal_aspect=False, title=None, label=None, show=False,
@@ -1362,14 +1230,25 @@ def animate_raw_fields(
                 animate_file(f"{plane}-empty_dpwr.h5")
     return 0
 
-def plot_mean_E2_vs_time_from_h5(
+def plot_signal_amplitude_vs_time_from_h5(
     h5_filename,
     load_h5data_path=None,
     dataset_name=None,
     xzeros=0,
     yzeros=None,
-    time_step=1.0
+    time_step=1.0,
+    mode="BOTH",
+    normalize=False,
+    save_name=None,
 ):
+    """
+    Plotting source amplitude spectrum in time.
+
+    Parameters
+    ----------
+    mode : str
+        "E", "E2", or "BOTH"
+    """
 
     # ------------------------------
     # resolve path
@@ -1398,6 +1277,7 @@ def plot_mean_E2_vs_time_from_h5(
         if yzeros is None:
             yzeros = xzeros
 
+        mean_E = np.zeros(Nt)
         mean_E2 = np.zeros(Nt)
 
         # ------------------------------
@@ -1412,7 +1292,8 @@ def plot_mean_E2_vs_time_from_h5(
                 yzeros:Ny-yzeros
             ]
 
-            mean_E2[t] = np.mean(frame)
+            mean_E[t] = np.mean(frame)
+            mean_E2[t] = np.mean(frame**2)
 
             if t % 50 == 0:
                 print(f"frame {t}/{Nt}")
@@ -1422,18 +1303,42 @@ def plot_mean_E2_vs_time_from_h5(
     # ------------------------------
     time = np.arange(Nt) * time_step
 
-    print("Mean E² values:", mean_E2)
-    print("Time axis:", time)
+    # ------------------------------
+    # save data
+    # ------------------------------
+    if save_name is None:
+        save_name = "source_profil"
+
+    data2save = np.column_stack((time, mean_E, mean_E2))
+
+    np.savetxt(
+        os.path.join(load_h5data_path, save_name+".dat"),
+        data2save,
+        header="TIME E E2",
+        comments="# ",
+        fmt="%.3e"
+    )
+
+    # ------------------------------
+    # normalization
+    # ------------------------------
+    if normalize:
+        mean_E = mean_E / max(mean_E)
+        mean_E2 = mean_E2 / max(mean_E2)
 
     # ------------------------------
     # plot
     # ------------------------------
-    plt.figure()
-    plt.plot(time, mean_E2)
-    plt.xlabel("time")
-    plt.ylabel("<E²>")
-    plt.title("Mean field intensity vs time")
-    plt.grid(True)
-    plt.show()
+    multi_line_plotter_same_axes(
+        [time, time],
+        [mean_E, mean_E2],
+        colors = ["tab:red", "k"],
+        linestyles = ["-", "-."],
+        labels = ["<E>", "<E²>"],
+        xlabel = "Time",
+        ylabel = "Amplitude",
+        save_path = load_h5data_path,
+        save_name = save_name+".png",
+    )
 
     return time, mean_E2

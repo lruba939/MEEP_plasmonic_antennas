@@ -31,17 +31,38 @@ that allows one to calculate the half-wavelength of a dipole antenna and the eff
 ![effwave](Assets/eff_wave_novotny2007.png)
 
 ## To Do:
+- [ ] Source visualization procces:
+	- [ ] Spectrum of source intensity in time
+- [ ] Flux monitors:
+	- [ ] Transimtance monitor
+	- [ ] Reflectance monitor
+- [ ] New geometries
+    - [ ] Add bow-tie not equal in amplitude
+- [ ] Refactor the plotter
+    - [ ] Add structure to animations
+    - [ ] Add functions for 3D drawing of the used structure
+- [ ] Integrate Novotny (2007) calculations into the main code
+	- [ ] Take eps data from meep.materials for Novotny model
+
+## Done:
 - [x] Get rid of params.py file
     - [x] Remove calculations
     - [x] Remove geometry definitions
     - [x] New config.py
 - [x] Split geometry.py into make_geometry and geometry utilities
+- [x] Make a manager of experiments
 - [x] Move geometry definitions to separate files
     - [x] Add bow-tie antenna
     - [x] Add split-bar antenna
     - [x] Add Half-dipol antenna
-- [x] Make a manager of experiments
-- [ ] Refactor the plotter
-    - [ ] Add structure to animations
-    - [ ] Add functions for 3D drawing of the used structure
-- [ ] Integrate Novotny (2007) calculations into the main code
+
+
+
+
+
+
+
+
+
+
+
