@@ -37,7 +37,7 @@ def experiment_bow_tie_test():
             length=150/xm,
             width=100/xm,
             thickness=24/xm,
-            radius=5/xm,
+            radius=15/xm,
             material=Au,
             z_offset=0.0
         )
