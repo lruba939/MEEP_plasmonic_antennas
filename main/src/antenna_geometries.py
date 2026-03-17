@@ -134,7 +134,126 @@ class BowTieEquilateral(AntennaBase):
             2*self.amp*np.tan(np.deg2rad(30)),
             self.thickness
         ]
-    
+
+# =========================================================
+# BowTie
+# =========================================================
+
+class BowTie(AntennaBase):
+
+    def __init__(self,
+                 gap,
+                 length,
+                 width,
+                 thickness,
+                 material,
+                 z_offset=0.0,
+                 center=(0.0, 0.0),
+                 radius=0.0):
+
+        self.gap = gap
+        self.corected_gap = gap
+        self.length = length
+        self.width = width
+        self.thickness = thickness
+        self.radius = radius
+        self.material = material
+        self.z_offset = z_offset
+        self.center = np.array(center)
+
+    # -----------------------------------------------------
+
+    def build_geometry(self):
+
+        if self.radius > 1e-12:
+            angle = np.arctan(self.width/(2*self.length)) * 2
+            self.corected_gap = corrected_gap(
+                self.gap,
+                self.radius,
+                angle)
+            # self.corected_gap = self.gap
+            # print(f"Corrected gap for radius {self.radius*1e3:.1f} nm: {self.gap*1e3:.2f} nm")
+
+        # Right triangle tip
+        P1 = np.array([
+            self.center[0] + self.corected_gap/2.0,
+            self.center[1]
+        ])
+
+        # Equilateral triangle assumption
+        P2 = P1 + np.array([
+            self.length,
+            self.width/2.0
+        ])
+
+        P3 = P2 * np.array([1.0, -1.0])
+
+        tip_right = [
+            mp.Vector3(*P1),
+            mp.Vector3(*P2),
+            mp.Vector3(*P3)
+        ]
+
+        # Mirror on Y axis
+        mirror = np.array([-1.0, 1.0])
+
+        tip_left = [
+            mp.Vector3(*(P1 * mirror)),
+            mp.Vector3(*(P2 * mirror)),
+            mp.Vector3(*(P3 * mirror))
+        ]
+
+        x_centroid = (P1[0] + P2[0] + P3[0]) / 3.0
+        bow_tie = [
+            mp.Prism(
+                tip_right,
+                height=self.thickness,
+                material=self.material,
+                center=mp.Vector3(x_centroid, 0, self.z_offset)
+            ),
+            mp.Prism(
+                tip_left,
+                height=self.thickness,
+                material=self.material,
+                center=mp.Vector3(-x_centroid, 0, self.z_offset)
+            )
+        ]
+
+        # Fillets / rounding
+        if self.radius > 1e-12:
+
+            bow_tie += clear_edges_bowtie(
+                points=[P1, P2, P3],
+                antenna=self
+            )
+
+            bow_tie += clear_edges_bowtie(
+                points=[P1 * mirror, P2 * mirror, P3 * mirror],
+                antenna=self
+            )
+
+            bow_tie += fillet_bowtie(
+                points=[P1, P2, P3],
+                antenna=self
+            )
+
+            bow_tie += fillet_bowtie(
+                points=[P1 * mirror, P2 * mirror, P3 * mirror],
+                antenna=self
+            )
+
+        return bow_tie
+
+    # -----------------------------------------------------
+
+    def bounding_box(self):
+
+        return [
+            2*self.length + self.gap,
+            self.width,
+            self.thickness
+        ]
+
 # =========================================================
 # SplitBar
 # =========================================================

@@ -37,6 +37,7 @@ that allows one to calculate the half-wavelength of a dipole antenna and the eff
 	- [ ] Reflectance monitor
 - [ ] New geometries
     - [ ] Add a bow-tie of different lengths
+- [ ] Add scattering calculations (DFT flux boxes)
 - [ ] Refactor the plotter
     - [ ] Add structure to animations
     - [ ] Add functions for 3D drawing of the used structure

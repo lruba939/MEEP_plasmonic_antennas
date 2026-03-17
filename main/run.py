@@ -5,7 +5,8 @@ from src.experiments import *
 
 def run():
     # =====================================================
-    TRA_TEST()
+    # TRA_Novotn()
+    experiment_bow_tie_test()
     
 if __name__ == "__main__":
     run()
