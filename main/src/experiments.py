@@ -5,7 +5,7 @@ from meep.materials import Au, Ti, SiO2, Pd
 from utils.sys_utils import *
 from utils.meep_utils import *
 from utils.geometry_utils import make_cell
-from utils.logger import save_and_show_config
+from utils.logger import save_and_show_config, append_time_to_file
 from src.antenna_geometries import *
 from src.config import SimulationConfig
 from src.sources import *
@@ -18,10 +18,11 @@ mp.Simulation.eps_averaging = False
 def experiment_bow_tie_test():
     # =====================================================
     config = SimulationConfig()
+    config.resolution = 1000
 
     for gap in [20]:
         # =====================================================
-        SIM_NAME = f"bowtie-new"
+        SIM_NAME = f"bowtie-1000-new-parallel"
         config.path_to_save, config.animations_folder_path = create_directory(SIM_NAME)
         # =====================================================
         # antenna = BowTieEquilateral(
@@ -37,7 +38,7 @@ def experiment_bow_tie_test():
             length=150/xm,
             width=100/xm,
             thickness=24/xm,
-            radius=15/xm,
+            radius=5/xm,
             material=Au,
             z_offset=0.0
         )
@@ -68,22 +69,58 @@ def experiment_bow_tie_test():
             )
         # =====================================================
         print_task(1, "2D projections.")
-        for plane in ["XY"]: #, "XZ", "YZ"
-            Name2D = f"antenna_gap_{gap}nm_{plane}.png"
-            save_2D_plot(sim, antenna_vols.vis_volume[plane], save_name=Name2D, path_to_save=config.path_to_save, IMG_CLOSE=False)
+        if mp.am_master():
+            for plane in ["XY", "XZ", "YZ"]:
+                Name2D = f"antenna_gap_{gap}nm_{plane}.png"
+                save_2D_plot(
+                    sim,
+                    antenna_vols.vis_volume[plane],
+                    save_name=Name2D,
+                    path_to_save=config.path_to_save,
+                    IMG_CLOSE=config.IMG_CLOSE
+                )
         # # =====================================================
         # print_task(2, "Dielectric const. plots.")
         # draw_dielectric_constant(sim, config, antenna_vols, sampling_wavelength=200)
         # draw_dielectric_constant(sim, config, antenna_vols)
-        # # =====================================================
-        # print_task(3, "3D calculations.")
-        # compute_fields(sim, sim_empty, antenna_vols, config)
-        # # =====================================================
-        # print_task(4, "Postprocesing - raw animations.")
-        # animate_raw_fields(config=config, mode="BOTH")
-        # # =====================================================
-        # print_task(5, "Postprocesing - animations and plots.")
-        # animate_enhancement_fields(config=config, antenna=antenna)
+        # =====================================================
+        print_task(3, "3D calculations.")
+        compute_fields(sim, sim_empty, antenna_vols, config)
+        # =====================================================
+        if mp.am_master():    
+            print_task(4, "Postprocesing - raw animations.")
+            animate_raw_fields(config=config, mode="BOTH")
+            # =====================================================
+            draw_params = {
+                "XY": {"x_zoom": 1.0,
+                       "y_zoom": 1.0,
+                       "roi": {
+                            "center": (0, 0),
+                            "width": antenna.gap*1.05 * 1e3,
+                            "height": antenna.radius*2.5 * 1e3,
+                        },
+                },
+                "XZ": {"x_zoom": 1.0,
+                       "y_zoom": 1.0,
+                       "roi": {
+                            "center": (0, 0),
+                            "width": antenna.gap*1.05 * 1e3,
+                            "height": antenna.thickness * 1e3,
+                        },
+                },
+                "YZ": {"x_zoom": 1.0,
+                       "y_zoom": 1.0,
+                       "roi": {
+                            "center": (0, 0),
+                            "width": antenna.radius*2.5 * 1e3,
+                            "height": antenna.thickness * 1e3,
+                        },
+                },
+            }
+            print_task(5, "Postprocesing - animations and plots.")
+            animate_enhancement_fields(config=config, draw_params=draw_params)
+            # =====================================================
+            append_time_to_file(config, prefix="Finish: ")
     return 0
 
 def split_bar_AuTiSiO2():
@@ -92,7 +129,7 @@ def split_bar_AuTiSiO2():
 
     config.resolution = 500
 
-    for gap in [30, 50, 70, 90, 110]:
+    for gap in [10, 30]:
         SIM_NAME = f"split_bar_antenna_gap_{gap}nm_AuTiSiO2_test"
         config.path_to_save, config.animations_folder_path = create_directory(SIM_NAME)
         # =====================================================
@@ -169,11 +206,17 @@ def split_bar_AuTiSiO2():
             symmetries=config.symmetries,
             dimensions=3
             )
-        # =====================================================
-        print_task(1, "2D projections.")
-        for plane in ["XY", "XZ", "YZ"]:
-            Name2D = f"antenna_{plane}.png"
-            save_2D_plot(sim, antenna_vols.vis_volume[plane], save_name=Name2D, path_to_save=config.path_to_save, IMG_CLOSE=config.IMG_CLOSE)
+        # # =====================================================
+        # print_task(1, "2D projections.")
+        # for plane in ["XY", "XZ", "YZ"]:
+        #     Name2D = f"antenna_{plane}.png"
+        #     save_2D_plot(
+        #         sim,
+        #         antenna_vols.vis_volume[plane],
+        #         save_name=Name2D,
+        #         path_to_save=config.path_to_save,
+        #         IMG_CLOSE=config.IMG_CLOSE
+        #     )
         # =====================================================
         print_task(3, "3D calculations.")
         compute_fields(sim, sim_empty, antenna_vols, config)
@@ -209,7 +252,22 @@ def split_bar_AuTiSiO2():
         }
         print_task(5, "Postprocesing - animations and plots.")
         animate_enhancement_fields(config=config, draw_params=draw_params)
-
+        # =====================================================
+        # plot_signal_amplitude_vs_time_from_h5(
+        #     "xyplanar-empty_ex.h5",
+        #     load_h5data_path=config.path_to_save,
+        #     xzeros=int(100),
+        #     time_step=config.sim_time_step,
+        #     save_name=f"source_prof_empty_res{res}"
+        # )
+        # plot_signal_amplitude_vs_time_from_h5(
+        #     "xyplanar_ex.h5",
+        #     load_h5data_path=config.path_to_save,
+        #     xzeros=int(100),
+        #     time_step=config.sim_time_step,
+        #     save_name=f"source_prof_antenna_res{res}"
+        # )
+        
     return 0
 
 def TRA_TEST():

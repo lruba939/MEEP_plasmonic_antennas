@@ -1106,28 +1106,28 @@ def draw_dielectric_constant(sim, config, visvol, sampling_wavelength=None, log1
     # Iteration over planes
     # ============================================================
 
-    for plane, cfg in planes.items():
-        print(f"Processing dielectric map for {plane} plane")
+    if meep.am_master():
+        for plane, cfg in planes.items():
+            print(f"Processing dielectric map for {plane} plane")
 
-        eps_data = sim.get_array(
-            vol=cfg["volume"],
-            frequency=frequency,
-            component=meep.Dielectric,
-        )
+            eps_data = sim.get_array(
+                vol=cfg["volume"],
+                frequency=frequency,
+                component=meep.Dielectric,
+            )
 
-        show_data_img(
-            datas_arr=[eps_data],
-            abs_bool=[True],
-            norm_bool=[True],
-            cmap_arr=["binary"],
-            alphas=[1.0],
-            IMG_CLOSE=config.IMG_CLOSE,
-            Title=cfg["title"],
-            disable_ticks=False,
-            name_to_save=os.path.join(config.path_to_save, cfg["save_name"]),
-            log10_scale=log10_scale,
-        )
-
+            show_data_img(
+                datas_arr=[eps_data],
+                abs_bool=[True],
+                norm_bool=[True],
+                cmap_arr=["binary"],
+                alphas=[1.0],
+                IMG_CLOSE=config.IMG_CLOSE,
+                Title=cfg["title"],
+                disable_ticks=False,
+                name_to_save=os.path.join(config.path_to_save, cfg["save_name"]),
+                log10_scale=log10_scale,
+            )
     sim.reset_meep()
     return 0
 

@@ -1,4 +1,5 @@
 import os
+from datetime import datetime
 import meep as mp
 from meep.materials import Au, Ti, SiO2, Pd
 
@@ -9,6 +10,7 @@ from meep.materials import Au, Ti, SiO2, Pd
 def save_and_show_config(config, antenna):
     show_experiment(config, antenna)
     save_experiment(config, antenna)
+    append_time_to_file(config, prefix="Start time: ")
     return 0
 
 # --------------------------------------------------------
@@ -162,6 +164,16 @@ def warning_PML2wav(config):
         return PML2wav_ratio_warning
          
 
+def append_time_to_file(config, filename=None, prefix="Time: "):
+    if filename is None:
+        filename = os.path.join(config.path_to_save, "experiment.txt")
+
+    now = datetime.now()
+    current_time = now.strftime("%H:%M")
+
+    with open(filename, "a") as f:
+        f.write("\n---- TIME ----\n")
+        f.write(f"{prefix}{current_time}\n")
 
 
     

@@ -16,10 +16,10 @@ class SimulationConfig:
         # =====================================================
         # SYMULATION
         # =====================================================
-        self.resolution = 2000
+        self.resolution = 500
         self.courant = 0.5
-        self.sim_time = 8000 / xm  # w jednostkach Meep (µm)
-        self.sim_time_step = 22 / xm
+        self.sim_time = 15000 / xm  # w jednostkach Meep (µm)
+        self.sim_time_step = 100 / xm
 
         self.symmetries = [
             mp.Mirror(direction=mp.X, phase=-1),
@@ -45,9 +45,9 @@ class SimulationConfig:
 
         self.src_type = "gaussian"  # "continuous" or "gaussian"
         self.src_is_integrated = False # if source overlaps with PML regions use True
-        self.lambda0 = 1200 / xm
-        self.frequency_width = 0.0005
-        self.src_width = 800 / xm # ???
+        self.lambda0 = 8100 / xm
+        self.frequency_width = 1
+        self.src_width = 1000 / xm # ???
         self.src_amp = 1.0
         self.src_cutoff = 3 # number of widths used to smoothly turn on/off the source; reduces high-frequency artifacts
         self.component = mp.Ex

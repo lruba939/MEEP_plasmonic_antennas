@@ -1,6 +1,7 @@
 import meep as mp
 import numpy as np
 import os
+from utils.logger import append_time_to_file
 
 from visualization.plotter import *
 # !!!!!!!!! ---> from main.src.simulation import * # CANT IMPORT DUE TO CIRCULAR DEPENDENCY
@@ -553,7 +554,9 @@ def compute_fields(
     # ============================================================
 
     if mode in ["EMPTY", "BOTH"]:
-        print("Running simulation WITHOUT antenna")
+        if mp.am_master():
+            print("Running simulation WITHOUT antenna")
+            append_time_to_file(config, prefix="Running simulation WITHOUT antenna: ")
 
         empty_planes = {f"{k}-empty": v for k, v in planes.items()}
 
@@ -580,8 +583,10 @@ def compute_fields(
     # ============================================================
 
     if mode in ["WITH_ANTENNA", "BOTH"]:
-        print("Running simulation WITH antenna")
-
+        if mp.am_master():
+            print("Running simulation WITH antenna")
+            append_time_to_file(config, prefix="Running simulation WITH antenna: ")
+        
         sim_antenna = collect_fields_with_output(
             sim_antenna,
             volumes=planes,
@@ -604,16 +609,18 @@ def compute_fields(
     # TRAN AND REFL CALCULATION
     # ============================================================
     if fluxes and mode == "BOTH":
-        compute_T_R_A(incident_flux, tran_flux, refl_flux, flux_freqs, config.path_to_save)
+        if mp.am_master():
+            compute_T_R_A(incident_flux, tran_flux, refl_flux, flux_freqs, config.path_to_save)
 
     # ============================================================
     # ENHANCEMENT CALCULATION
     # ============================================================
 
-    if mode == "BOTH":
-
-        print("Computing enhancement maps")
-
+    if mode == "BOTH" and mp.am_master():
+        if mp.am_master():
+            print("Computing enhancement maps")
+            append_time_to_file(config, prefix="Computing enhancement maps: ")
+        
         enhancement_planes = [
             "xyplanar",
             "xyplanarTOP",
