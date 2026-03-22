@@ -69,16 +69,15 @@ def experiment_bow_tie_test():
             )
         # =====================================================
         print_task(1, "2D projections.")
-        if mp.am_master():
-            for plane in ["XY", "XZ", "YZ"]:
-                Name2D = f"antenna_gap_{gap}nm_{plane}.png"
-                save_2D_plot(
-                    sim,
-                    antenna_vols.vis_volume[plane],
-                    save_name=Name2D,
-                    path_to_save=config.path_to_save,
-                    IMG_CLOSE=config.IMG_CLOSE
-                )
+        for plane in ["XY", "XZ", "YZ"]:
+            Name2D = f"antenna_gap_{gap}nm_{plane}.png"
+            save_2D_plot(
+                sim,
+                antenna_vols.vis_volume[plane],
+                save_name=Name2D,
+                path_to_save=config.path_to_save,
+                IMG_CLOSE=config.IMG_CLOSE
+            )
         # # =====================================================
         # print_task(2, "Dielectric const. plots.")
         # draw_dielectric_constant(sim, config, antenna_vols, sampling_wavelength=200)
@@ -87,40 +86,39 @@ def experiment_bow_tie_test():
         print_task(3, "3D calculations.")
         compute_fields(sim, sim_empty, antenna_vols, config)
         # =====================================================
-        if mp.am_master():    
-            print_task(4, "Postprocesing - raw animations.")
-            animate_raw_fields(config=config, mode="BOTH")
-            # =====================================================
-            draw_params = {
-                "XY": {"x_zoom": 1.0,
-                       "y_zoom": 1.0,
-                       "roi": {
-                            "center": (0, 0),
-                            "width": antenna.gap*1.05 * 1e3,
-                            "height": antenna.radius*2.5 * 1e3,
-                        },
-                },
-                "XZ": {"x_zoom": 1.0,
-                       "y_zoom": 1.0,
-                       "roi": {
-                            "center": (0, 0),
-                            "width": antenna.gap*1.05 * 1e3,
-                            "height": antenna.thickness * 1e3,
-                        },
-                },
-                "YZ": {"x_zoom": 1.0,
-                       "y_zoom": 1.0,
-                       "roi": {
-                            "center": (0, 0),
-                            "width": antenna.radius*2.5 * 1e3,
-                            "height": antenna.thickness * 1e3,
-                        },
-                },
-            }
-            print_task(5, "Postprocesing - animations and plots.")
-            animate_enhancement_fields(config=config, draw_params=draw_params)
-            # =====================================================
-            append_time_to_file(config, prefix="Finish: ")
+        print_task(4, "Postprocesing - raw animations.")
+        animate_raw_fields(config=config, mode="BOTH")
+        # =====================================================
+        draw_params = {
+            "XY": {"x_zoom": 1.0,
+                    "y_zoom": 1.0,
+                    "roi": {
+                        "center": (0, 0),
+                        "width": antenna.gap*1.05 * 1e3,
+                        "height": antenna.radius*2.5 * 1e3,
+                    },
+            },
+            "XZ": {"x_zoom": 1.0,
+                    "y_zoom": 1.0,
+                    "roi": {
+                        "center": (0, 0),
+                        "width": antenna.gap*1.05 * 1e3,
+                        "height": antenna.thickness * 1e3,
+                    },
+            },
+            "YZ": {"x_zoom": 1.0,
+                    "y_zoom": 1.0,
+                    "roi": {
+                        "center": (0, 0),
+                        "width": antenna.radius*2.5 * 1e3,
+                        "height": antenna.thickness * 1e3,
+                    },
+            },
+        }
+        print_task(5, "Postprocesing - animations and plots.")
+        animate_enhancement_fields(config=config, draw_params=draw_params)
+        # =====================================================
+        append_time_to_file(config, prefix="Finish: ")
     return 0
 
 def split_bar_AuTiSiO2():
@@ -502,4 +500,152 @@ def TRA_Novotn():
             save_name=f"source_prof_antenna_res{res}"
         )
         # =====================================================
+    return 0
+
+def wave_shape():
+    # =====================================================
+    config = SimulationConfig()
+
+    mp.is_single_precision() # !!!!!!!
+
+    config.sim_time = 5000 / xm
+    config.sim_time_step = 20 / xm
+    config.resolution = 350
+
+
+    for wav in [800, 1200, 1600, 2000, 2400, 2800, 3200]:
+        config.lambda0 = wav / xm
+        for fwidth in [0.0005, 0.01, 0.2, 0.5, 1.0]:
+            config.frequency_width = fwidth
+
+            # =====================================================
+            SIM_NAME = f"SHAPE_wav{wav}_fwidth{fwidth}"
+            config.path_to_save, config.animations_folder_path = create_directory(SIM_NAME)
+            # =====================================================
+            antenna = Bar(
+                length=110/xm,
+                width=20/xm,
+                thickness=20/xm,
+                material=Au,
+                z_offset=0.0,
+                radius=0.0/xm,
+            )
+
+            config.pml = 500/xm
+            config.pad = 100/xm
+            config.cell_size = [
+                antenna.length + 2*config.pad + 2*config.pml,   # x
+                antenna.width + 2*config.pad + 2*config.pml,   # y
+                antenna.thickness + 2*config.pad + 2*config.pml    # z
+            ]
+            cell = make_cell(config=config)
+
+            config.src_size = [
+                antenna.length + config.pad,  # x
+                antenna.width + config.pad,  # y
+                0.0 / xm    # z
+            ]
+            config.src_center = [
+                0.0,    # x
+                0.0,    # y
+                config.cell_size[2]/2.0-1.05*config.pml  # z
+            ]
+
+            antenna_vols = VolumeSet(cell, antenna=antenna, top_z=antenna.thickness/2.0)
+
+            save_and_show_config(config, antenna)
+
+            sim = mp.Simulation(
+                cell_size=cell,
+                boundary_layers=[mp.PML(config.pml)],
+                geometry=antenna.build_geometry(),
+                sources=make_source(config),
+                resolution = config.resolution,
+                k_point = mp.Vector3(),
+                symmetries=config.symmetries,
+                dimensions=3
+                )
+            sim_empty = mp.Simulation(
+                cell_size=cell,
+                boundary_layers=[mp.PML(config.pml)],
+                geometry=[],
+                sources=make_source(config),
+                resolution = config.resolution,
+                k_point = mp.Vector3(),
+                symmetries=config.symmetries,
+                dimensions=3
+                )
+            # # =====================================================
+            # print_task(1, "2D projections.")
+            # for plane in ["XY", "XZ", "YZ"]:
+            #     Name2D = f"antenna_{plane}.png"
+            #     save_2D_plot(sim, antenna_vols.vis_volume[plane], save_name=Name2D, path_to_save=config.path_to_save, IMG_CLOSE=config.IMG_CLOSE)
+            
+            # =====================================================
+            print_task(3, "3D calculations.")
+            compute_fields(sim, sim_empty, antenna_vols, config, mode="EMPTY")
+            # =====================================================
+            plot_signal_amplitude_vs_time_from_h5(
+                "xyplanar-empty_ex.h5",
+                load_h5data_path=config.path_to_save,
+                xzeros=int(20),
+                time_step=config.sim_time_step,
+                save_name=f"source_prof_empty"
+            )
+            # =====================================================
+            print_task(4, "Postprocesing - raw animations.")
+            animate_raw_fields(config=config, mode="EMPTY")
+
+
+        # =====================================================
+        # print_task(3, "3D calculations.")
+        # compute_fields(sim, sim_empty, antenna_vols, config, mode="BOTH")
+        # # =====================================================
+        # print_task(4, "Postprocesing - raw animations.")
+        # animate_raw_fields(config=config, mode="BOTH")
+        # # =====================================================
+        # draw_params = {
+        #     "XY": {"x_zoom": 1.,
+        #            "y_zoom": 1.,
+        #            "roi": {
+        #                 "center": (0, 0),
+        #                 "width": antenna.gap * 1e3,
+        #                 "height": antenna.gap * 1e3,
+        #             },
+        #     },
+        #     "XZ": {"x_zoom": 1.,
+        #            "y_zoom": 1.,
+        #            "roi": {
+        #                 "center": (0, 0),
+        #                 "width": antenna.gap * 1e3,
+        #                 "height": antenna.thickness * 1e3,
+        #             },
+        #     },
+        #     "YZ": {"x_zoom": 1.,
+        #            "y_zoom": 1.,
+        #            "roi": {
+        #                 "center": (0, 0),
+        #                 "width": antenna.gap * 1e3,
+        #                 "height": antenna.thickness * 1e3,
+        #             },
+        #     },
+        # }
+        # print_task(5, "Postprocesing - animations and plots.")
+        # animate_enhancement_fields(config=config, draw_params=draw_params)
+        # # =====================================================
+        # plot_signal_amplitude_vs_time_from_h5(
+        #     "xyplanar-empty_ex.h5",
+        #     load_h5data_path=config.path_to_save,
+        #     xzeros=int(40*res/800),
+        #     time_step=config.sim_time_step,
+        #     save_name=f"source_prof_empty_res{res}"
+        # )
+        # plot_signal_amplitude_vs_time_from_h5(
+        #     "xyplanar_ex.h5",
+        #     load_h5data_path=config.path_to_save,
+        #     xzeros=int(40*res/800),
+        #     time_step=config.sim_time_step,
+        #     save_name=f"source_prof_antenna_res{res}"
+        # )
+        # # =====================================================
     return 0

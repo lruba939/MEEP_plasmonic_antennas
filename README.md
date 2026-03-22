@@ -346,6 +346,7 @@ that allows one to calculate the half-wavelength of a dipole antenna and the eff
 ![effwave](Assets/eff_wave_novotny2007.png)
 
 ## To Do:
+- [ ] Fixes for parallel calculations 
 - [ ] Warning before calculations that we asume PML
 - [ ] Flux monitors:
 	- [ ] Transimtance monitor

@@ -1032,18 +1032,19 @@ def show_data_img(datas_arr, abs_bool, norm_bool, cmap_arr, alphas, name_to_save
         plt.show()
 
 def save_2D_plot(sim, volume, save_name="2Dplot.png", IMG_SAVE=True, path_to_save=None, IMG_CLOSE=False):
-    sim.plot2D(output_plane=volume,
-            eps_parameters={'alpha':0.8, 'cmap':'binary', 'interpolation':'spline36', 'frequency':1/0.2},
-            boundary_parameters={'hatch':'o', 'linewidth':1.5, 'facecolor':'y', 'edgecolor':'b', 'alpha':0.3})
+    if meep.am_master():
+        sim.plot2D(output_plane=volume,
+                eps_parameters={'alpha':0.8, 'cmap':'binary', 'interpolation':'spline36', 'frequency':1/0.2},
+                boundary_parameters={'hatch':'o', 'linewidth':1.5, 'facecolor':'y', 'edgecolor':'b', 'alpha':0.3})
 
-    if IMG_SAVE:
-        plt.savefig(os.path.join(path_to_save, save_name), dpi=300, bbox_inches="tight", format="png")
-    if IMG_CLOSE:
-        plt.show(block=False)
-        plt.pause(2)
-        plt.close("all")
-    else:
-        plt.show()
+        if IMG_SAVE:
+            plt.savefig(os.path.join(path_to_save, save_name), dpi=300, bbox_inches="tight", format="png")
+        if IMG_CLOSE:
+            plt.show(block=False)
+            plt.pause(2)
+            plt.close("all")
+        else:
+            plt.show()
     return 0
 
 def draw_dielectric_constant(sim, config, visvol, sampling_wavelength=None, log10_scale=False):
@@ -1069,44 +1070,43 @@ def draw_dielectric_constant(sim, config, visvol, sampling_wavelength=None, log1
     int
         Returns 0 after successful execution.
     """
-    
-    sim.run(until=0)  # Run for 0 time to initialize the fields and materials
-
-    if sampling_wavelength is not None:
-        wavelength = sampling_wavelength
-        sampling_wavelength = sampling_wavelength / 1000  # Convert nm to um
-        frequency = 1 / sampling_wavelength
-    else:
-        wavelength = config.lambda0*1e3  # Convert um to nm for title
-        frequency = config.frequency
-
-    # ============================================================
-    # Plane configuration
-    # ============================================================
-
-    planes = {
-        "XY": {
-            "volume": visvol.vis_volume["XY"],
-            "title": f"Dielectric constant in XY plane\nWavelength {int(wavelength)} nm",
-            "save_name": f"dielectric_XY_plane_{int(wavelength)}nm.png",
-        },
-        "XZ": {
-            "volume": visvol.vis_volume["XZ"],
-            "title": f"Dielectric constant in XZ plane\nWavelength {int(wavelength)} nm",
-            "save_name": f"dielectric_XZ_plane_{int(wavelength)}nm.png",
-        },
-        "YZ": {
-            "volume": visvol.vis_volume["YZ"],
-            "title": f"Dielectric constant in YZ plane\nWavelength {int(wavelength)} nm",
-            "save_name": f"dielectric_YZ_plane_{int(wavelength)}nm.png",
-        },
-    }
-
-    # ============================================================
-    # Iteration over planes
-    # ============================================================
-
     if meep.am_master():
+        sim.run(until=0)  # Run for 0 time to initialize the fields and materials
+
+        if sampling_wavelength is not None:
+            wavelength = sampling_wavelength
+            sampling_wavelength = sampling_wavelength / 1000  # Convert nm to um
+            frequency = 1 / sampling_wavelength
+        else:
+            wavelength = config.lambda0*1e3  # Convert um to nm for title
+            frequency = config.frequency
+
+        # ============================================================
+        # Plane configuration
+        # ============================================================
+
+        planes = {
+            "XY": {
+                "volume": visvol.vis_volume["XY"],
+                "title": f"Dielectric constant in XY plane\nWavelength {int(wavelength)} nm",
+                "save_name": f"dielectric_XY_plane_{int(wavelength)}nm.png",
+            },
+            "XZ": {
+                "volume": visvol.vis_volume["XZ"],
+                "title": f"Dielectric constant in XZ plane\nWavelength {int(wavelength)} nm",
+                "save_name": f"dielectric_XZ_plane_{int(wavelength)}nm.png",
+            },
+            "YZ": {
+                "volume": visvol.vis_volume["YZ"],
+                "title": f"Dielectric constant in YZ plane\nWavelength {int(wavelength)} nm",
+                "save_name": f"dielectric_YZ_plane_{int(wavelength)}nm.png",
+            },
+        }
+
+        # ============================================================
+        # Iteration over planes
+        # ============================================================
+
         for plane, cfg in planes.items():
             print(f"Processing dielectric map for {plane} plane")
 
@@ -1128,7 +1128,7 @@ def draw_dielectric_constant(sim, config, visvol, sampling_wavelength=None, log1
                 name_to_save=os.path.join(config.path_to_save, cfg["save_name"]),
                 log10_scale=log10_scale,
             )
-    sim.reset_meep()
+        sim.reset_meep()
     return 0
 
 def animate_raw_fields(
@@ -1159,75 +1159,75 @@ def animate_raw_fields(
     component : str
         Field component: "X", "Y", or "Z".
     """
+    if meep.am_master():
+        valid_modes = ["WITH_ANTENNA", "EMPTY", "BOTH"]
+        valid_components = ["X", "Y", "Z"]
 
-    valid_modes = ["WITH_ANTENNA", "EMPTY", "BOTH"]
-    valid_components = ["X", "Y", "Z"]
+        if mode not in valid_modes:
+            raise ValueError(f"mode must be one of {valid_modes}")
 
-    if mode not in valid_modes:
-        raise ValueError(f"mode must be one of {valid_modes}")
+        if component not in valid_components:
+            raise ValueError(f"component must be one of {valid_components}")
 
-    if component not in valid_components:
-        raise ValueError(f"component must be one of {valid_components}")
+        comp = component.lower()
 
-    comp = component.lower()
+        planes = [
+            "xyplanar",
+            "xyplanarTOP",
+            "xzplanar",
+            "yzplanar",
+        ]
 
-    planes = [
-        "xyplanar",
-        "xyplanarTOP",
-        "xzplanar",
-        "yzplanar",
-    ]
+        # ============================================================
+        # FUNCTION TO ANIMATE SINGLE FILE
+        # ============================================================
 
-    # ============================================================
-    # FUNCTION TO ANIMATE SINGLE FILE
-    # ============================================================
+        def animate_file(filename):
+            animate_field_from_h5(
+                h5_filename=filename,
+                save_name=filename.replace(".h5", ".mp4"),
+                load_h5data_path=config.path_to_save,
+                save_path=config.animations_folder_path,
+                transpose_xy=True,
+                cmap="RdBu",
+                IMG_CLOSE=config.IMG_CLOSE,
+            )
 
-    def animate_file(filename):
-        animate_field_from_h5(
-            h5_filename=filename,
-            save_name=filename.replace(".h5", ".mp4"),
-            load_h5data_path=config.path_to_save,
-            save_path=config.animations_folder_path,
-            transpose_xy=True,
-            cmap="RdBu",
-            IMG_CLOSE=config.IMG_CLOSE,
-        )
+        # ============================================================
+        # WITH ANTENNA
+        # ============================================================
 
-    # ============================================================
-    # WITH ANTENNA
-    # ============================================================
+        if mode in ["WITH_ANTENNA", "BOTH"]:
+            print("Animating WITH antenna")
 
-    if mode in ["WITH_ANTENNA", "BOTH"]:
-        print("Animating WITH antenna")
+            for plane in planes:
 
-        for plane in planes:
+                if animate_E:
+                    animate_file(f"{plane}_e{comp}.h5")
 
-            if animate_E:
-                animate_file(f"{plane}_e{comp}.h5")
+                if animate_H:
+                    animate_file(f"{plane}_h{comp}.h5")
 
-            if animate_H:
-                animate_file(f"{plane}_h{comp}.h5")
+                if animate_DPWR:
+                    animate_file(f"{plane}_dpwr.h5")
 
-            if animate_DPWR:
-                animate_file(f"{plane}_dpwr.h5")
+        # ============================================================
+        # EMPTY
+        # ============================================================
 
-    # ============================================================
-    # EMPTY
-    # ============================================================
+        if mode in ["EMPTY", "BOTH"]:
+            print("Animating EMPTY structure")
 
-    if mode in ["EMPTY", "BOTH"]:
-        print("Animating EMPTY structure")
+            for plane in planes:
 
-        for plane in planes:
+                if animate_E:
+                    animate_file(f"{plane}-empty_e{comp}.h5")
 
-            if animate_E:
-                animate_file(f"{plane}-empty_e{comp}.h5")
+                if animate_H:
+                    animate_file(f"{plane}-empty_h{comp}.h5")
 
-            if animate_H:
-                animate_file(f"{plane}-empty_h{comp}.h5")
-
-            if animate_DPWR:
-                animate_file(f"{plane}-empty_dpwr.h5")
+                if animate_DPWR:
+                    animate_file(f"{plane}-empty_dpwr.h5")
     return 0
 
 def plot_signal_amplitude_vs_time_from_h5(

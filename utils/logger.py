@@ -18,7 +18,7 @@ def save_and_show_config(config, antenna):
 # --------------------------------------------------------
 
 def _format_value(value):
-
+    
     # ---- Symmetries
     if isinstance(value, list):
         if len(value) > 0 and isinstance(value[0], mp.Mirror):
@@ -67,113 +67,112 @@ def _format_value(value):
 # --------------------------------------------------------
 
 def show_experiment(config, antennas):
+    if mp.am_master():
+        print("\n\n#################################")
+        print("EXPERIMENT CONFIGURATION")
+        print("#################################\n")
 
-    print("\n\n#################################")
-    print("EXPERIMENT CONFIGURATION")
-    print("#################################\n")
-
-    # ---- Simulation ----
-    print("---- Simulation ----")
-    for key, value in config.__dict__.items():
-        if key.startswith("_"):
-            continue
-        print(f"{key} = {_format_value(value)}")
-
-    print("\nDerived:")
-    print(f"frequency = {config.frequency}")
-    print(f"frequency_width = {config.frequency_width}")
-
-    # ---- Antennas ----
-    if not isinstance(antennas, (list, tuple)):
-        antennas = [antennas]
-
-    print("\n---- Objects ----")
-
-    for idx, antenna in enumerate(antennas, start=1):
-
-        print(f"\nObject #{idx}")
-        print(f"type = {antenna.__class__.__name__}")
-
-        for key, value in antenna.__dict__.items():
+        # ---- Simulation ----
+        print("---- Simulation ----")
+        for key, value in config.__dict__.items():
             if key.startswith("_"):
                 continue
             print(f"{key} = {_format_value(value)}")
 
-        if hasattr(antenna, "bounding_box"):
-            print(f"bounding_box = {antenna.bounding_box()}")
+        print("\nDerived:")
+        print(f"frequency = {config.frequency}")
+        print(f"frequency_width = {config.frequency_width}")
 
-    print("\n#################################\n")
+        # ---- Antennas ----
+        if not isinstance(antennas, (list, tuple)):
+            antennas = [antennas]
+
+        print("\n---- Objects ----")
+
+        for idx, antenna in enumerate(antennas, start=1):
+
+            print(f"\nObject #{idx}")
+            print(f"type = {antenna.__class__.__name__}")
+
+            for key, value in antenna.__dict__.items():
+                if key.startswith("_"):
+                    continue
+                print(f"{key} = {_format_value(value)}")
+
+            if hasattr(antenna, "bounding_box"):
+                print(f"bounding_box = {antenna.bounding_box()}")
+
+        print("\n#################################\n")
 
 # --------------------------------------------------------
 # SAVE
 # --------------------------------------------------------
 
 def save_experiment(config, antennas, filename=None):
+    if mp.am_master():
+        if filename is None:
+            filename = os.path.join(config.path_to_save, "experiment.txt")
 
-    if filename is None:
-        filename = os.path.join(config.path_to_save, "experiment.txt")
+        os.makedirs(config.path_to_save, exist_ok=True)
+        os.makedirs(config.animations_folder_path, exist_ok=True)
 
-    os.makedirs(config.path_to_save, exist_ok=True)
-    os.makedirs(config.animations_folder_path, exist_ok=True)
+        if not isinstance(antennas, (list, tuple)):
+            antennas = [antennas]
 
-    if not isinstance(antennas, (list, tuple)):
-        antennas = [antennas]
+        with open(filename, "w") as f:
 
-    with open(filename, "w") as f:
+            f.write("\n\n#################################\n")
+            f.write("EXPERIMENT CONFIGURATION\n")
+            f.write("#################################\n\n")
 
-        f.write("\n\n#################################\n")
-        f.write("EXPERIMENT CONFIGURATION\n")
-        f.write("#################################\n\n")
-
-        # ---- Simulation ----
-        f.write("---- Simulation ----\n")
-        for key, value in config.__dict__.items():
-            if key.startswith("_"):
-                continue
-            f.write(f"{key} = {_format_value(value)}\n")
-        warning_PML2wav_ratio = warning_PML2wav(config)
-        f.write(f"{warning_PML2wav_ratio}\n")
-
-        f.write("\nDerived:\n")
-        f.write(f"frequency = {config.frequency}\n")
-        f.write(f"frequency_width = {config.frequency_width}\n")
-
-        # ---- Objects ----
-        f.write("\n---- Objects ----\n")
-
-        for idx, antenna in enumerate(antennas, start=1):
-
-            f.write(f"\nObject #{idx}\n")
-            f.write(f"type = {antenna.__class__.__name__}\n")
-
-            for key, value in antenna.__dict__.items():
+            # ---- Simulation ----
+            f.write("---- Simulation ----\n")
+            for key, value in config.__dict__.items():
                 if key.startswith("_"):
                     continue
                 f.write(f"{key} = {_format_value(value)}\n")
+            warning_PML2wav_ratio = warning_PML2wav(config)
+            f.write(f"{warning_PML2wav_ratio}\n")
 
-            if hasattr(antenna, "bounding_box"):
-                f.write(f"bounding_box = {antenna.bounding_box()}\n")
+            f.write("\nDerived:\n")
+            f.write(f"frequency = {config.frequency}\n")
+            f.write(f"frequency_width = {config.frequency_width}\n")
 
-        f.write("\n#################################\n\n")
+            # ---- Objects ----
+            f.write("\n---- Objects ----\n")
+
+            for idx, antenna in enumerate(antennas, start=1):
+
+                f.write(f"\nObject #{idx}\n")
+                f.write(f"type = {antenna.__class__.__name__}\n")
+
+                for key, value in antenna.__dict__.items():
+                    if key.startswith("_"):
+                        continue
+                    f.write(f"{key} = {_format_value(value)}\n")
+
+                if hasattr(antenna, "bounding_box"):
+                    f.write(f"bounding_box = {antenna.bounding_box()}\n")
+
+            f.write("\n#################################\n\n")
 
 def warning_PML2wav(config):
-    PML2wav_ratio = config.pml / config.lambda0
-    if PML2wav_ratio < 0.5:
-        PML2wav_ratio_warning = "\n\nWARNING! PML should be at least 0.5 times the wavelength used!!!\n"
-        print(PML2wav_ratio_warning)
-        return PML2wav_ratio_warning
-         
+    if mp.am_master():
+        PML2wav_ratio = config.pml / config.lambda0
+        if PML2wav_ratio < 0.5:
+            PML2wav_ratio_warning = "\n\nWARNING! PML should be at least 0.5 times the wavelength used!!!\n"
+            print(PML2wav_ratio_warning)
+            return PML2wav_ratio_warning
 
 def append_time_to_file(config, filename=None, prefix="Time: "):
-    if filename is None:
-        filename = os.path.join(config.path_to_save, "experiment.txt")
+    if mp.am_master():
+        if filename is None:
+            filename = os.path.join(config.path_to_save, "experiment.txt")
 
-    now = datetime.now()
-    current_time = now.strftime("%H:%M")
+        now = datetime.now()
+        current_time = now.strftime("%H:%M")
 
-    with open(filename, "a") as f:
-        f.write("\n---- TIME ----\n")
-        f.write(f"{prefix}{current_time}\n")
-
-
-    
+        with open(filename, "a") as f:
+            f.write("\n---- TIME ----\n")
+            f.write(f"{prefix}{current_time}\n")
+    return 0

@@ -609,8 +609,7 @@ def compute_fields(
     # TRAN AND REFL CALCULATION
     # ============================================================
     if fluxes and mode == "BOTH":
-        if mp.am_master():
-            compute_T_R_A(incident_flux, tran_flux, refl_flux, flux_freqs, config.path_to_save)
+        compute_T_R_A(incident_flux, tran_flux, refl_flux, flux_freqs, config.path_to_save)
 
     # ============================================================
     # ENHANCEMENT CALCULATION
@@ -661,110 +660,142 @@ def animate_enhancement_fields(config, draw_params, field='E', animate=True):
     - Collect mean |E|^2 enchancement in gap vs time for each plane
     - Plot all mean curves on a single axes using multi_line_plotter_same_axes
     """
-    
-    valid_field = ["E", "H"]
-    
-    if field not in valid_field:
-        raise ValueError(f"field must be one of {valid_field}")
-    
-    field=field.lower()
+    if mp.am_master():
+        valid_field = ["E", "H"]
+        
+        if field not in valid_field:
+            raise ValueError(f"field must be one of {valid_field}")
+        
+        field=field.lower()
 
-    # ============================================================
-    # Plane configuration
-    # ============================================================
-    planes = {
-        "XY": {
-            "filename": f"enhancement_xyplanar_{field}2.h5",
-            "save_anim": f"enh_xy_{field}2.mp4",
-            "x_phys_range": [-config.cell_size[0] / 2 * 1e3, config.cell_size[0] / 2 * 1e3],
-            "y_phys_range": [-config.cell_size[1] / 2 * 1e3, config.cell_size[1] / 2 * 1e3],
-            "x_zoom": draw_params["XY"]["x_zoom"],
-            "y_zoom": draw_params["XY"]["y_zoom"],
-            "xlabel": "X [nm]",
-            "ylabel": "Y [nm]",
-            "roi": {
-                "type": "rectangle",
-                "center": draw_params["XY"]["roi"]["center"],
-                "width": draw_params["XY"]["roi"]["width"],
-                "height": draw_params["XY"]["roi"]["height"],
+        # ============================================================
+        # Plane configuration
+        # ============================================================
+        planes = {
+            "XY": {
+                "filename": f"enhancement_xyplanar_{field}2.h5",
+                "save_anim": f"enh_xy_{field}2.mp4",
+                "x_phys_range": [-config.cell_size[0] / 2 * 1e3, config.cell_size[0] / 2 * 1e3],
+                "y_phys_range": [-config.cell_size[1] / 2 * 1e3, config.cell_size[1] / 2 * 1e3],
+                "x_zoom": draw_params["XY"]["x_zoom"],
+                "y_zoom": draw_params["XY"]["y_zoom"],
+                "xlabel": "X [nm]",
+                "ylabel": "Y [nm]",
+                "roi": {
+                    "type": "rectangle",
+                    "center": draw_params["XY"]["roi"]["center"],
+                    "width": draw_params["XY"]["roi"]["width"],
+                    "height": draw_params["XY"]["roi"]["height"],
+                },
             },
-        },
 
-        "XYTop": {
-            "filename": f"enhancement_xyplanarTOP_{field}2.h5",
-            "save_anim": f"enh_xy_TOP_{field}2.mp4",
-            "x_phys_range": [-config.cell_size[0] / 2 * 1e3, config.cell_size[0] / 2 * 1e3],
-            "y_phys_range": [-config.cell_size[1] / 2 * 1e3, config.cell_size[1] / 2 * 1e3],
-            "x_zoom": draw_params["XY"]["x_zoom"],
-            "y_zoom": draw_params["XY"]["y_zoom"],
-            "xlabel": "X [nm]",
-            "ylabel": "Y [nm]",
-            "roi": {
-                "type": "rectangle",
-                "center": draw_params["XY"]["roi"]["center"],
-                "width": draw_params["XY"]["roi"]["width"],
-                "height": draw_params["XY"]["roi"]["height"],
+            "XYTop": {
+                "filename": f"enhancement_xyplanarTOP_{field}2.h5",
+                "save_anim": f"enh_xy_TOP_{field}2.mp4",
+                "x_phys_range": [-config.cell_size[0] / 2 * 1e3, config.cell_size[0] / 2 * 1e3],
+                "y_phys_range": [-config.cell_size[1] / 2 * 1e3, config.cell_size[1] / 2 * 1e3],
+                "x_zoom": draw_params["XY"]["x_zoom"],
+                "y_zoom": draw_params["XY"]["y_zoom"],
+                "xlabel": "X [nm]",
+                "ylabel": "Y [nm]",
+                "roi": {
+                    "type": "rectangle",
+                    "center": draw_params["XY"]["roi"]["center"],
+                    "width": draw_params["XY"]["roi"]["width"],
+                    "height": draw_params["XY"]["roi"]["height"],
+                },
             },
-        },
 
-        "XZ": {
-            "filename": f"enhancement_xzplanar_{field}2.h5",
-            "save_anim": f"enh_xz_{field}2.mp4",
-            "x_phys_range": [-config.cell_size[0] / 2 * 1e3, config.cell_size[0] / 2 * 1e3],
-            "y_phys_range": [-config.cell_size[2] / 2 * 1e3, config.cell_size[2] / 2 * 1e3],
-            "x_zoom": draw_params["XZ"]["x_zoom"],
-            "y_zoom": draw_params["XZ"]["y_zoom"],
-            "xlabel": "X [nm]",
-            "ylabel": "Z [nm]",
-            "roi": {
-                "type": "rectangle",
-                "center": draw_params["XZ"]["roi"]["center"],
-                "width": draw_params["XZ"]["roi"]["width"],
-                "height": draw_params["XZ"]["roi"]["height"],
+            "XZ": {
+                "filename": f"enhancement_xzplanar_{field}2.h5",
+                "save_anim": f"enh_xz_{field}2.mp4",
+                "x_phys_range": [-config.cell_size[0] / 2 * 1e3, config.cell_size[0] / 2 * 1e3],
+                "y_phys_range": [-config.cell_size[2] / 2 * 1e3, config.cell_size[2] / 2 * 1e3],
+                "x_zoom": draw_params["XZ"]["x_zoom"],
+                "y_zoom": draw_params["XZ"]["y_zoom"],
+                "xlabel": "X [nm]",
+                "ylabel": "Z [nm]",
+                "roi": {
+                    "type": "rectangle",
+                    "center": draw_params["XZ"]["roi"]["center"],
+                    "width": draw_params["XZ"]["roi"]["width"],
+                    "height": draw_params["XZ"]["roi"]["height"],
+                },
             },
-        },
 
-        "YZ": {
-            "filename": f"enhancement_yzplanar_{field}2.h5",
-            "save_anim": f"enh_yz_{field}2.mp4",
-            "x_phys_range": [-config.cell_size[1] / 2 * 1e3, config.cell_size[1] / 2 * 1e3],
-            "y_phys_range": [-config.cell_size[2] / 2 * 1e3, config.cell_size[2] / 2 * 1e3],
-            "x_zoom": draw_params["YZ"]["x_zoom"],
-            "y_zoom": draw_params["YZ"]["y_zoom"],
-            "xlabel": "Y [nm]",
-            "ylabel": "Z [nm]",
-            "roi": {
-                "type": "rectangle",
-                "center": draw_params["YZ"]["roi"]["center"],
-                "width": draw_params["YZ"]["roi"]["width"],
-                "height": draw_params["YZ"]["roi"]["height"],
+            "YZ": {
+                "filename": f"enhancement_yzplanar_{field}2.h5",
+                "save_anim": f"enh_yz_{field}2.mp4",
+                "x_phys_range": [-config.cell_size[1] / 2 * 1e3, config.cell_size[1] / 2 * 1e3],
+                "y_phys_range": [-config.cell_size[2] / 2 * 1e3, config.cell_size[2] / 2 * 1e3],
+                "x_zoom": draw_params["YZ"]["x_zoom"],
+                "y_zoom": draw_params["YZ"]["y_zoom"],
+                "xlabel": "Y [nm]",
+                "ylabel": "Z [nm]",
+                "roi": {
+                    "type": "rectangle",
+                    "center": draw_params["YZ"]["roi"]["center"],
+                    "width": draw_params["YZ"]["roi"]["width"],
+                    "height": draw_params["YZ"]["roi"]["height"],
+                },
             },
-        },
-    }
+        }
 
-    # ============================================================
-    # Containers for line plots
-    # ============================================================
+        # ============================================================
+        # Containers for line plots
+        # ============================================================
 
-    line_xdata = []
-    line_ydata = []
-    line_labels = []
+        line_xdata = []
+        line_ydata = []
+        line_labels = []
 
-    # ============================================================
-    # Main loop over planes
-    # ============================================================
+        # ============================================================
+        # Main loop over planes
+        # ============================================================
 
-    for plane, cfg in planes.items():
-        print(f"Processing {plane} plane")
+        for plane, cfg in planes.items():
+            print(f"Processing {plane} plane")
 
-        if animate:
-            # ---------- Animation ----------
-            animate_field_from_h5_physical(
+            if animate:
+                # ---------- Animation ----------
+                animate_field_from_h5_physical(
+                    h5_filename=cfg["filename"],
+                    load_h5data_path=config.path_to_save,
+                    save_name=cfg["save_anim"],
+                    save_path=config.animations_folder_path,
+                    interval=50,
+                    cmap="inferno",
+                    transpose_xy=True,
+                    IMG_CLOSE=config.IMG_CLOSE,
+                    x_phys_range=cfg["x_phys_range"],
+                    y_phys_range=cfg["y_phys_range"],
+                    x_zoom=cfg["x_zoom"],
+                    y_zoom=cfg["y_zoom"],
+                    mask_left=0,
+                    mask_right=0,
+                    mask_bottom=5,
+                    mask_top=5,
+                    title=f"Field enhancement |E|²/|E0|² ({plane})",
+                    xlabel=cfg["xlabel"],
+                    ylabel=cfg["ylabel"],
+                )
+
+            # ---------- ROI analysis ----------
+            frame_mean, frame_max = analyze_roi_from_h5_physical(
                 h5_filename=cfg["filename"],
                 load_h5data_path=config.path_to_save,
-                save_name=cfg["save_anim"],
-                save_path=config.animations_folder_path,
-                interval=50,
+                roi=cfg["roi"],
+                x_phys_range=cfg["x_phys_range"],
+                y_phys_range=cfg["y_phys_range"],
+            )
+
+            print(f"Max mean enhancement in ROI for {plane}: {frame_max[1]:.2f} at frame {frame_max[0]}")
+
+            # ---------- Max-frame plot ----------
+            plot_field_frame_from_h5_physical(
+                frame_index=int(frame_max[0]),
+                h5_filename=cfg["filename"],
+                load_h5data_path=config.path_to_save,
                 cmap="inferno",
                 transpose_xy=True,
                 IMG_CLOSE=config.IMG_CLOSE,
@@ -776,70 +807,38 @@ def animate_enhancement_fields(config, draw_params, field='E', animate=True):
                 mask_right=0,
                 mask_bottom=5,
                 mask_top=5,
+                roi=cfg["roi"],
                 title=f"Field enhancement |E|²/|E0|² ({plane})",
                 xlabel=cfg["xlabel"],
                 ylabel=cfg["ylabel"],
+                save_path=config.animations_folder_path,
+                save_name=f"MAP_{plane}.png",
             )
 
-        # ---------- ROI analysis ----------
-        frame_mean, frame_max = analyze_roi_from_h5_physical(
-            h5_filename=cfg["filename"],
-            load_h5data_path=config.path_to_save,
-            roi=cfg["roi"],
-            x_phys_range=cfg["x_phys_range"],
-            y_phys_range=cfg["y_phys_range"],
-        )
+            # ---------- Collect data for joint line plot ----------
+            line_xdata.append(frame_mean[:, 0])
+            line_ydata.append(frame_mean[:, 1])
+            line_labels.append(f"{plane}")
 
-        print(f"Max mean enhancement in ROI for {plane}: {frame_max[1]:.2f} at frame {frame_max[0]}")
-
-        # ---------- Max-frame plot ----------
-        plot_field_frame_from_h5_physical(
-            frame_index=int(frame_max[0]),
-            h5_filename=cfg["filename"],
-            load_h5data_path=config.path_to_save,
-            cmap="inferno",
-            transpose_xy=True,
-            IMG_CLOSE=config.IMG_CLOSE,
-            x_phys_range=cfg["x_phys_range"],
-            y_phys_range=cfg["y_phys_range"],
-            x_zoom=cfg["x_zoom"],
-            y_zoom=cfg["y_zoom"],
-            mask_left=0,
-            mask_right=0,
-            mask_bottom=5,
-            mask_top=5,
-            roi=cfg["roi"],
-            title=f"Field enhancement |E|²/|E0|² ({plane})",
-            xlabel=cfg["xlabel"],
-            ylabel=cfg["ylabel"],
+        # ============================================================
+        # Joint line plot
+        # ============================================================
+        colors = cm2c(cm_inferno, 14)
+        multi_line_plotter_same_axes(
+            xdata_list=line_xdata,
+            ydata_list=line_ydata,
+            labels=line_labels,
+            colors=[colors[0], colors[5], colors[7], colors[9]],
+            linestyles=["-", "--", "-.", ":"],
+            grid=True,
+            xlabel="Time step",
+            ylabel="|E|²/|E0|²",
+            title="Mean |E|²/|E0|² in gap vs time",
+            legend=True,
             save_path=config.animations_folder_path,
-            save_name=f"MAP_{plane}.png",
+            save_name="MEAN_ENHANCEMENT_ALL_PLANES.png",
+            IMG_CLOSE=config.IMG_CLOSE,
         )
-
-        # ---------- Collect data for joint line plot ----------
-        line_xdata.append(frame_mean[:, 0])
-        line_ydata.append(frame_mean[:, 1])
-        line_labels.append(f"{plane}")
-
-    # ============================================================
-    # Joint line plot
-    # ============================================================
-    colors = cm2c(cm_inferno, 14)
-    multi_line_plotter_same_axes(
-        xdata_list=line_xdata,
-        ydata_list=line_ydata,
-        labels=line_labels,
-        colors=[colors[0], colors[5], colors[7], colors[9]],
-        linestyles=["-", "--", "-.", ":"],
-        grid=True,
-        xlabel="Time step",
-        ylabel="|E|²/|E0|²",
-        title="Mean |E|²/|E0|² in gap vs time",
-        legend=True,
-        save_path=config.animations_folder_path,
-        save_name="MEAN_ENHANCEMENT_ALL_PLANES.png",
-        IMG_CLOSE=config.IMG_CLOSE,
-    )
     return 0
 
 def compute_T_R_A(
@@ -878,55 +877,54 @@ def compute_T_R_A(
     -------
     wavelength, R, T, A : numpy arrays
     """
+    if mp.am_master():
+        incident_flux = np.array(incident_flux)
+        tran_flux = np.array(tran_flux)
+        refl_flux = np.array(refl_flux)
+        flux_freqs = np.array(flux_freqs)
 
-    incident_flux = np.array(incident_flux)
-    tran_flux = np.array(tran_flux)
-    refl_flux = np.array(refl_flux)
-    flux_freqs = np.array(flux_freqs)
+        # -----------------------------------------
+        # wavelength
+        # -----------------------------------------
+        wavelength = 1.0 / flux_freqs
 
-    # -----------------------------------------
-    # wavelength
-    # -----------------------------------------
-    wavelength = 1.0 / flux_freqs
+        # -----------------------------------------
+        # R T A
+        # -----------------------------------------
+        R = -refl_flux / incident_flux
+        T = tran_flux / incident_flux
+        A = 1.0 - R - T
 
-    # -----------------------------------------
-    # R T A
-    # -----------------------------------------
-    R = -refl_flux / incident_flux
-    T = tran_flux / incident_flux
-    A = 1.0 - R - T
+        # -----------------------------------------
+        # save
+        # -----------------------------------------
+        if save_path is not None:
+            os.makedirs(save_path, exist_ok=True)
 
-    # -----------------------------------------
-    # save
-    # -----------------------------------------
-    if save_path is not None:
-        os.makedirs(save_path, exist_ok=True)
+            data = np.column_stack((wavelength, R, T, A))
 
-        data = np.column_stack((wavelength, R, T, A))
+            header = "lambda  R  T  A"
 
-        header = "lambda  R  T  A"
-
-        np.savetxt(
-            os.path.join(save_path, save_name),
-            data,
-            header=header
+            np.savetxt(
+                os.path.join(save_path, save_name),
+                data,
+                header=header
+            )
+        
+        # -----------------------------------------
+        # plot
+        # -----------------------------------------
+        multi_line_plotter_same_axes(
+            xdata_list=[wavelength, wavelength, wavelength],
+            ydata_list=[R, T, A],
+            labels=["R", "T", "A"],
+            colors=["blue", "red", "green"],
+            linestyles=["-", "--", "-."],
+            xlabel="Wavelength [μm]",
+            ylabel="Fraction",
+            title="Reflection, Transmission, Absorption Spectra",
+            legend=True,
+            save_path=save_path,
+            save_name="spectra_T_R_A.png",
         )
-    
-    # -----------------------------------------
-    # plot
-    # -----------------------------------------
-    multi_line_plotter_same_axes(
-        xdata_list=[wavelength, wavelength, wavelength],
-        ydata_list=[R, T, A],
-        labels=["R", "T", "A"],
-        colors=["blue", "red", "green"],
-        linestyles=["-", "--", "-."],
-        xlabel="Wavelength [μm]",
-        ylabel="Fraction",
-        title="Reflection, Transmission, Absorption Spectra",
-        legend=True,
-        save_path=save_path,
-        save_name="spectra_T_R_A.png",
-    )
-
     return 0
