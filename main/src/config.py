@@ -49,7 +49,7 @@ class SimulationConfig:
         self.frequency_width = 1
         self.src_width = 1000 / xm # ???
         self.src_amp = 1.0
-        self.src_cutoff = 3 # number of widths used to smoothly turn on/off the source; reduces high-frequency artifacts
+        self.src_cutoff = 5.0 # number of widths used to smoothly turn on/off the source; reduces high-frequency artifacts
         self.component = mp.Ex
         self.src_center = [
             0.0,    # x

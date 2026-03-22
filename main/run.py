@@ -7,7 +7,7 @@ def run():
     # =====================================================
     # TRA_Novotn()
     # split_bar_AuTiSiO2()
-    experiment_bow_tie_test()
+    wave_shape_theo()
     
 if __name__ == "__main__":
     run()

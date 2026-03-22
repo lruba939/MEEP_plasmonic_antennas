@@ -649,3 +649,40 @@ def wave_shape():
         # )
         # # =====================================================
     return 0
+
+def wave_shape_theo():
+ 
+    def gaussian_wave_meep(t, f0, fwidth, distance,
+                      start_time=0.0, cutoff=3.0, amplitude=1.0):
+        w = 1.0 / fwidth
+        t0 = start_time + cutoff * w
+        t_eff = t - distance
+        x = t_eff - t0
+        envelope = np.exp(-(x**2) / (2 * w**2))
+        carrier = np.cos(-2 * np.pi * f0 * t_eff)
+        A = amplitude * fwidth**2
+
+        return A * envelope * carrier
+
+    # parametry
+    cutoff = 5
+    wavelength = 8.1
+    f0 = 1 / wavelength
+
+    fwidths = [0.08]
+    
+    distance = (420/2.0 - 100*1.05)/xm
+
+    t = np.linspace(0, 150, 2000)
+
+    plt.figure(figsize=(10, 6))
+
+    for fw in fwidths:
+        E_meep = gaussian_wave_meep(t, f0, fw, distance, start_time=0, cutoff=cutoff)
+        plt.plot(t, E_meep, label=f"Meep fwidth={fw}")
+    plt.xlabel("Time")
+    plt.ylabel("E(t)")
+    plt.title("Gaussian-modulated wave")
+    plt.legend()
+    plt.grid()
+    plt.show()
