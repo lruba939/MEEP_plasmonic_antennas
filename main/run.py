@@ -6,6 +6,7 @@ from src.experiments import *
 def run():
     # =====================================================
     # TRA_Novotn()
+    # split_bar_AuTiSiO2()
     experiment_bow_tie_test()
     
 if __name__ == "__main__":
