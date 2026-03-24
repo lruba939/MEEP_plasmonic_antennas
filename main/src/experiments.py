@@ -18,107 +18,109 @@ mp.Simulation.eps_averaging = False
 def experiment_bow_tie_test():
     # =====================================================
     config = SimulationConfig()
-    config.resolution = 1000
+    config.resolution = 250
 
-    for gap in [20]:
-        # =====================================================
-        SIM_NAME = f"bowtie-1000-new-parallel"
-        config.path_to_save, config.animations_folder_path = create_directory(SIM_NAME)
-        # =====================================================
-        # antenna = BowTieEquilateral(
-        #     gap=gap/xm,
-        #     amp=76/xm,
-        #     thickness=24/xm,
-        #     radius=0/xm,
-        #     material=Au,
-        #     z_offset=0.0
-        # )
-        antenna = BowTie(
-            gap=gap/xm,
-            length=150/xm,
-            width=100/xm,
-            thickness=24/xm,
-            radius=5/xm,
-            material=Au,
-            z_offset=0.0
+    gap=20
+    # =====================================================
+    SIM_NAME = f"bowtie-1000-new-parallel"
+    # config.path_to_save="results/bowtie-1000-new-parallel"
+    # config.animations_folder_path = "results/bowtie-1000-new-parallel/animations"
+    config.path_to_save, config.animations_folder_path = create_directory(SIM_NAME)
+    # =====================================================
+    # antenna = BowTieEquilateral(
+    #     gap=gap/xm,
+    #     amp=76/xm,
+    #     thickness=24/xm,
+    #     radius=0/xm,
+    #     material=Au,
+    #     z_offset=0.0
+    # )
+    antenna = BowTie(
+        gap=gap/xm,
+        length=150/xm,
+        width=100/xm,
+        thickness=24/xm,
+        radius=5/xm,
+        material=Au,
+        z_offset=0.0
+    )
+    cell = make_cell(config=config)
+    antenna_vols = VolumeSet(cell, antenna=antenna, top_z=antenna.thickness)
+
+    save_and_show_config(config, antenna)
+
+    sim = mp.Simulation(
+        cell_size=cell,
+        boundary_layers=[mp.PML(config.pml)],
+        geometry=antenna.build_geometry(),
+        sources=make_source(config),
+        resolution = config.resolution,
+        k_point = mp.Vector3(),
+        symmetries=config.symmetries,
+        dimensions=3
         )
-        cell = make_cell(config=config)
-        antenna_vols = VolumeSet(cell, antenna=antenna, top_z=antenna.thickness)
-
-        save_and_show_config(config, antenna)
-
-        sim = mp.Simulation(
-            cell_size=cell,
-            boundary_layers=[mp.PML(config.pml)],
-            geometry=antenna.build_geometry(),
-            sources=make_source(config),
-            resolution = config.resolution,
-            k_point = mp.Vector3(),
-            symmetries=config.symmetries,
-            dimensions=3
-            )
-        sim_empty = mp.Simulation(
-            cell_size=cell,
-            boundary_layers=[mp.PML(config.pml)],
-            geometry=[],
-            sources=make_source(config),
-            resolution = config.resolution,
-            k_point = mp.Vector3(),
-            symmetries=config.symmetries,
-            dimensions=3
-            )
-        # =====================================================
-        print_task(1, "2D projections.")
-        for plane in ["XY", "XZ", "YZ"]:
-            Name2D = f"antenna_gap_{gap}nm_{plane}.png"
-            save_2D_plot(
-                sim,
-                antenna_vols.vis_volume[plane],
-                save_name=Name2D,
-                path_to_save=config.path_to_save,
-                IMG_CLOSE=config.IMG_CLOSE
-            )
-        # # =====================================================
-        # print_task(2, "Dielectric const. plots.")
-        # draw_dielectric_constant(sim, config, antenna_vols, sampling_wavelength=200)
-        # draw_dielectric_constant(sim, config, antenna_vols)
-        # =====================================================
-        print_task(3, "3D calculations.")
-        compute_fields(sim, sim_empty, antenna_vols, config)
-        # =====================================================
-        print_task(4, "Postprocesing - raw animations.")
-        animate_raw_fields(config=config, mode="BOTH")
-        # =====================================================
-        draw_params = {
-            "XY": {"x_zoom": 1.0,
-                    "y_zoom": 1.0,
-                    "roi": {
-                        "center": (0, 0),
-                        "width": antenna.gap*1.05 * 1e3,
-                        "height": antenna.radius*2.5 * 1e3,
-                    },
-            },
-            "XZ": {"x_zoom": 1.0,
-                    "y_zoom": 1.0,
-                    "roi": {
-                        "center": (0, 0),
-                        "width": antenna.gap*1.05 * 1e3,
-                        "height": antenna.thickness * 1e3,
-                    },
-            },
-            "YZ": {"x_zoom": 1.0,
-                    "y_zoom": 1.0,
-                    "roi": {
-                        "center": (0, 0),
-                        "width": antenna.radius*2.5 * 1e3,
-                        "height": antenna.thickness * 1e3,
-                    },
-            },
-        }
-        print_task(5, "Postprocesing - animations and plots.")
-        animate_enhancement_fields(config=config, draw_params=draw_params)
-        # =====================================================
-        append_time_to_file(config, prefix="Finish: ")
+    sim_empty = mp.Simulation(
+        cell_size=cell,
+        boundary_layers=[mp.PML(config.pml)],
+        geometry=[],
+        sources=make_source(config),
+        resolution = config.resolution,
+        k_point = mp.Vector3(),
+        symmetries=config.symmetries,
+        dimensions=3
+        )
+    # =====================================================
+    print_task(1, "2D projections.")
+    for plane in ["XY", "XZ", "YZ"]:
+        Name2D = f"antenna_gap_{gap}nm_{plane}.png"
+        save_2D_plot(
+            sim,
+            antenna_vols.vis_volume[plane],
+            save_name=Name2D,
+            path_to_save=config.path_to_save,
+            IMG_CLOSE=config.IMG_CLOSE
+        )
+    # # =====================================================
+    # print_task(2, "Dielectric const. plots.")
+    # draw_dielectric_constant(sim, config, antenna_vols, sampling_wavelength=200)
+    # draw_dielectric_constant(sim, config, antenna_vols)
+    # =====================================================
+    print_task(3, "3D calculations.")
+    compute_fields(sim, sim_empty, antenna_vols, config)
+    # =====================================================
+    print_task(4, "Postprocesing - raw animations.")
+    animate_raw_fields(config=config, mode="BOTH")
+    # =====================================================
+    draw_params = {
+        "XY": {"x_zoom": 1.0,
+                "y_zoom": 1.0,
+                "roi": {
+                    "center": (0, 0),
+                    "width": antenna.gap*1.05 * 1e3,
+                    "height": antenna.radius*2.5 * 1e3,
+                },
+        },
+        "XZ": {"x_zoom": 1.0,
+                "y_zoom": 1.0,
+                "roi": {
+                    "center": (0, 0),
+                    "width": antenna.gap*1.05 * 1e3,
+                    "height": antenna.thickness * 1e3,
+                },
+        },
+        "YZ": {"x_zoom": 1.0,
+                "y_zoom": 1.0,
+                "roi": {
+                    "center": (0, 0),
+                    "width": antenna.radius*2.5 * 1e3,
+                    "height": antenna.thickness * 1e3,
+                },
+        },
+    }
+    print_task(5, "Postprocesing - animations and plots.")
+    animate_enhancement_fields(config=config, draw_params=draw_params)
+    # =====================================================
+    append_time_to_file(config, prefix="Finish: ")
     return 0
 
 def split_bar_AuTiSiO2():

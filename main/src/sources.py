@@ -28,8 +28,7 @@ def make_source(config):
                 component=config.component,
                 center=mp.Vector3(config.src_center[0], config.src_center[1], config.src_center[2]),
                 size = mp.Vector3(config.src_size[0], config.src_size[1], config.src_size[2]),
-                amplitude=config.src_amp,
-                cutoff=config.src_cutoff
+                amplitude=config.src_amp
             )
         ]
     else:

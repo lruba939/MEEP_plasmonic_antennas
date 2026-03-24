@@ -74,7 +74,6 @@ def collect_fields_with_output(
       should be True, otherwise no data will be collected.
     * Default configuration records only E-field components.
     """
-
     # --------------------------------------------------
     # Disable default filename prefix (clean filenames)
     # --------------------------------------------------
