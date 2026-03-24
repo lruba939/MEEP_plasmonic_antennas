@@ -5,10 +5,11 @@ from src.experiments import *
 
 def run():
     # =====================================================
-    # TRA_Novotn()
+    TRA_Novotn()
     # split_bar_AuTiSiO2()
     # wave_shape_theo()
-    experiment_bow_tie_test()
+    # experiment_bow_tie_test()
+    # split_bar_AuTiX()
     
 if __name__ == "__main__":
     run()

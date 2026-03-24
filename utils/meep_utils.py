@@ -519,6 +519,25 @@ def compute_fields(
         "yzplanar": volumes.volume["YZ"],
     }
 
+    if volumes.extra:
+        planes.update({
+            "xyplanar_1": volumes.volume["XY_1"],
+            "xyplanar_2": volumes.volume["XY_2"],
+            "xyplanar_3": volumes.volume["XY_3"],
+            "xyplanar_4": volumes.volume["XY_4"],
+            "xyplanar_5": volumes.volume["XY_5"],
+            "xzplanar_1": volumes.volume["XZ_1"],
+            "xzplanar_2": volumes.volume["XZ_2"],
+            "xzplanar_3": volumes.volume["XZ_3"],
+            "xzplanar_4": volumes.volume["XZ_4"],
+            "xzplanar_5": volumes.volume["XZ_5"],
+            "yzplanar_1": volumes.volume["YZ_1"],
+            "yzplanar_2": volumes.volume["YZ_2"],
+            "yzplanar_3": volumes.volume["YZ_3"],
+            "yzplanar_4": volumes.volume["YZ_4"],
+            "yzplanar_5": volumes.volume["YZ_5"],
+        })
+
     # ============================================================
     # Flux monitors
     # ============================================================
@@ -625,6 +644,25 @@ def compute_fields(
             "xzplanar",
             "yzplanar",
         ]
+
+        if volumes.extra:
+            enhancement_planes.extend([
+                "xyplanar_1",
+                "xyplanar_2",
+                "xyplanar_3",
+                "xyplanar_4",
+                "xyplanar_5",
+                "xzplanar_1",
+                "xzplanar_2",
+                "xzplanar_3",
+                "xzplanar_4",
+                "xzplanar_5",
+                "yzplanar_1",
+                "yzplanar_2",
+                "yzplanar_3",
+                "yzplanar_4",
+                "yzplanar_5",
+            ])
 
         # ---------- E FIELD ENHANCEMENT ----------
         if calc_E:

@@ -1138,6 +1138,7 @@ def animate_raw_fields(
     animate_H=False,
     animate_DPWR=False,
     component="X",
+    extras=False,
 ):
     """
     Generate animations for fields map.
@@ -1177,6 +1178,25 @@ def animate_raw_fields(
             "xzplanar",
             "yzplanar",
         ]
+
+        if extras:
+            planes.extend([
+                "xyplanar_1",
+                "xyplanar_2",
+                "xyplanar_3",
+                "xyplanar_4",
+                "xyplanar_5",
+                "xzplanar_1",
+                "xzplanar_2",
+                "xzplanar_3",
+                "xzplanar_4",
+                "xzplanar_5",
+                "yzplanar_1",
+                "yzplanar_2",
+                "yzplanar_3",
+                "yzplanar_4",
+                "yzplanar_5",
+            ])
 
         # ============================================================
         # FUNCTION TO ANIMATE SINGLE FILE
