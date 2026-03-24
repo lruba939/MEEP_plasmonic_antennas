@@ -11,7 +11,7 @@ class VolumeSet:
 
     def __init__(self, cell_size, antenna=None, top_z=None, extra_vols_in_gap=False):
 
-        extra = extra_vols_in_gap
+        self.extra = extra_vols_in_gap
         self.volume = {}
         self.vis_volume = {}
 
