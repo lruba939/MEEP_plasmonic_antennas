@@ -503,7 +503,7 @@ def compute_fields(
         Whether to calculate power density fields.
     """
 
-    valid_modes = ["WITH_ANTENNA", "EMPTY", "BOTH"]
+    valid_modes = ["WITH_ANTENNA", "EMPTY", "BOTH", "ENH_ONLY"]
 
     if mode not in valid_modes:
         raise ValueError(f"mode must be one of {valid_modes}")
@@ -549,16 +549,16 @@ def compute_fields(
         refl_fr = mp.FluxRegion(
             center=mp.Vector3(0, 0, config.z_reflection),
             size=mp.Vector3(
-                config.cell_size[0]-2*config.pad-2*config.pml,
-                config.cell_size[1]-2*config.pad-2*config.pml,
+                config.src_size[0],
+                config.src_size[1],
                 0)
         )
 
         tran_fr = mp.FluxRegion(
             center=mp.Vector3(0, 0, config.z_transmission),
             size=mp.Vector3(
-                config.cell_size[0]-2*config.pad-2*config.pml,
-                config.cell_size[1]-2*config.pad-2*config.pml,
+                config.src_size[0],
+                config.src_size[1],
                 0)
         )
 
@@ -633,7 +633,7 @@ def compute_fields(
     # ENHANCEMENT CALCULATION
     # ============================================================
 
-    if mode == "BOTH" and mp.am_master():
+    if (mode == "BOTH" or mode == "ENH_ONLY") and mp.am_master():
         if mp.am_master():
             print("Computing enhancement maps")
             append_time_to_file(config, prefix="Computing enhancement maps: ")
