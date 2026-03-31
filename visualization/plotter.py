@@ -730,7 +730,7 @@ def plot_field_frame_from_h5_physical(
 
     # --- plot text ---
     title=None,
-    mean_prefix="|E|²/|E₀|² = ",
+    mean_prefix=r"|E|²/|E$_0$|² = ",
     mean_position=(0.02, 0.95),
     mean_color="white",
     mean_fontsize=12,
