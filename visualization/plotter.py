@@ -7,6 +7,7 @@ from matplotlib import animation
 from matplotlib.animation import FuncAnimation
 from mpl_toolkits.mplot3d import Axes3D
 from matplotlib.patches import Rectangle
+import gc
 
 # Global settings for plotting
 
@@ -313,7 +314,7 @@ def animate_field_from_h5(
     anim : matplotlib.animation.FuncAnimation
         The generated animation object.
     """
-
+    
     # --------------------------------------------------
     # Resolve HDF5 file path
     # --------------------------------------------------
@@ -322,18 +323,23 @@ def animate_field_from_h5(
     else:
         h5_path = h5_filename
 
+    # print("\nOpen file\n")
+
     # --------------------------------------------------
-    # Load data
+    # OPEN FILE (NO "with"!)
     # --------------------------------------------------
-    with h5py.File(h5_path, "r") as f:
-        if dataset_name is None:
-            dataset_name = list(f.keys())[0]
-        data = np.array(f[dataset_name])
+    f = h5py.File(h5_path, "r")
+
+    if dataset_name is None:
+        dataset_name = list(f.keys())[0]
+
+    data = f[dataset_name]
 
     if data.ndim != 3:
         raise ValueError(f"Expected data[x,y,time], got {data.shape}")
 
     Nx, Ny, Nt = data.shape
+    print("\n",data.shape,"\n")
 
     # --------------------------------------------------
     # Default yzeros
@@ -344,31 +350,33 @@ def animate_field_from_h5(
     xzeros = max(0, min(xzeros, Nx // 2))
     yzeros = max(0, min(yzeros, Ny // 2))
 
+    print("\nCrop\n")
     # --------------------------------------------------
-    # Crop PML regions (x,y only)
+    # Crop
     # --------------------------------------------------
-    data = data[
-        xzeros : Nx - xzeros,
-        yzeros : Ny - yzeros,
-        :
-    ]
+    xs = slice(xzeros, Nx - xzeros)
+    ys = slice(yzeros, Ny - yzeros)
 
-    Nx, Ny, Nt = data.shape
+    Nx = Nx - 2 * xzeros
+    Ny = Ny - 2 * yzeros
 
+    print("\nColor scale\n")
     # --------------------------------------------------
     # Color scale
     # --------------------------------------------------
-    if vmin is None:
-        vmin = np.min(data)
-    if vmax is None:
-        vmax = np.max(data)
+    if vmin is None or vmax is None:
+        sample = data[xs, ys, ::max(1, Nt // 20)]
+        if vmin is None:
+            vmin = np.min(sample)
+        if vmax is None:
+            vmax = np.max(sample)
 
     # --------------------------------------------------
     # Plot setup
     # --------------------------------------------------
     fig, ax = plt.subplots()
 
-    frame0 = data[:, :, 0]
+    frame0 = data[xs, ys, 0]
     if transpose_xy:
         frame0 = frame0.T
 
@@ -387,11 +395,14 @@ def animate_field_from_h5(
     # Animation update
     # --------------------------------------------------
     def update(t):
-        frame = data[:, :, t]
+        frame = data[xs, ys, t]
+
         if transpose_xy:
             frame = frame.T
+
         img.set_array(frame)
         ax.set_title(f"frame {t}/{Nt-1}")
+        # print("\nFRAME: ", t, "\n")
         return (img,)
 
     anim = FuncAnimation(
@@ -421,7 +432,18 @@ def animate_field_from_h5(
     if not IMG_CLOSE:
         plt.show()
 
-    return anim
+    # --------------------------------------------------
+    # Cleanup
+    # --------------------------------------------------
+        
+    plt.close(fig)
+    f.close()
+    del anim
+    del img
+    del frame0
+    gc.collect()
+    
+    return 0
 
 def animate_field_from_h5_physical(
     h5_filename,
@@ -473,108 +495,100 @@ def animate_field_from_h5_physical(
     # Sanity checks
     # --------------------------------------------------
     if x_phys_range is None or y_phys_range is None:
-        raise ValueError(
-            "You must provide x_phys_range and y_phys_range"
-        )
+        raise ValueError("Provide x_phys_range and y_phys_range")
 
-    # --------------------------------------------------
-    # Resolve HDF5 path
-    # --------------------------------------------------
     h5_path = (
         os.path.join(load_h5data_path, h5_filename)
         if load_h5data_path is not None
         else h5_filename
     )
 
-    # --------------------------------------------------
-    # Load data
-    # --------------------------------------------------
-    with h5py.File(h5_path, "r") as f:
-        if dataset_name is None:
-            dataset_name = list(f.keys())[0]
-        data = np.array(f[dataset_name])
+    # ---------------------------
+    # OPEN FILE (no "with")
+    # ---------------------------
+    f = h5py.File(h5_path, "r")
 
-    if data.ndim != 3:
-        raise ValueError(f"Expected data[x,y,time], got {data.shape}")
+    if dataset_name is None:
+        dataset_name = list(f.keys())[0]
 
-    Nx0, Ny0, Nt = data.shape
+    dset = f[dataset_name]
+
+    if dset.ndim != 3:
+        raise ValueError(f"Expected data[x,y,time], got {dset.shape}")
+
+    Nx0, Ny0, Nt = dset.shape
 
     if yzeros is None:
         yzeros = xzeros
 
-    # --------------------------------------------------
-    # Crop PML regions
-    # --------------------------------------------------
+    # ---------------------------
+    # CROPPING
+    # ---------------------------
     xzeros = min(xzeros, Nx0 // 2)
     yzeros = min(yzeros, Ny0 // 2)
 
-    data = data[
-        xzeros : Nx0 - xzeros,
-        yzeros : Ny0 - yzeros,
-        :
-    ]
+    xs0 = slice(xzeros, Nx0 - xzeros)
+    ys0 = slice(yzeros, Ny0 - yzeros)
 
-    Nx, Ny, Nt = data.shape
+    Nx_c = Nx0 - 2 * xzeros
+    Ny_c = Ny0 - 2 * yzeros
 
-    # --------------------------------------------------
-    # Artifact masking
-    # --------------------------------------------------
-    if mask_left > 0:
-        data[:mask_left, :, :] = 1.0
-    if mask_right > 0:
-        data[-mask_right:, :, :] = 1.0
-    if mask_bottom > 0:
-        data[:, :mask_bottom, :] = 1.0
-    if mask_top > 0:
-        data[:, -mask_top:, :] = 1.0
+    # ---------------------------
+    # ZOOM
+    # ---------------------------
+    cx, cy = Nx_c // 2, Ny_c // 2
 
-    # --------------------------------------------------
-    # Zoom (centered)
-    # --------------------------------------------------
-    cx, cy = Nx // 2, Ny // 2
-
-    hx = int(0.5 * x_zoom * Nx)
-    hy = int(0.5 * y_zoom * Ny)
+    hx = int(0.5 * x_zoom * Nx_c)
+    hy = int(0.5 * y_zoom * Ny_c)
 
     x1, x2 = cx - hx, cx + hx
     y1, y2 = cy - hy, cy + hy
 
-    data = data[x1:x2, y1:y2, :]
-    Nx, Ny, Nt = data.shape
+    xs = slice(xzeros + x1, xzeros + x2)
+    ys = slice(yzeros + y1, yzeros + y2)
 
-    # --------------------------------------------------
-    # Physical axes
-    # --------------------------------------------------
+    # ---------------------------
+    # PHYSICAL AXES
+    # ---------------------------
     x_min0, x_max0 = x_phys_range
     y_min0, y_max0 = y_phys_range
 
-    x_full = np.linspace(x_min0, x_max0, Nx0 - 2 * xzeros)
-    y_full = np.linspace(y_min0, y_max0, Ny0 - 2 * yzeros)
+    x_full = np.linspace(x_min0, x_max0, Nx_c)
+    y_full = np.linspace(y_min0, y_max0, Ny_c)
 
     x_phys = x_full[x1:x2]
     y_phys = y_full[y1:y2]
 
-    extent = [
-        x_phys[0], x_phys[-1],
-        y_phys[0], y_phys[-1],
-    ]
+    extent = [x_phys[0], x_phys[-1], y_phys[0], y_phys[-1]]
 
-    # --------------------------------------------------
-    # Color scale
-    # --------------------------------------------------
-    if vmin is None:
-        vmin = np.min(data)
-    if vmax is None:
-        vmax = np.max(data)
+    # ---------------------------
+    # INITIAL FRAME (ONE LOAD)
+    # ---------------------------
+    frame0 = dset[xs, ys, 0].copy()
 
-    # --------------------------------------------------
-    # Plot setup
-    # --------------------------------------------------
-    fig, ax = plt.subplots()
+    # masking
+    if mask_left > 0:
+        frame0[:mask_left, :] = 1.0
+    if mask_right > 0:
+        frame0[-mask_right:, :] = 1.0
+    if mask_bottom > 0:
+        frame0[:, :mask_bottom] = 1.0
+    if mask_top > 0:
+        frame0[:, -mask_top:] = 1.0
 
-    frame0 = data[:, :, 0]
     if transpose_xy:
         frame0 = frame0.T
+
+    # ---------------------------
+    # COLOR SCALE (sampling)
+    # ---------------------------
+    if vmin is None or vmax is None:
+        vmin, vmax = compute_vmin_vmax_streaming(dset, xs, ys, Nt)
+
+    # ---------------------------
+    # PLOT
+    # ---------------------------
+    fig, ax = plt.subplots()
 
     img = ax.imshow(
         frame0,
@@ -589,24 +603,35 @@ def animate_field_from_h5_physical(
     ax.set_title(title)
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
+
     plt.colorbar(img, ax=ax)
 
-    # --------------------------------------------------
-    # Structure overlay (STATIC)
-    # --------------------------------------------------
     if structure is not None:
         if structure["type"] == "splitbar":
             draw_splitbar_outline(ax, structure["bars"])
 
-    # --------------------------------------------------
-    # Animation update
-    # --------------------------------------------------
+    # ---------------------------
+    # UPDATE
+    # ---------------------------
     def update(t):
-        frame = data[:, :, t]
+        frame = dset[xs, ys, t]
+
+        # masking
+        if mask_left > 0:
+            frame[:mask_left, :] = 1.0
+        if mask_right > 0:
+            frame[-mask_right:, :] = 1.0
+        if mask_bottom > 0:
+            frame[:, :mask_bottom] = 1.0
+        if mask_top > 0:
+            frame[:, -mask_top:] = 1.0
+
         if transpose_xy:
             frame = frame.T
+
         img.set_array(frame)
         ax.set_title(f"frame {t}/{Nt-1}")
+
         return (img,)
 
     anim = FuncAnimation(
@@ -627,15 +652,21 @@ def animate_field_from_h5_physical(
             save_name = f"{base}.mp4"
         anim.save(os.path.join(save_path, save_name), writer="ffmpeg")
 
-    # --------------------------------------------------
-    # Show / close
-    # --------------------------------------------------
     if not IMG_CLOSE:
         plt.show()
-    else:
-        plt.close(fig)
 
-    return anim
+    # ---------------------------
+    # CLEANUP
+    # ---------------------------
+    plt.close(fig)
+    f.close()
+
+    del anim
+    del img
+    del frame0
+    gc.collect()
+
+    return 0
 
 def draw_splitbar_outline(
     ax,
@@ -756,33 +787,32 @@ def plot_field_frame_from_h5_physical(
     - optional structure overlay
     - ROI-based averaging in physical coordinates
     """
-    # --------------------------------------------------
-    # Sanity checks
-    # --------------------------------------------------
+    # ---------------------------
+    # Sanity
+    # ---------------------------
     if x_phys_range is None or y_phys_range is None:
-        raise ValueError("You must provide x_phys_range and y_phys_range")
+        raise ValueError("Provide x_phys_range and y_phys_range")
 
-    # --------------------------------------------------
-    # Resolve HDF5 path
-    # --------------------------------------------------
     h5_path = (
         os.path.join(load_h5data_path, h5_filename)
         if load_h5data_path is not None
         else h5_filename
     )
 
-    # --------------------------------------------------
-    # Load data
-    # --------------------------------------------------
-    with h5py.File(h5_path, "r") as f:
-        if dataset_name is None:
-            dataset_name = list(f.keys())[0]
-        data = np.array(f[dataset_name])
+    # ---------------------------
+    # OPEN FILE
+    # ---------------------------
+    f = h5py.File(h5_path, "r")
 
-    if data.ndim != 3:
-        raise ValueError(f"Expected data[x,y,time], got {data.shape}")
+    if dataset_name is None:
+        dataset_name = list(f.keys())[0]
 
-    Nx0, Ny0, Nt = data.shape
+    dset = f[dataset_name]
+
+    if dset.ndim != 3:
+        raise ValueError(f"Expected data[x,y,time], got {dset.shape}")
+
+    Nx0, Ny0, Nt = dset.shape
 
     if frame_index < 0 or frame_index >= Nt:
         raise ValueError(f"frame_index must be in [0, {Nt-1}]")
@@ -790,74 +820,67 @@ def plot_field_frame_from_h5_physical(
     if yzeros is None:
         yzeros = xzeros
 
-    # --------------------------------------------------
-    # Crop PML
-    # --------------------------------------------------
+    # ---------------------------
+    # CROPPING
+    # ---------------------------
     xzeros = min(xzeros, Nx0 // 2)
     yzeros = min(yzeros, Ny0 // 2)
 
-    data = data[
-        xzeros : Nx0 - xzeros,
-        yzeros : Ny0 - yzeros,
-        :
-    ]
+    Nx_c = Nx0 - 2 * xzeros
+    Ny_c = Ny0 - 2 * yzeros
 
-    Nx, Ny, Nt = data.shape
-
-    # --------------------------------------------------
-    # Artifact masking
-    # --------------------------------------------------
-    if mask_left > 0:
-        data[:mask_left, :, :] = 1.0
-    if mask_right > 0:
-        data[-mask_right:, :, :] = 1.0
-    if mask_bottom > 0:
-        data[:, :mask_bottom, :] = 1.0
-    if mask_top > 0:
-        data[:, -mask_top:, :] = 1.0
-
-    # --------------------------------------------------
-    # Zoom (centered)
-    # --------------------------------------------------
-    cx, cy = Nx // 2, Ny // 2
-    hx = int(0.5 * x_zoom * Nx)
-    hy = int(0.5 * y_zoom * Ny)
+    # ---------------------------
+    # ZOOM
+    # ---------------------------
+    cx, cy = Nx_c // 2, Ny_c // 2
+    hx = int(0.5 * x_zoom * Nx_c)
+    hy = int(0.5 * y_zoom * Ny_c)
 
     x1, x2 = cx - hx, cx + hx
     y1, y2 = cy - hy, cy + hy
 
-    data = data[x1:x2, y1:y2, :]
-    Nx, Ny, Nt = data.shape
+    xs = slice(xzeros + x1, xzeros + x2)
+    ys = slice(yzeros + y1, yzeros + y2)
 
-    # --------------------------------------------------
-    # Physical axes
-    # --------------------------------------------------
+    # ---------------------------
+    # PHYSICAL AXES
+    # ---------------------------
     x_min0, x_max0 = x_phys_range
     y_min0, y_max0 = y_phys_range
 
-    x_full = np.linspace(x_min0, x_max0, Nx0 - 2 * xzeros)
-    y_full = np.linspace(y_min0, y_max0, Ny0 - 2 * yzeros)
+    x_full = np.linspace(x_min0, x_max0, Nx_c)
+    y_full = np.linspace(y_min0, y_max0, Ny_c)
 
     x_phys = x_full[x1:x2]
     y_phys = y_full[y1:y2]
 
-    extent = [
-        x_phys[0], x_phys[-1],
-        y_phys[0], y_phys[-1],
-    ]
+    extent = [x_phys[0], x_phys[-1], y_phys[0], y_phys[-1]]
 
-    # --------------------------------------------------
-    # Extract frame
-    # --------------------------------------------------
-    frame_raw = data[:, :, frame_index]   # ALWAYS (x, y)
+    # ---------------------------
+    # LOAD SINGLE FRAME
+    # ---------------------------
+    frame_raw = dset[xs, ys, frame_index].copy()
 
-    frame_plot = frame_raw
-    if transpose_xy:
-        frame_plot = frame_raw.T
+    # ---------------------------
+    # MASKING
+    # ---------------------------
+    if mask_left > 0:
+        frame_raw[:mask_left, :] = 1.0
+    if mask_right > 0:
+        frame_raw[-mask_right:, :] = 1.0
+    if mask_bottom > 0:
+        frame_raw[:, :mask_bottom] = 1.0
+    if mask_top > 0:
+        frame_raw[:, -mask_top:] = 1.0
 
-    # --------------------------------------------------
-    # ROI-based averaging (NO transpose here!)
-    # --------------------------------------------------
+    # ---------------------------
+    # PLOT ARRAY
+    # ---------------------------
+    frame_plot = frame_raw.T if transpose_xy else frame_raw
+
+    # ---------------------------
+    # ROI mean
+    # ---------------------------
     mean_val = np.nan
     roi_mask = None
 
@@ -871,10 +894,18 @@ def plot_field_frame_from_h5_physical(
                 height=roi["height"],
             )
             mean_val = np.mean(frame_raw[roi_mask])
-            
-    # --------------------------------------------------
-    # Plot
-    # --------------------------------------------------
+
+    # ---------------------------
+    # COLOR SCALE
+    # ---------------------------
+    if vmin is None:
+        vmin = np.min(frame_raw)
+    if vmax is None:
+        vmax = np.max(frame_raw)
+
+    # ---------------------------
+    # PLOT
+    # ---------------------------
     fig, ax = plt.subplots()
 
     img = ax.imshow(
@@ -895,16 +926,16 @@ def plot_field_frame_from_h5_physical(
 
     plt.colorbar(img, ax=ax)
 
-    # --------------------------------------------------
-    # Structure overlay
-    # --------------------------------------------------
+    # ---------------------------
+    # STRUCTURE
+    # ---------------------------
     if structure is not None:
         if structure["type"] == "splitbar":
             draw_splitbar_outline(ax, structure["bars"])
 
-    # --------------------------------------------------
-    # ROI overlay (debug / optional)
-    # --------------------------------------------------
+    # ---------------------------
+    # ROI overlay
+    # ---------------------------
     if roi is not None and draw_roi:
         cx, cy = roi["center"]
         w = roi["width"]
@@ -922,9 +953,9 @@ def plot_field_frame_from_h5_physical(
         )
         ax.add_patch(roi_rect)
 
-    # --------------------------------------------------
-    # Mean value annotation
-    # --------------------------------------------------
+    # ---------------------------
+    # TEXT
+    # ---------------------------
     if roi is not None:
         text = f"{mean_prefix}{mean_val:.3g}"
         ax.text(
@@ -938,24 +969,32 @@ def plot_field_frame_from_h5_physical(
             va="top",
             bbox=dict(facecolor="black", alpha=0.4, edgecolor="none"),
         )
-    
-    # --------------------------------------------------
-    # Save animation
-    # --------------------------------------------------
+
+    # ---------------------------
+    # SAVE
+    # ---------------------------
     if save_path is not None:
         os.makedirs(save_path, exist_ok=True)
         if save_name is None:
             base = os.path.splitext(os.path.basename(h5_filename))[0]
             save_name = f"{base}.png"
-        plt.savefig(os.path.join(save_path, save_name), dpi=300, bbox_inches="tight", format="png")
+        plt.savefig(
+            os.path.join(save_path, save_name),
+            dpi=300,
+            bbox_inches="tight",
+        )
 
-    # --------------------------------------------------
-    # Show / close
-    # --------------------------------------------------
+    # ---------------------------
+    # CLEANUP
+    # ---------------------------
     if not IMG_CLOSE:
         plt.show()
-    else:
-        plt.close(fig)
+
+    plt.close(fig)
+    f.close()
+
+    del frame_raw
+    gc.collect()
 
     return mean_val
 
@@ -1364,3 +1403,41 @@ def plot_signal_amplitude_vs_time_from_h5(
     )
 
     return time, mean_E2, mean_E2
+
+def compute_vmin_vmax_streaming(dset, xs, ys, Nt):
+    """
+    Compute exact vmin and vmax by iterating over frames (no full load).
+
+    Parameters
+    ----------
+    dset : h5py.Dataset
+        Dataset with shape (x, y, time)
+
+    xs, ys : slice
+        Spatial slices (after crop / zoom)
+
+    Nt : int
+        Number of time frames
+
+    Returns
+    -------
+    vmin, vmax : float
+    """
+
+    import numpy as np
+
+    vmin = np.inf
+    vmax = -np.inf
+
+    for t in range(Nt):
+        frame = dset[xs, ys, t]
+
+        fmin = frame.min()
+        fmax = frame.max()
+
+        if fmin < vmin:
+            vmin = fmin
+        if fmax > vmax:
+            vmax = fmax
+
+    return vmin, vmax
