@@ -949,17 +949,17 @@ def split_bar_AuTiX_SINGLE_PRECISION():
             symmetries=config.symmetries,
             dimensions=3
             )
-        # # =====================================================
-        # print_task(1, "2D projections.")
-        # for plane in ["XY", "XZ", "YZ"]:
-        #     Name2D = f"antenna_{plane}.png"
-        #     save_2D_plot(
-        #         sim,
-        #         antenna_vols.vis_volume[plane],
-        #         save_name=Name2D,
-        #         path_to_save=config.path_to_save,
-        #         IMG_CLOSE=config.IMG_CLOSE
-        #     )
+        # =====================================================
+        print_task(1, "2D projections.")
+        for plane in ["XY", "XZ", "YZ"]:
+            Name2D = f"antenna_{plane}.png"
+            save_2D_plot(
+                sim,
+                antenna_vols.vis_volume[plane],
+                save_name=Name2D,
+                path_to_save=config.path_to_save,
+                IMG_CLOSE=config.IMG_CLOSE
+            )
         # =====================================================
         print_task(3, "3D calculations.")
         compute_fields(sim, sim_empty, antenna_vols, config)
@@ -1190,7 +1190,7 @@ def split_bar_AuTiX_SP_new_substr_geometry_XYZ():
     X_materials = [Au, Al] #SiO2, mp.air, Au,
     X_material_names = ["Au", "Al"] #"SiO2","Air", "Au",
     for X_material, X_material_name in zip(X_materials, X_material_names):
-        SIM_NAME = f"split_bar_antenna_AuTi{X_material_name}_res{config.resolution}_SP_new_substr_geometry_XYZ"
+        SIM_NAME = f"split_bar_antenna_AuTi{X_material_name}_res{config.resolution}_new_substr_geometry_XYZ_smallsource_integrated"
         config.path_to_save, config.animations_folder_path = create_directory(SIM_NAME)
         # =====================================================
         config.pad = 100/xm
@@ -1221,9 +1221,9 @@ def split_bar_AuTiX_SP_new_substr_geometry_XYZ():
         substrate = Bar(
             length=X_CELL,
             width=Y_CELL,
-            thickness=Z_CELL/2.0,
+            thickness=Z_CELL/2.0-(30/2+5)/xm,
             material=X_material,
-            z_offset=-(30/2.0+5+Z_CELL/4.0*1000)/xm,
+            z_offset=-(30/2.0+5+Z_CELL/4.0*1000-(30/2+5)/2)/xm,
             radius=12/xm,
         )
 
@@ -1232,8 +1232,8 @@ def split_bar_AuTiX_SP_new_substr_geometry_XYZ():
         cell = make_cell(config=config)
 
         config.src_size = [
-            X_CELL - 2*config.pml,  # x
-            Y_CELL - 2*config.pml,  # y
+            X_CELL - 2*config.pml - config.pad,  # x
+            Y_CELL - 2*config.pml - config.pad,  # y
             0.0 / xm    # z
         ]
         config.src_center = [
@@ -1271,23 +1271,23 @@ def split_bar_AuTiX_SP_new_substr_geometry_XYZ():
             symmetries=config.symmetries,
             dimensions=3
             )
-        # =====================================================
-        print_task(1, "2D projections.")
-        for plane in ["XY", "XZ", "YZ"]:
-            Name2D = f"antenna_{plane}.png"
-            save_2D_plot(
-                sim,
-                antenna_vols.vis_volume[plane],
-                save_name=Name2D,
-                path_to_save=config.path_to_save,
-                IMG_CLOSE=config.IMG_CLOSE
-            )
-        # =====================================================
-        print_task(3, "3D calculations.")
-        compute_fields(sim, sim_empty, antenna_vols, config)
-        # =====================================================
-        print_task(4, "Postprocesing - raw animations.")
-        animate_raw_fields(config=config, mode="BOTH")
+        # # =====================================================
+        # print_task(1, "2D projections.")
+        # for plane in ["XY", "XZ", "YZ"]:
+        #     Name2D = f"antenna_{plane}.png"
+        #     save_2D_plot(
+        #         sim,
+        #         antenna_vols.vis_volume[plane],
+        #         save_name=Name2D,
+        #         path_to_save=config.path_to_save,
+        #         IMG_CLOSE=config.IMG_CLOSE
+        #     )
+        # # =====================================================
+        # print_task(3, "3D calculations.")
+        # compute_fields(sim, sim_empty, antenna_vols, config)
+        # # =====================================================
+        # print_task(4, "Postprocesing - raw animations.")
+        # animate_raw_fields(config=config, mode="BOTH")
         # =====================================================
         draw_params = {
             "XY": {"x_zoom": 0.10,

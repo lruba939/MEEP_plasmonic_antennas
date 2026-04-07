@@ -11,8 +11,9 @@ def run():
     # wave_shape_theo()
     # experiment_bow_tie_test()
     # split_bar_AuTiX()
+    split_bar_AuTiX_SINGLE_PRECISION()
     # split_bar_AuTiX_SP_new_substr_geometry_XY()
-    split_bar_AuTiX_SP_new_substr_geometry_XYZ()
+    # split_bar_AuTiX_SP_new_substr_geometry_XYZ()
     
 if __name__ == "__main__":
     run()

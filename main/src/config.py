@@ -44,7 +44,7 @@ class SimulationConfig:
         # =====================================================
 
         self.src_type = "gaussian"  # "continuous" or "gaussian"
-        self.src_is_integrated = False # if source overlaps with PML regions use True
+        self.src_is_integrated = True # if source overlaps with PML regions use True
         self.lambda0 = 8100 / xm
         self.frequency_width = 1
         self.src_width = 1000 / xm # ???

@@ -250,95 +250,107 @@ def enhancement_divided_by_maxes_arr(
     B_max : np.ndarray
         Array of shape (x, y) containing max_t(B[x,y,t]).
     """
-    # --------------------------------------------------
-    # Helper: load one or many fields and sum squares
-    # --------------------------------------------------
-    def _load_and_sum_fields(h5_input, dataset_name, z_index, base_path):
-
+    
+    # ---------------------------
+    # Helpers
+    # ---------------------------
+    def _open_all(h5_input, dataset_name):
         if isinstance(h5_input, (list, tuple)):
-            fields = [
-                _load_and_sum_fields(h5, dataset_name, z_index, base_path)
-                for h5 in h5_input
-            ]
-            return np.sum(fields, axis=0)
+            files = []
+            dsets = []
+            for h5f in h5_input:
+                f = h5py.File(os.path.join(path, h5f) if path else h5f, "r")
+                name = dataset_name or list(f.keys())[0]
+                d = f[name]
+                files.append(f)
+                dsets.append(d)
+            return files, dsets
+        else:
+            f = h5py.File(os.path.join(path, h5_input) if path else h5_input, "r")
+            name = dataset_name or list(f.keys())[0]
+            return [f], [f[name]]
 
-        # --- Resolve file path ---
-        h5_path = os.path.join(base_path, h5_input) if base_path else h5_input
+    def _get_frame_sum_sq(dsets, t):
+        acc = None
+        for d in dsets:
+            if d.ndim == 4:
+                if z_index is None:
+                    raise ValueError("Z axis detected but z_index not provided")
+                frame = d[:, :, z_index, t]
+            else:
+                frame = d[:, :, t]
 
-        # --- Load single dataset ---
-        with h5py.File(h5_path, "r") as f:
-            if dataset_name is None:
-                dataset_name = list(f.keys())[0]
-            data = np.array(f[dataset_name])
+            if acc is None:
+                acc = frame**2
+            else:
+                acc += frame**2
+        return acc
 
-        # --- Optional Z slicing ---
-        if data.ndim == 4:
-            if z_index is None:
-                raise ValueError("Z axis detected but z_index not provided")
-            data = data[:, :, z_index, :]
+    # ---------------------------
+    # Open files
+    # ---------------------------
+    fA, dA = _open_all(h5_target, dataset_target)
+    fB, dB = _open_all(h5_reference, dataset_reference)
 
-        if data.ndim != 3:
-            raise ValueError(f"Expected data[x,y,time], got shape {data.shape}")
+    # ---------------------------
+    # Shape
+    # ---------------------------
+    sample = dA[0]
+    if sample.ndim == 4:
+        Nx, Ny, Nz, Nt = sample.shape
+    else:
+        Nx, Ny, Nt = sample.shape
 
-        return data**2
-
-    # --------------------------------------------------
-    # Input validation
-    # --------------------------------------------------
-    if isinstance(h5_target, (list, tuple)) != isinstance(h5_reference, (list, tuple)):
-        raise ValueError("h5_target and h5_reference must have the same structure")
-
-    if isinstance(h5_target, (list, tuple)):
-        if len(h5_target) != len(h5_reference):
-            raise ValueError("h5_target and h5_reference lists must have equal length")
-
-    # --------------------------------------------------
-    # Load and combine fields
-    # --------------------------------------------------
-    A = _load_and_sum_fields(h5_target, dataset_target, z_index, path)
-    B = _load_and_sum_fields(h5_reference, dataset_reference, z_index, path)
-
-    if A.shape != B.shape:
-        raise ValueError(f"Shape mismatch: {A.shape} vs {B.shape}")
-
-    Nx, Ny, Nt = A.shape
-
-    # --------------------------------------------------
-    # Default yzeros
-    # --------------------------------------------------
     if yzeros is None:
         yzeros = xzeros
 
     xzeros = max(0, min(xzeros, Nx // 2))
     yzeros = max(0, min(yzeros, Ny // 2))
 
-    # --------------------------------------------------
-    # Boundary cleanup (PML)
-    # --------------------------------------------------
-    if xzeros > 0 or yzeros > 0:
-        B[:xzeros, :, :] = 1.0
-        B[-xzeros:, :, :] = 1.0
-        B[:, :yzeros, :] = 1.0
-        B[:, -yzeros:, :] = 1.0
+    # ---------------------------
+    # PASS 1: compute B_max
+    # ---------------------------
+    B_max = np.zeros((Nx, Ny), dtype=float)
 
-    # --------------------------------------------------
-    # Time maximum of reference
-    # --------------------------------------------------
-    B_max = np.max(B, axis=2)  # (x, y)
+    for t in range(Nt):
+        B_frame = _get_frame_sum_sq(dB, t)
 
-    # --------------------------------------------------
-    # Enhancement
-    # --------------------------------------------------
-    enhancement = A / (B_max[:, :, None] + eps)
+        # PML cleanup (on-the-fly)
+        if xzeros > 0 or yzeros > 0:
+            B_frame[:xzeros, :] = 1.0
+            B_frame[-xzeros:, :] = 1.0
+            B_frame[:, :yzeros] = 1.0
+            B_frame[:, -yzeros:] = 1.0
 
-    # --------------------------------------------------
-    # Optional save (to the SAME path)
-    # --------------------------------------------------
+        np.maximum(B_max, B_frame, out=B_max)
+
+    # ---------------------------
+    # PASS 2: compute enhancement
+    # ---------------------------
+    enhancement = np.empty((Nx, Ny, Nt), dtype=float)
+
+    denom = B_max + eps
+
+    for t in range(Nt):
+        A_frame = _get_frame_sum_sq(dA, t)
+        enhancement[:, :, t] = A_frame / denom
+
+    # ---------------------------
+    # Save
+    # ---------------------------
     if save_to is not None:
         save_path = os.path.join(path, save_to) if path else save_to
         with h5py.File(save_path, "w") as f:
             f.create_dataset(out_dataset_name, data=enhancement)
             f.create_dataset("reference_max", data=B_max)
+
+    # ---------------------------
+    # Cleanup
+    # ---------------------------
+    for f in fA + fB:
+        f.close()
+    gc.collect()
+    
     return enhancement, B_max
 
 def analyze_roi_from_h5_physical(
@@ -381,66 +393,63 @@ def analyze_roi_from_h5_physical(
     frame_max : ndarray (2,)
         [frame_index_of_max, max_mean_value]
     """
-    # --------------------------------------------------
-    # Sanity checks
-    # --------------------------------------------------
+    # ---------------------------
+    # Sanity
+    # ---------------------------
     if x_phys_range is None or y_phys_range is None:
-        raise ValueError("You must provide x_phys_range and y_phys_range")
+        raise ValueError("Provide x_phys_range and y_phys_range")
 
     if roi["type"] != "rectangle":
-        raise NotImplementedError("Only rectangular ROI is supported")
+        raise NotImplementedError("Only rectangular ROI supported")
 
-    # --------------------------------------------------
-    # Resolve HDF5 path
-    # --------------------------------------------------
     h5_path = (
         os.path.join(load_h5data_path, h5_filename)
         if load_h5data_path is not None
         else h5_filename
     )
 
-    # --------------------------------------------------
-    # Load data
-    # --------------------------------------------------
-    with h5py.File(h5_path, "r") as f:
-        if dataset_name is None:
-            dataset_name = list(f.keys())[0]
-        data = np.array(f[dataset_name])
+    # ---------------------------
+    # OPEN FILE (lazy!)
+    # ---------------------------
+    f = h5py.File(h5_path, "r")
 
-    if data.ndim != 3:
-        raise ValueError(f"Expected data[x,y,time], got {data.shape}")
+    if dataset_name is None:
+        dataset_name = list(f.keys())[0]
 
-    Nx0, Ny0, Nt = data.shape
+    dset = f[dataset_name]
+
+    if dset.ndim != 3:
+        raise ValueError(f"Expected data[x,y,time], got {dset.shape}")
+
+    Nx0, Ny0, Nt = dset.shape
 
     if yzeros is None:
         yzeros = xzeros
 
-    # --------------------------------------------------
-    # Crop PML
-    # --------------------------------------------------
+    # ---------------------------
+    # CROPPING
+    # ---------------------------
     xzeros = min(xzeros, Nx0 // 2)
     yzeros = min(yzeros, Ny0 // 2)
 
-    data = data[
-        xzeros : Nx0 - xzeros,
-        yzeros : Ny0 - yzeros,
-        :
-    ]
+    xs = slice(xzeros, Nx0 - xzeros)
+    ys = slice(yzeros, Ny0 - yzeros)
 
-    Nx, Ny, Nt = data.shape
+    Nx = Nx0 - 2 * xzeros
+    Ny = Ny0 - 2 * yzeros
 
-    # --------------------------------------------------
-    # Physical axes (FULL domain)
-    # --------------------------------------------------
+    # ---------------------------
+    # PHYSICAL AXES
+    # ---------------------------
     x_min0, x_max0 = x_phys_range
     y_min0, y_max0 = y_phys_range
 
     x_phys = np.linspace(x_min0, x_max0, Nx)
     y_phys = np.linspace(y_min0, y_max0, Ny)
 
-    # --------------------------------------------------
-    # ROI mask (ONCE)
-    # --------------------------------------------------
+    # ---------------------------
+    # ROI mask
+    # ---------------------------
     roi_mask = roi_mask_from_rectangle(
         x_phys,
         y_phys,
@@ -451,27 +460,38 @@ def analyze_roi_from_h5_physical(
 
     if roi_mask.shape != (Nx, Ny):
         raise ValueError(
-            f"ROI mask shape {roi_mask.shape} does not match data shape {(Nx, Ny)}"
+            f"ROI mask shape {roi_mask.shape} != {(Nx, Ny)}"
         )
 
-    # --------------------------------------------------
-    # Mean value per frame
-    # --------------------------------------------------
-    mean_vals = np.zeros(Nt)
+    # ---------------------------
+    # PRECOMPUTE indices
+    # ---------------------------
+    roi_idx = np.where(roi_mask)
+
+    # ---------------------------
+    # LOOP over time (STREAMING)
+    # ---------------------------
+    mean_vals = np.empty(Nt, dtype=float)
 
     for t in range(Nt):
-        frame_raw = data[:, :, t]   # NEVER transpose
-        mean_vals[t] = np.mean(frame_raw[roi_mask])
+        frame = dset[xs, ys, t]
+        mean_vals[t] = frame[roi_idx].mean()
 
-    # --------------------------------------------------
-    # Outputs
-    # --------------------------------------------------
+    # ---------------------------
+    # RESULTS
+    # ---------------------------
     frames = np.arange(Nt)
     frame_mean = np.column_stack((frames, mean_vals))
 
     t_max = int(np.argmax(mean_vals))
-    max_val = mean_vals[t_max]
-    frame_max = np.array([t_max, max_val])
+    frame_max = np.array([t_max, mean_vals[t_max]])
+
+    # ---------------------------
+    # CLEANUP
+    # ---------------------------
+    f.close()
+    gc.collect()
+
     return frame_mean, frame_max
 
 def compute_fields(
@@ -691,7 +711,6 @@ def compute_fields(
 
 def animate_enhancement_fields(config, draw_params, field='E', animate=True):
     """
-    Task 9:
     - Animate field enhancement for XY / XZ / YZ planes
     - Plot max-frame field maps with structure + ROI
     - Collect mean |E|^2 enchancement in gap vs time for each plane
@@ -810,8 +829,8 @@ def animate_enhancement_fields(config, draw_params, field='E', animate=True):
                     y_zoom=cfg["y_zoom"],
                     mask_left=0,
                     mask_right=0,
-                    mask_bottom=5,
-                    mask_top=5,
+                    mask_bottom=0,
+                    mask_top=0,
                     title=f"Field enhancement |E|²/|E0|² ({plane})",
                     xlabel=cfg["xlabel"],
                     ylabel=cfg["ylabel"],
@@ -842,8 +861,8 @@ def animate_enhancement_fields(config, draw_params, field='E', animate=True):
                 y_zoom=cfg["y_zoom"],
                 mask_left=0,
                 mask_right=0,
-                mask_bottom=5,
-                mask_top=5,
+                mask_bottom=0,
+                mask_top=0,
                 roi=cfg["roi"],
                 title=f"Field enhancement |E|²/|E0|² ({plane})",
                 xlabel=cfg["xlabel"],
