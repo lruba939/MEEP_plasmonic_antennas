@@ -504,6 +504,8 @@ def compute_fields(
     calc_H=False,
     calc_DPWR=False,
     fluxes=True,
+    scattering=True,
+    scattering_antenna=None,
 ):
     """
     Run field simulations and compute enhancement maps.
@@ -587,6 +589,54 @@ def compute_fields(
         refl = sim_antenna.add_flux(fcen, df, nfreq, refl_fr)
         tran = sim_antenna.add_flux(fcen, df, nfreq, tran_fr)
     
+    if scattering:
+        fcen = config.frequency
+        df = config.frequency_width
+        nfreq = config.nfreq
+        # scattering box
+        Lx, Ly, Lz = make_scattering_box(
+            antenna=scattering_antenna,
+            config=config, padding_perc=10,
+            extra_padding_nm=(0, 0, 10))
+
+        cx, cy = scattering_antenna.center
+        cz = scattering_antenna.z_offset
+
+        scatt_regions = [
+            # --- X planes ---
+            mp.FluxRegion(
+                center=mp.Vector3(cx - Lx/2, cy, cz),
+                size=mp.Vector3(0, Ly, Lz)
+            ),
+            mp.FluxRegion(
+                center=mp.Vector3(cx + Lx/2, cy, cz),
+                size=mp.Vector3(0, Ly, Lz)
+            ),
+
+            # --- Y planes ---
+            mp.FluxRegion(
+                center=mp.Vector3(cx, cy - Ly/2, cz),
+                size=mp.Vector3(Lx, 0, Lz)
+            ),
+            mp.FluxRegion(
+                center=mp.Vector3(cx, cy + Ly/2, cz),
+                size=mp.Vector3(Lx, 0, Lz)
+            ),
+
+            # --- Z planes ---
+            mp.FluxRegion(
+                center=mp.Vector3(cx, cy, cz - Lz/2),
+                size=mp.Vector3(Lx, Ly, 0)
+            ),
+            mp.FluxRegion(
+                center=mp.Vector3(cx, cy, cz + Lz/2),
+                size=mp.Vector3(Lx, Ly, 0)
+            ),
+        ]
+
+        scatt_empty = [sim_empty.add_flux(fcen, df, nfreq, r) for r in scatt_regions]
+        scatt = [sim_antenna.add_flux(fcen, df, nfreq, r) for r in scatt_regions]
+
     # ============================================================
     # EMPTY STRUCTURE
     # ============================================================
@@ -613,6 +663,12 @@ def compute_fields(
             incident_flux = mp.get_fluxes(tran_empty)
             refl_data = sim_empty.get_flux_data(refl_empty)
             sim_antenna.load_minus_flux_data(refl, refl_data)
+        if scattering:
+            scatt_data = [sim_empty.get_flux_data(f) for f in scatt_empty]
+            for f, d in zip(scatt, scatt_data):
+                sim_antenna.load_minus_flux_data(f, d)
+            incident_flux_top = np.asarray(mp.get_fluxes(scatt_empty[5]))
+            intensity = incident_flux_top / (Lx * Ly)
 
         sim_empty.reset_meep()
 
@@ -640,6 +696,18 @@ def compute_fields(
             refl_flux = mp.get_fluxes(refl)
             tran_flux = mp.get_fluxes(tran)
             flux_freqs = mp.get_flux_freqs(tran)
+        if scattering:
+            scatt_flux_faces = [np.asarray(mp.get_fluxes(f)) for f in scatt]
+
+            x1, x2, y1, y2, z1, z2 = scatt_flux_faces
+
+            scatt_flux_total = (
+                x1 - x2 +
+                y1 - y2 +
+                z1 - z2
+            )
+            scatt_cross_section = scatt_flux_total / intensity # <- from empty
+            flux_freqs_scatt = mp.get_flux_freqs(scatt_empty[5])  # z2
 
         sim_antenna.reset_meep()
 
@@ -647,7 +715,20 @@ def compute_fields(
     # TRAN AND REFL CALCULATION
     # ============================================================
     if fluxes and mode == "BOTH":
-        compute_T_R_A(incident_flux, tran_flux, refl_flux, flux_freqs, config.path_to_save)
+        compute_T_R_A(
+            incident_flux,
+            tran_flux, refl_flux,
+            flux_freqs,
+            config.path_to_save)
+        
+    if scattering and mode == "BOTH":
+        compute_scattering(
+            scatt_cross_section,
+            intensity,
+            flux_freqs,
+            scatt_flux_faces,
+            save_path=config.path_to_save,
+        )
 
     # ============================================================
     # ENHANCEMENT CALCULATION
@@ -984,3 +1065,200 @@ def compute_T_R_A(
             save_name="spectra_T_R_A.png",
         )
     return 0
+
+def make_scattering_box(
+    antenna,
+    config,
+    padding_perc=1,
+    extra_padding_nm=(0, 0, 0),  # (dx, dy, dz) in nm
+):
+    Lx, Ly, Lz = antenna.bounding_box()
+
+    # -----------------------------------------
+    # minimal padding from grid
+    # -----------------------------------------
+    lower_limit = (1 / config.resolution) * 2
+    check = padding_perc / 100 * min(Lx, Ly, Lz)
+
+    if check < lower_limit:
+        print(f"Warning: padding_perc {padding_perc:.2f}% too small\n")
+        padding_perc = lower_limit / min(Lx, Ly, Lz) * 100
+        print(f"Increased to {padding_perc:.2f}% for sufficient grid padding.\n")
+
+    Lx = Lx * (1 + padding_perc / 100)
+    Ly = Ly * (1 + padding_perc / 100)
+    Lz = Lz * (1 + padding_perc / 100)
+
+    # -----------------------------------------
+    # anizotropy correction
+    # -----------------------------------------
+    dx, dy, dz = extra_padding_nm
+
+    xm = 1000  # nm to μm
+
+    Lx += dx / xm
+    Ly += dy / xm
+    Lz += dz / xm
+
+    Lx = np.ceil(Lx * xm) / xm
+    Ly = np.ceil(Ly * xm) / xm
+    Lz = np.ceil(Lz * xm) / xm
+
+    print(
+        f"Scattering box dimensions:\n"
+        f"  Lx = {Lx*1000:.2f} nm\n"
+        f"  Ly = {Ly*1000:.2f} nm\n"
+        f"  Lz = {Lz*1000:.2f} nm\n"
+        f"(padding={padding_perc:.2f}%, extra={extra_padding_nm} nm)"
+    )
+
+    return Lx, Ly, Lz
+
+def compute_scattering(
+    scatt_cross_section,
+    intensity,
+    flux_freqs,
+    scatt_flux_faces,
+    save_path=None,
+    save_name="spectra_scattering.txt",
+    save_faces_name="scattering_faces.txt",
+):
+    """
+    Compute and save scattering results from Meep flux monitors.
+
+    Parameters
+    ----------
+    scatt_cross_section : array-like
+        Scattering cross-section (sigma_scatt).
+
+    intensity : array-like
+        Incident intensity (W/area), frequency dependent.
+
+    flux_freqs : array-like
+        Frequencies from mp.get_flux_freqs().
+
+    scatt_flux_faces : list of arrays
+        Flux through each face [x1, x2, y1, y2, z1, z2].
+
+    save_path : str or None
+        Directory where results will be saved.
+
+    save_name : str
+        Name of scattering spectrum file.
+
+    save_faces_name : str
+        Name of face flux output file.
+
+    Returns
+    -------
+    wavelength, scatt_cross_section : numpy arrays
+    """
+
+    if mp.am_master():
+
+        # -----------------------------------------
+        # Convert to numpy
+        # -----------------------------------------
+        scatt_cross_section = np.array(scatt_cross_section)
+        intensity = np.array(intensity)
+        flux_freqs = np.array(flux_freqs)
+
+        scatt_flux_faces = [np.array(f) for f in scatt_flux_faces]
+        x1, x2, y1, y2, z1, z2 = scatt_flux_faces
+
+        # -----------------------------------------
+        # wavelength
+        # -----------------------------------------
+        wavelength = 1.0 / flux_freqs
+
+        # -----------------------------------------
+        # Save directory
+        # -----------------------------------------
+        if save_path is not None:
+            os.makedirs(save_path, exist_ok=True)
+
+        # -----------------------------------------
+        # FILE 1: scattering spectrum
+        # -----------------------------------------
+        if save_path is not None:
+
+            data_main = np.column_stack(
+                (wavelength, scatt_cross_section, intensity)
+            )
+
+            header_main = (
+                "# lambda(um)  sigma_scatt  intensity(W/um^2)\n"
+                "# sigma_scatt normalized by local incident intensity"
+            )
+
+            np.savetxt(
+                os.path.join(save_path, save_name),
+                data_main,
+                header=header_main
+            )
+
+        # -----------------------------------------
+        # FILE 2: flux per face (debug / analysis)
+        # -----------------------------------------
+        if save_path is not None:
+
+            data_faces = np.column_stack(
+                (flux_freqs, x1, x2, y1, y2, z1, z2)
+            )
+
+            header_faces = "# freq  x1  x2  y1  y2  z1  z2"
+
+            np.savetxt(
+                os.path.join(save_path, save_faces_name),
+                data_faces,
+                header=header_faces
+            )
+
+        # -----------------------------------------
+        # FILE 3: up vs down scattering
+        # -----------------------------------------
+        if save_path is not None:
+
+            data_z = np.column_stack(
+                (flux_freqs, z1, z2)
+            )
+
+            header_z = "# freq  z_down(z1)  z_up(z2)"
+
+            np.savetxt(
+                os.path.join(save_path, "scattering_z_split.txt"),
+                data_z,
+                header=header_z
+            )
+
+        # -----------------------------------------
+        # Plot scattering spectrum
+        # -----------------------------------------
+        line_plotter(
+            wavelength,
+            scatt_cross_section,
+            xlabel="Wavelength [μm]",
+            ylabel="Scattering cross-section",
+            title="Scattering Spectrum",
+            save_path=save_path,
+            save_name="spectra_scattering.png",
+        )
+
+        # -----------------------------------------
+        # Plot scattering spectrum for each face
+        # -----------------------------------------
+        multi_line_plotter_same_axes(
+            xdata_list=[wavelength, wavelength, wavelength, wavelength, wavelength, wavelength],
+            ydata_list=[x1, x2, y1, y2, z1, z2],
+            labels=["x1", "x2", "y1", "y2", "z1", "z2"],
+            colors=["#149dff", "#14517c", "#ff7700", "#914300", "#5ec75e", "#205220"],
+            linestyles=["-", "-.", "-", "-.", "-", "-."],
+            xlabel="Wavelength [μm]",
+            ylabel="Scattering",
+            title="Scattering Spectrum",
+            legend=True,
+            save_path=save_path,
+            save_name="spectra_scattering_each_face.png",
+        )
+
+    return wavelength, scatt_cross_section

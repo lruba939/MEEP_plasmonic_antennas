@@ -77,8 +77,8 @@ def cm2c(cmap, c_numb, step=6):
     return colors_arr
     
 def line_plotter(xdata, ydata, ax=None, xlabel=r"x [-]", ylabel=r"y [-]", color="black",
-                    linestyle="-", xlim=None, ylim=None, equal_aspect=False, title=None, label=None, show=False,
-                    save_path=None, save_name=None):
+                linestyle="-", xlim=None, ylim=None, equal_aspect=False, title=None, label=None, show=False,
+                save_path=None, save_name=None):
     """
     Plot a line graph with customizable axes, limits, and styling.
     Parameters
