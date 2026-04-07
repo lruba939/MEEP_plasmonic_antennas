@@ -226,3 +226,6 @@ results/
 animations/
 3Dplot/
 h5container/
+
+# Other
+*.sh

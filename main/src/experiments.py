@@ -949,17 +949,17 @@ def split_bar_AuTiX_SINGLE_PRECISION():
             symmetries=config.symmetries,
             dimensions=3
             )
-        # # =====================================================
-        # print_task(1, "2D projections.")
-        # for plane in ["XY", "XZ", "YZ"]:
-        #     Name2D = f"antenna_{plane}.png"
-        #     save_2D_plot(
-        #         sim,
-        #         antenna_vols.vis_volume[plane],
-        #         save_name=Name2D,
-        #         path_to_save=config.path_to_save,
-        #         IMG_CLOSE=config.IMG_CLOSE
-        #     )
+        # =====================================================
+        print_task(1, "2D projections.")
+        for plane in ["XY", "XZ", "YZ"]:
+            Name2D = f"antenna_{plane}.png"
+            save_2D_plot(
+                sim,
+                antenna_vols.vis_volume[plane],
+                save_name=Name2D,
+                path_to_save=config.path_to_save,
+                IMG_CLOSE=config.IMG_CLOSE
+            )
         # =====================================================
         print_task(3, "3D calculations.")
         compute_fields(sim, sim_empty, antenna_vols, config)
