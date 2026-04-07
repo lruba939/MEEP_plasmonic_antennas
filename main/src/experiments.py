@@ -22,9 +22,7 @@ def experiment_bow_tie_test():
 
     gap=20
     # =====================================================
-    SIM_NAME = f"bowtie-1000-new-parallel"
-    # config.path_to_save="results/bowtie-1000-new-parallel"
-    # config.animations_folder_path = "results/bowtie-1000-new-parallel/animations"
+    SIM_NAME = f"CONFIG_TEST_MP"
     config.path_to_save, config.animations_folder_path = create_directory(SIM_NAME)
     # =====================================================
     # antenna = BowTieEquilateral(
@@ -85,40 +83,40 @@ def experiment_bow_tie_test():
     # draw_dielectric_constant(sim, config, antenna_vols, sampling_wavelength=200)
     # draw_dielectric_constant(sim, config, antenna_vols)
     # =====================================================
-    print_task(3, "3D calculations.")
-    compute_fields(sim, sim_empty, antenna_vols, config)
-    # =====================================================
-    print_task(4, "Postprocesing - raw animations.")
-    animate_raw_fields(config=config, mode="BOTH")
-    # =====================================================
-    draw_params = {
-        "XY": {"x_zoom": 1.0,
-                "y_zoom": 1.0,
-                "roi": {
-                    "center": (0, 0),
-                    "width": antenna.gap*1.05 * 1e3,
-                    "height": antenna.radius*2.5 * 1e3,
-                },
-        },
-        "XZ": {"x_zoom": 1.0,
-                "y_zoom": 1.0,
-                "roi": {
-                    "center": (0, 0),
-                    "width": antenna.gap*1.05 * 1e3,
-                    "height": antenna.thickness * 1e3,
-                },
-        },
-        "YZ": {"x_zoom": 1.0,
-                "y_zoom": 1.0,
-                "roi": {
-                    "center": (0, 0),
-                    "width": antenna.radius*2.5 * 1e3,
-                    "height": antenna.thickness * 1e3,
-                },
-        },
-    }
-    print_task(5, "Postprocesing - animations and plots.")
-    animate_enhancement_fields(config=config, draw_params=draw_params)
+    # print_task(3, "3D calculations.")
+    # compute_fields(sim, sim_empty, antenna_vols, config)
+    # # =====================================================
+    # print_task(4, "Postprocesing - raw animations.")
+    # animate_raw_fields(config=config, mode="BOTH")
+    # # =====================================================
+    # draw_params = {
+    #     "XY": {"x_zoom": 1.0,
+    #             "y_zoom": 1.0,
+    #             "roi": {
+    #                 "center": (0, 0),
+    #                 "width": antenna.gap*1.05 * 1e3,
+    #                 "height": antenna.radius*2.5 * 1e3,
+    #             },
+    #     },
+    #     "XZ": {"x_zoom": 1.0,
+    #             "y_zoom": 1.0,
+    #             "roi": {
+    #                 "center": (0, 0),
+    #                 "width": antenna.gap*1.05 * 1e3,
+    #                 "height": antenna.thickness * 1e3,
+    #             },
+    #     },
+    #     "YZ": {"x_zoom": 1.0,
+    #             "y_zoom": 1.0,
+    #             "roi": {
+    #                 "center": (0, 0),
+    #                 "width": antenna.radius*2.5 * 1e3,
+    #                 "height": antenna.thickness * 1e3,
+    #             },
+    #     },
+    # }
+    # print_task(5, "Postprocesing - animations and plots.")
+    # animate_enhancement_fields(config=config, draw_params=draw_params)
     # =====================================================
     append_time_to_file(config, prefix="Finish: ")
     return 0
@@ -508,8 +506,6 @@ def wave_shape():
     # =====================================================
     config = SimulationConfig()
 
-    mp.is_single_precision() # !!!!!!!
-
     config.sim_time = 5000 / xm
     config.sim_time_step = 20 / xm
     config.resolution = 350
@@ -853,8 +849,6 @@ def split_bar_AuTiX():
 
 def split_bar_AuTiX_SINGLE_PRECISION():
     # =====================================================
-    mp.is_single_precision() # !!!!!!
-    # =====================================================
     config = SimulationConfig()
 
     config.resolution = 400
@@ -1014,8 +1008,6 @@ def split_bar_AuTiX_SINGLE_PRECISION():
 
 def split_bar_AuTiX_SP_new_substr_geometry_XY():
     # =====================================================
-    mp.is_single_precision() # !!!!!!
-    # =====================================================
     config = SimulationConfig()
 
     config.resolution = 400
@@ -1174,8 +1166,6 @@ def split_bar_AuTiX_SP_new_substr_geometry_XY():
     return 0
 
 def split_bar_AuTiX_SP_new_substr_geometry_XYZ():
-    # =====================================================
-    mp.is_single_precision() # !!!!!!
     # =====================================================
     config = SimulationConfig()
 

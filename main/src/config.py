@@ -1,5 +1,7 @@
 import meep as mp
 import os
+import sys
+import platform
 
 mp.Simulation.eps_averaging = False
 
@@ -12,7 +14,17 @@ class SimulationConfig:
     """
 
     def __init__(self):
-
+        # =====================================================
+        # SOFTWARE
+        # =====================================================
+        self.python_version = sys.version
+        self.meep_version = mp.__version__
+        self.is_single_precision = mp.is_single_precision()
+        self.count_processors = mp.count_processors()
+        self.omp_threads = os.environ.get("OMP_NUM_THREADS", "not set")
+        self.platform = platform.platform()
+        self.processor = platform.processor()
+        
         # =====================================================
         # SYMULATION
         # =====================================================
