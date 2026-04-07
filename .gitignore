@@ -224,8 +224,7 @@ __marimo__/
 # Folders
 results/
 animations/
-3Dplot/
-h5container/
+priv/
 
 # Other
 *.sh
