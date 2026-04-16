@@ -597,7 +597,7 @@ def compute_fields(
         Lx, Ly, Lz = make_scattering_box(
             antenna=scattering_antenna,
             config=config, padding_perc=10,
-            extra_padding_nm=(0, 0, 10))
+            extra_padding_nm=(0, 0, 0))
 
         cx, cy = scattering_antenna.center
         cz = scattering_antenna.z_offset
@@ -665,11 +665,14 @@ def compute_fields(
             sim_antenna.load_minus_flux_data(refl, refl_data)
         if scattering:
             scatt_data = [sim_empty.get_flux_data(f) for f in scatt_empty]
+            scatt_flux_faces_empty = [np.asarray(mp.get_fluxes(f)) for f in scatt_empty]
             for f, d in zip(scatt, scatt_data):
                 sim_antenna.load_minus_flux_data(f, d)
             incident_flux_top = np.asarray(mp.get_fluxes(scatt_empty[5]))
             intensity = incident_flux_top / (Lx * Ly)
 
+        if mp.am_master():
+            print("Done.")
         sim_empty.reset_meep()
 
     # ============================================================
@@ -709,26 +712,40 @@ def compute_fields(
             scatt_cross_section = scatt_flux_total / intensity # <- from empty
             flux_freqs_scatt = mp.get_flux_freqs(scatt_empty[5])  # z2
 
+        if mp.am_master():
+            print("Done.")
         sim_antenna.reset_meep()
 
     # ============================================================
     # TRAN AND REFL CALCULATION
     # ============================================================
     if fluxes and mode == "BOTH":
+        if mp.am_master():
+            print("Calculating fluxes")
         compute_T_R_A(
             incident_flux,
             tran_flux, refl_flux,
             flux_freqs,
             config.path_to_save)
-        
+        if mp.am_master():
+            print("Done.")
+
+    # ============================================================
+    # SCATT CALCULATION
+    # ============================================================        
     if scattering and mode == "BOTH":
+        if mp.am_master():
+            print("Calculating scattering")
         compute_scattering(
             scatt_cross_section,
             intensity,
             flux_freqs,
             scatt_flux_faces,
+            scatt_flux_faces_empty,
             save_path=config.path_to_save,
         )
+        if mp.am_master():
+            print("Done.")
 
     # ============================================================
     # ENHANCEMENT CALCULATION
@@ -1119,9 +1136,11 @@ def compute_scattering(
     intensity,
     flux_freqs,
     scatt_flux_faces,
+    scatt_flux_faces_empty,
     save_path=None,
     save_name="spectra_scattering.txt",
     save_faces_name="scattering_faces.txt",
+    save_faces_empty_name="scattering_faces_empty.txt",
 ):
     """
     Compute and save scattering results from Meep flux monitors.
@@ -1140,6 +1159,9 @@ def compute_scattering(
     scatt_flux_faces : list of arrays
         Flux through each face [x1, x2, y1, y2, z1, z2].
 
+    scatt_flux_faces_empty : list of arrays
+        Flux through each face in empty cell [x1, x2, y1, y2, z1, z2].
+
     save_path : str or None
         Directory where results will be saved.
 
@@ -1148,6 +1170,9 @@ def compute_scattering(
 
     save_faces_name : str
         Name of face flux output file.
+
+    save_faces_empty_name : str
+        Name of empty face flux output file.
 
     Returns
     -------
@@ -1165,6 +1190,7 @@ def compute_scattering(
 
         scatt_flux_faces = [np.array(f) for f in scatt_flux_faces]
         x1, x2, y1, y2, z1, z2 = scatt_flux_faces
+        ex1, ex2, ey1, ey2, ez1, ez2 = scatt_flux_faces_empty
 
         # -----------------------------------------
         # wavelength
@@ -1232,6 +1258,23 @@ def compute_scattering(
             )
 
         # -----------------------------------------
+        # FILE 4: flux per face empty (debug / analysis)
+        # -----------------------------------------
+        if save_path is not None:
+
+            data_faces_empty = np.column_stack(
+                (flux_freqs, ex1, ex2, ey1, ey2, ez1, ez2)
+            )
+
+            header_faces = "# freq  x1  x2  y1  y2  z1  z2"
+
+            np.savetxt(
+                os.path.join(save_path, save_faces_empty_name),
+                data_faces_empty,
+                header=header_faces
+            )
+
+        # -----------------------------------------
         # Plot scattering spectrum
         # -----------------------------------------
         line_plotter(
@@ -1259,6 +1302,23 @@ def compute_scattering(
             legend=True,
             save_path=save_path,
             save_name="spectra_scattering_each_face.png",
+        )
+
+        # -----------------------------------------
+        # Plot scattering spectrum for each face
+        # -----------------------------------------
+        multi_line_plotter_same_axes(
+            xdata_list=[wavelength, wavelength, wavelength, wavelength, wavelength, wavelength],
+            ydata_list=[ex1, ex2, ey1, ey2, ez1, ez2],
+            labels=["x1", "x2", "y1", "y2", "z1", "z2"],
+            colors=["#149dff", "#14517c", "#ff7700", "#914300", "#5ec75e", "#205220"],
+            linestyles=["-", "-.", "-", "-.", "-", "-."],
+            xlabel="Wavelength [μm]",
+            ylabel="Scattering",
+            title="Scattering Spectrum for empty cell",
+            legend=True,
+            save_path=save_path,
+            save_name="spectra_scattering_each_face_empty.png",
         )
 
     return wavelength, scatt_cross_section

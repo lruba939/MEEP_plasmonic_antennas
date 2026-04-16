@@ -14,7 +14,8 @@ def run():
     # split_bar_AuTiX_SINGLE_PRECISION()
     # split_bar_AuTiX_SP_new_substr_geometry_XY()
     # split_bar_AuTiX_SP_new_substr_geometry_XYZ()
-    scattering_test()
+    # scattering_test()
+    bowtie_Xiong()
     
 if __name__ == "__main__":
     run()

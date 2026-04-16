@@ -232,8 +232,9 @@ def multi_line_plotter_same_axes(xdata_list, ydata_list, colors=None, linestyles
         plt.savefig(os.path.join(save_path, save_name), dpi=300, bbox_inches="tight", format="png")
     if show:
         plt.show()
-    if IMG_CLOSE:
-        plt.close(fig)
+
+    plt.close(fig)
+    gc.collect()
 
 def animate_field_from_h5(
     h5_filename,

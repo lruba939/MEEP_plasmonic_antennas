@@ -1,6 +1,6 @@
 import sys, os
 import meep as mp
-from meep.materials import Au, Ti, SiO2, Pd, Al, Cu, Be, Cr, Ni, Pt, W
+from meep.materials import Au, Ti, SiO2, Pd, Al, Cu, Be, Cr, Ni, Pt, W, GaN, GaAs, CdTe, Y2O3
 
 from utils.sys_utils import *
 from utils.meep_utils import *
@@ -1331,15 +1331,17 @@ def scattering_test():
     config.resolution = 400
     config.sim_time = 25000 / xm
     config.sim_time_step = 50 / xm
-    config.lambda0 = 1200 / xm
+    # config.lambda0 = 1200 / xm
+    # config.lambda0 = 1000 / xm
+    config.lambda0 = 700 / xm
     config.frequency_width = 0.6
 
     gap = 30
 
-    X_materials = [Au]
-    X_material_names = ["Au"]
+    X_materials = [Au, GaN, SiO2, GaAs, CdTe, Y2O3, Ni, Cr, Al]
+    X_material_names = ["Au", "GaN", "SiO2", "GaAs", "CdTe", "Y2O3", "Ni", "Cr", "Al"]
     for X_material, X_material_name in zip(X_materials, X_material_names):
-        SIM_NAME = f"scattering_test"
+        SIM_NAME = f"scattering_test_AuTi{X_material_name}_wavleng_{config.lambda0}"
         config.path_to_save, config.animations_folder_path = create_directory(SIM_NAME)
         # =====================================================
         AuTop = SplitBar(
@@ -1472,6 +1474,170 @@ def scattering_test():
                         "center": (0, -1e3*TiBetween.thickness/2.0),
                         "width": AuTop.width * 1e3,
                         "height": (AuTop.thickness + TiBetween.thickness) * 1e3,
+                    },
+            },
+        }
+        print_task(5, "Postprocesing - animations and plots.")
+        animate_enhancement_fields(config=config, draw_params=draw_params)
+        # =====================================================
+        plot_signal_amplitude_vs_time_from_h5(
+            "xyplanar-empty_ex.h5",
+            load_h5data_path=config.path_to_save,
+            xzeros=int(100),
+            time_step=config.sim_time_step,
+            save_name=f"source_prof_empty"
+        )
+        plot_signal_amplitude_vs_time_from_h5(
+            "xyplanar_ex.h5",
+            load_h5data_path=config.path_to_save,
+            xzeros=int(100),
+            time_step=config.sim_time_step,
+            save_name=f"source_prof_antenna"
+        ) 
+    return 0
+
+def bowtie_Xiong():
+    # =====================================================
+    config = SimulationConfig()
+
+    config.resolution = 500
+    config.sim_time = 25000 / xm
+    config.sim_time_step = 50 / xm
+    # config.lambda0 = 1200 / xm
+    # config.lambda0 = 1000 / xm
+    # config.lambda0 = 650 / xm
+    # config.frequency_width = 0.9
+    config.lambda0 = 1400 / xm
+    config.frequency_width = 0.35
+
+    gap = 6
+
+    X_materials = [Y2O3, mp.air] #, Ti, Cr, Al
+    X_material_names = ["Y2O3", "Air"] #, "Ti", "Cr", "Al" 
+    for X_material, X_material_name in zip(X_materials, X_material_names):
+        SIM_NAME = f"bowtie_Xiong_Au{X_material_name}_wavleng_{config.lambda0}_gap_{gap}_MIR"
+        config.path_to_save, config.animations_folder_path = create_directory(SIM_NAME)
+        # =====================================================
+        AuTop = BowTieEquilateral(
+            gap=gap/xm,
+            amp=86.6/xm, # <- to have about 100 nm in width
+            thickness=30/xm,
+            radius=5/xm,
+            material=Au,
+            z_offset=0.0
+        )
+        substrate = Bar(
+            length=800/xm,
+            width=800/xm,
+            thickness=100/xm,
+            material=X_material,
+            z_offset=-(30/2.0+100/2.0)/xm,
+            radius=12/xm,
+        )
+
+        geometry = AuTop.build_geometry() + substrate.build_geometry()
+
+        config.pad = 80/xm
+        config.pml = 350/xm
+        config.cell_size = [
+            substrate.length + 2*config.pad + 2*config.pml,   # x
+            substrate.width + 2*config.pad + 2*config.pml,   # y
+            substrate.thickness+AuTop.thickness + 2*config.pad + 2*config.pml    # z
+        ]
+        cell = make_cell(config=config)
+
+        config.src_size = [
+            substrate.length,  # x
+            substrate.width,  # y
+            0.0 / xm    # z
+        ]
+        config.src_center = [
+            0.0,    # x
+            0.0,    # y
+            config.cell_size[2]/2.0-1.15*config.pml  # z
+        ]
+
+        config.nfreq = 500
+        config.z_reflection = config.cell_size[2]/2.0-1.20*config.pml
+        config.z_transmission = -(config.cell_size[2]/2.0-1.15*config.pml)
+
+
+        antenna_vols = VolumeSet(cell, antenna=AuTop, top_z=AuTop.thickness, extra_vols_in_gap=False)
+
+        save_and_show_config(config, [AuTop, substrate])
+
+        sim = mp.Simulation(
+            cell_size=cell,
+            boundary_layers=[mp.PML(config.pml)],
+            geometry=geometry,
+            sources=make_source(config),
+            resolution = config.resolution,
+            k_point = mp.Vector3(),
+            symmetries=config.symmetries,
+            dimensions=3
+            )
+        sim_empty = mp.Simulation(
+            cell_size=cell,
+            boundary_layers=[mp.PML(config.pml)],
+            geometry=[],
+            sources=make_source(config),
+            resolution = config.resolution,
+            k_point = mp.Vector3(),
+            symmetries=config.symmetries,
+            dimensions=3
+            )
+        
+        print("Antenna bounding box:", np.array(AuTop.bounding_box())*1000, "\n")
+        # make_scattering_box(AuTop, config, padding_perc=1, extra_padding_nm=(0, 0, 0))
+        # =====================================================
+        print_task(1, "2D projections.")
+        for plane in ["XY", "XZ", "YZ"]:
+            Name2D = f"antenna_{plane}.png"
+            save_2D_plot(
+                sim,
+                antenna_vols.vis_volume[plane],
+                save_name=Name2D,
+                path_to_save=config.path_to_save,
+                IMG_CLOSE=config.IMG_CLOSE
+            )
+        # =====================================================
+        print_task(3, "3D calculations.")
+        compute_fields(
+            sim,
+            sim_empty,
+            antenna_vols,
+            config,
+            fluxes=True,
+            scattering=True,
+            scattering_antenna=AuTop
+        )
+        # =====================================================
+        print_task(4, "Postprocesing - raw animations.")
+        animate_raw_fields(config=config, mode="BOTH")
+        # =====================================================
+        draw_params = {
+            "XY": {"x_zoom": 0.10,
+                    "y_zoom": 0.3,
+                    "roi": {
+                        "center": (0, 0),
+                        "width": AuTop.gap * 1.05 * 1e3,
+                        "height": AuTop.radius * 2.1 * 1e3,
+                    },
+            },
+            "XZ": {"x_zoom": 0.1,
+                    "y_zoom": 0.2,
+                    "roi": {
+                        "center": (0, 0),
+                        "width": AuTop.gap * 1.05 * 1e3,
+                        "height": AuTop.thickness * 1e3,
+                    },
+            },
+            "YZ": {"x_zoom": 0.4,
+                    "y_zoom": 0.2,
+                    "roi": {
+                        "center": (0, 0),
+                        "width": AuTop.radius * 2.1 * 1e3,
+                        "height": AuTop.thickness * 1e3,
                     },
             },
         }

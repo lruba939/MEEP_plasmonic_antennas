@@ -6,7 +6,9 @@
 # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 folders=(
-"FOLDER_NAME"
+"bowtie_Xiong_AuAu_wavleng_0.65_NEW_PARAMS"
+"bowtie_Xiong_AuAu_wavleng_0.7"
+"bowtie_Xiong_AuGaN_wavleng_0.65_gap_6"
 )
 
 for dir in "${folders[@]}"; do
