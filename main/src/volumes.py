@@ -1,4 +1,18 @@
 import meep as mp
+xm = 1000
+
+def _compute_bounds(volume):
+    cx, cy, cz = volume.center.x, volume.center.y, volume.center.z
+    sx, sy, sz = volume.size.x, volume.size.y, volume.size.z
+
+    return {
+        "xmin": cx - sx / 2,
+        "xmax": cx + sx / 2,
+        "ymin": cy - sy / 2,
+        "ymax": cy + sy / 2,
+        "zmin": cz - sz / 2,
+        "zmax": cz + sz / 2,
+    }
 
 class VolumeSet:
     """
@@ -14,6 +28,7 @@ class VolumeSet:
         self.extra = extra_vols_in_gap
         self.volume = {}
         self.vis_volume = {}
+        self.bounds = {}
 
         cx = cell_size.x
         cy = cell_size.y
@@ -140,3 +155,181 @@ class VolumeSet:
             center=mp.Vector3(vis_shift_x, 0, 0),
             size=mp.Vector3(0.0, cy, cz)
         )
+        
+        # =====================================================
+        # PLANES BOUNDS
+        # =====================================================
+        
+        for name, vol in self.volume.items():
+            self.bounds[name] = self._compute_bounds(vol)
+
+class VolumeSetROI:
+    """
+    ROI volumes based strictly on antenna bounding box + padding.
+
+    REQUIREMENT:
+    ------------
+    Antenna object MUST be provided.
+
+    Uses:
+        - antenna.bounding_box()
+        - antenna.center
+        - antenna.z_offset
+
+    This ensures physically consistent ROI definition.
+    """
+
+    def __init__(
+        self,
+        cell_size,
+        antenna=None,
+        padding_xy=50.0,
+        padding_z=20.0,
+        extra_vols_in_gap=False
+    ):
+
+        # =====================================================
+        # HARD CHECK: antenna is required
+        # =====================================================
+        if antenna is None:
+            raise ValueError(
+                "VolumeSetROI ERROR: 'antenna' must be provided.\n"
+                "ROI definition requires antenna.bounding_box() and position.\n"
+                "Use VolumeSet (full-cell) if you do not want ROI-based volumes."
+            )
+
+        if not hasattr(antenna, "bounding_box"):
+            raise ValueError(
+                "VolumeSetROI ERROR: Provided antenna does not implement 'bounding_box()'."
+            )
+
+        if not hasattr(antenna, "center"):
+            raise ValueError(
+                "VolumeSetROI ERROR: Provided antenna does not have 'center' attribute."
+            )
+
+        # =====================================================
+        # INIT
+        # =====================================================
+        self.extra = extra_vols_in_gap
+        self.volume = {}
+        self.vis_volume = {}
+        self.bounds = {}
+
+        # =====================================================
+        # ROI FROM ANTENNA
+        # =====================================================
+
+        bx, by, bz = antenna.bounding_box()
+        cx, cy = antenna.center
+        cz = getattr(antenna, "z_offset", 0.0)
+        padding_xy = padding_xy / xm
+        padding_z = padding_z / xm
+
+        roi_center = mp.Vector3(cx, cy, cz)
+
+        roi_size = mp.Vector3(
+            bx + 2 * padding_xy,
+            by + 2 * padding_xy,
+            bz + 2 * padding_z
+        )
+
+        # =====================================================
+        # PLANES FOR CALCULATIONS (ROI LIMITED)
+        # =====================================================
+
+        self.volume["XY"] = mp.Volume(
+            center=roi_center,
+            size=mp.Vector3(roi_size.x, roi_size.y, 0.0)
+        )
+
+        self.volume["XZ"] = mp.Volume(
+            center=roi_center,
+            size=mp.Vector3(roi_size.x, 0.0, roi_size.z)
+        )
+
+        self.volume["YZ"] = mp.Volume(
+            center=roi_center,
+            size=mp.Vector3(0.0, roi_size.y, roi_size.z)
+        )
+
+        # =====================================================
+        # TOP PLANE (antenna surface)
+        # =====================================================
+
+        if hasattr(antenna, "thickness"):
+            top_z = cz + antenna.thickness / 2.0
+        else:
+            top_z = cz
+
+        self.volume["XY_TOP"] = mp.Volume(
+            center=mp.Vector3(cx, cy, top_z),
+            size=mp.Vector3(roi_size.x, roi_size.y, 0.0)
+        )
+
+        # =====================================================
+        # EXTRA GAP VOLUMES (LOCALIZED)
+        # =====================================================
+
+        if extra_vols_in_gap:
+
+            if not hasattr(antenna, "gap"):
+                raise ValueError(
+                    "VolumeSetROI ERROR: extra_vols_in_gap=True but antenna has no 'gap' attribute."
+                )
+
+            gap = antenna.gap
+            width = by
+            thickness = getattr(antenna, "thickness", bz)
+
+            # XY slices through gap
+            for i, frac in enumerate([0.0, 0.25, 0.5, 0.75, 1.0], start=1):
+                self.volume[f"XY_{i}"] = mp.Volume(
+                    center=mp.Vector3(cx, cy, cz + frac * thickness / 2),
+                    size=mp.Vector3(gap * 2, width * 0.5, 0.0)
+                )
+
+            # XZ slices
+            for i, frac in enumerate([0.0, 0.25, 0.5, 0.75, 1.0], start=1):
+                self.volume[f"XZ_{i}"] = mp.Volume(
+                    center=mp.Vector3(cx, cy + frac * width / 2, cz),
+                    size=mp.Vector3(gap * 2, 0.0, thickness * 2)
+                )
+
+            # YZ slices
+            for i, frac in enumerate([0.0, 0.25, 0.5, 0.75, 1.0], start=1):
+                self.volume[f"YZ_{i}"] = mp.Volume(
+                    center=mp.Vector3(cx + frac * gap, cy, cz),
+                    size=mp.Vector3(0.0, width * 0.5, thickness * 2)
+                )
+
+        # =====================================================
+        # VISUALIZATION (FULL CELL)
+        # =====================================================
+
+        self.vis_volume["XY"] = mp.Volume(
+            center=mp.Vector3(0, 0, 0),
+            size=mp.Vector3(cell_size.x, cell_size.y, 0.0)
+        )
+
+        self.vis_volume["XZ"] = mp.Volume(
+            center=mp.Vector3(0, 0, 0),
+            size=mp.Vector3(cell_size.x, 0.0, cell_size.z)
+        )
+
+        if hasattr(antenna, "gap"):
+            vis_shift_x = antenna.gap * 1.5
+        else:
+            vis_shift_x = 0.0
+
+        self.vis_volume["YZ"] = mp.Volume(
+            center=mp.Vector3(vis_shift_x, 0, 0),
+            size=mp.Vector3(0.0, cell_size.y, cell_size.z)
+        )
+
+        # =====================================================
+        # PLANES BOUNDS
+        # =====================================================
+        
+        for name, vol in self.volume.items():
+            self.bounds[name] = self._compute_bounds(vol)

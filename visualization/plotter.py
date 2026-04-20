@@ -387,7 +387,7 @@ def animate_field_from_h5(
         cmap=cmap,
         vmin=vmin,
         vmax=vmax,
-        aspect="auto",
+        aspect="equal",
     )
 
     plt.colorbar(img, ax=ax)
@@ -916,7 +916,7 @@ def plot_field_frame_from_h5_physical(
         vmin=vmin,
         vmax=vmax,
         extent=extent,
-        aspect="auto",
+        aspect="equal",
     )
 
     ax.set_xlabel(xlabel)
@@ -1243,6 +1243,7 @@ def animate_raw_fields(
         # ============================================================
 
         def animate_file(filename):
+            print(f"Animating {filename}")
             animate_field_from_h5(
                 h5_filename=filename,
                 save_name=filename.replace(".h5", ".mp4"),

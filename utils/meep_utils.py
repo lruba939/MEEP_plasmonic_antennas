@@ -270,6 +270,13 @@ def enhancement_divided_by_maxes_arr(
             name = dataset_name or list(f.keys())[0]
             return [f], [f[name]]
 
+    for da, db in zip(dA, dB):
+        if da.shape != db.shape:
+            raise RuntimeError(
+                "Enhancement ERROR: target and reference datasets have different shapes.\n"
+                f"Target: {da.shape}, Reference: {db.shape}"
+            )
+
     def _get_frame_sum_sq(dsets, t):
         acc = None
         for d in dsets:
@@ -807,7 +814,20 @@ def compute_fields(
                 )
     return 0
 
-def animate_enhancement_fields(config, draw_params, field='E', animate=True):
+def get_phys_ranges(bounds, plane):
+    if plane == "XY":
+        return [bounds["xmin"], bounds["xmax"]], [bounds["ymin"], bounds["ymax"]]
+
+    elif plane == "XZ":
+        return [bounds["xmin"], bounds["xmax"]], [bounds["zmin"], bounds["zmax"]]
+
+    elif plane == "YZ":
+        return [bounds["ymin"], bounds["ymax"]], [bounds["zmin"], bounds["zmax"]]
+
+    else:
+        raise ValueError(f"Unknown plane: {plane}")
+
+def animate_enhancement_fields(config, volumes, draw_params, field='E', animate=True):
     """
     - Animate field enhancement for XY / XZ / YZ planes
     - Plot max-frame field maps with structure + ROI
@@ -823,14 +843,38 @@ def animate_enhancement_fields(config, draw_params, field='E', animate=True):
         field=field.lower()
 
         # ============================================================
+        # Bounds of planes configuration
+        # ============================================================
+        b_xy = volumes.bounds["XY"]
+        b_xy_top = volumes.bounds["XY_TOP"]
+        b_xz = volumes.bounds["XZ"]
+        b_yz = volumes.bounds["YZ"]
+        
+        xy_x, xy_y = get_phys_ranges(b_xy, "XY")
+        xy_top_x, xy_top_y = get_phys_ranges(b_xy_top, "XY")
+        xz_x, xz_y = get_phys_ranges(b_xz, "XZ")
+        yz_x, yz_y = get_phys_ranges(b_yz, "YZ")
+        
+        xy_x = [v * 1e3 for v in xy_x]
+        xy_y = [v * 1e3 for v in xy_y]
+        
+        xy_top_x = [v * 1e3 for v in xy_top_x]
+        xy_top_y = [v * 1e3 for v in xy_top_y]
+        
+        xz_x = [v * 1e3 for v in xz_x]
+        xz_y = [v * 1e3 for v in xz_y]
+        
+        yz_x = [v * 1e3 for v in yz_x]
+        yz_y = [v * 1e3 for v in yz_y]
+        # ============================================================
         # Plane configuration
         # ============================================================
         planes = {
             "XY": {
                 "filename": f"enhancement_xyplanar_{field}2.h5",
                 "save_anim": f"enh_xy_{field}2.mp4",
-                "x_phys_range": [-config.cell_size[0] / 2 * 1e3, config.cell_size[0] / 2 * 1e3],
-                "y_phys_range": [-config.cell_size[1] / 2 * 1e3, config.cell_size[1] / 2 * 1e3],
+                "x_phys_range": xy_x,
+                "y_phys_range": xy_y,
                 "x_zoom": draw_params["XY"]["x_zoom"],
                 "y_zoom": draw_params["XY"]["y_zoom"],
                 "xlabel": "X [nm]",
@@ -846,8 +890,8 @@ def animate_enhancement_fields(config, draw_params, field='E', animate=True):
             "XYTop": {
                 "filename": f"enhancement_xyplanarTOP_{field}2.h5",
                 "save_anim": f"enh_xy_TOP_{field}2.mp4",
-                "x_phys_range": [-config.cell_size[0] / 2 * 1e3, config.cell_size[0] / 2 * 1e3],
-                "y_phys_range": [-config.cell_size[1] / 2 * 1e3, config.cell_size[1] / 2 * 1e3],
+                "x_phys_range": xy_top_x,
+                "y_phys_range": xy_top_y,
                 "x_zoom": draw_params["XY"]["x_zoom"],
                 "y_zoom": draw_params["XY"]["y_zoom"],
                 "xlabel": "X [nm]",
@@ -863,8 +907,8 @@ def animate_enhancement_fields(config, draw_params, field='E', animate=True):
             "XZ": {
                 "filename": f"enhancement_xzplanar_{field}2.h5",
                 "save_anim": f"enh_xz_{field}2.mp4",
-                "x_phys_range": [-config.cell_size[0] / 2 * 1e3, config.cell_size[0] / 2 * 1e3],
-                "y_phys_range": [-config.cell_size[2] / 2 * 1e3, config.cell_size[2] / 2 * 1e3],
+                "x_phys_range": xz_x,
+                "y_phys_range": xz_y,
                 "x_zoom": draw_params["XZ"]["x_zoom"],
                 "y_zoom": draw_params["XZ"]["y_zoom"],
                 "xlabel": "X [nm]",
@@ -880,8 +924,8 @@ def animate_enhancement_fields(config, draw_params, field='E', animate=True):
             "YZ": {
                 "filename": f"enhancement_yzplanar_{field}2.h5",
                 "save_anim": f"enh_yz_{field}2.mp4",
-                "x_phys_range": [-config.cell_size[1] / 2 * 1e3, config.cell_size[1] / 2 * 1e3],
-                "y_phys_range": [-config.cell_size[2] / 2 * 1e3, config.cell_size[2] / 2 * 1e3],
+                "x_phys_range": yz_x,
+                "y_phys_range": yz_y,
                 "x_zoom": draw_params["YZ"]["x_zoom"],
                 "y_zoom": draw_params["YZ"]["y_zoom"],
                 "xlabel": "Y [nm]",
