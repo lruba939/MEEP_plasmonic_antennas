@@ -380,20 +380,20 @@ def split_bar_AuTiSiO2():
             symmetries=config.symmetries,
             dimensions=3
             )
-        # =====================================================
-        print_task(1, "2D projections.")
-        for plane in ["XY", "XZ", "YZ"]:
-            Name2D = f"antenna_{plane}.png"
-            save_2D_plot(
-                sim,
-                antenna_vols.vis_volume[plane],
-                save_name=Name2D,
-                path_to_save=config.path_to_save,
-                IMG_CLOSE=config.IMG_CLOSE
-            )
+        # # =====================================================
+        # print_task(1, "2D projections.")
+        # for plane in ["XY", "XZ", "YZ"]:
+        #     Name2D = f"antenna_{plane}.png"
+        #     save_2D_plot(
+        #         sim,
+        #         antenna_vols.vis_volume[plane],
+        #         save_name=Name2D,
+        #         path_to_save=config.path_to_save,
+        #         IMG_CLOSE=config.IMG_CLOSE
+        #     )
         # =====================================================
         print_task(3, "3D calculations.")
-        compute_fields(sim, sim_empty, antenna_vols, config, fluxes=False, scattering=False)
+        compute_fields(sim, sim_empty, antenna_vols, config, fluxes=False, scattering=False, mode="ENH_ONLY")
         # =====================================================
         print_task(4, "Postprocesing - raw animations.")
         animate_raw_fields(config=config, mode="BOTH")
@@ -425,7 +425,7 @@ def split_bar_AuTiSiO2():
             },
         }
         print_task(5, "Postprocesing - animations and plots.")
-        animate_enhancement_fields(config=config, draw_params=draw_params)
+        animate_enhancement_fields(config=config, volumes=antenna_vols, draw_params=draw_params)
         # =====================================================
         plot_signal_amplitude_vs_time_from_h5(
             "xyplanar-empty_ex.h5",

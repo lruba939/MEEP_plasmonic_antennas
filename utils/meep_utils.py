@@ -512,6 +512,7 @@ def compute_fields(
     calc_DPWR=False,
     fluxes=True,
     scattering=True,
+    dft_gap_spectrum=False,
     scattering_antenna=None,
 ):
     """
@@ -568,7 +569,7 @@ def compute_fields(
         })
 
     # ============================================================
-    # Flux monitors
+    # FLUX MONITORS
     # ============================================================
     if fluxes:
         fcen = config.frequency
@@ -595,8 +596,14 @@ def compute_fields(
         tran_empty = sim_empty.add_flux(fcen, df, nfreq, tran_fr)
         refl = sim_antenna.add_flux(fcen, df, nfreq, refl_fr)
         tran = sim_antenna.add_flux(fcen, df, nfreq, tran_fr)
-    
+    # ============================================================
+    # SCATTERING MONITORS
+    # ============================================================
     if scattering:
+    
+        if scattering_antenna is None:
+            raise ValueError("scattering_antenna must be provided for scattering spectrum")
+
         fcen = config.frequency
         df = config.frequency_width
         nfreq = config.nfreq
@@ -643,6 +650,54 @@ def compute_fields(
 
         scatt_empty = [sim_empty.add_flux(fcen, df, nfreq, r) for r in scatt_regions]
         scatt = [sim_antenna.add_flux(fcen, df, nfreq, r) for r in scatt_regions]
+    # ============================================================
+    # GAP DFT MONITORS
+    # ============================================================
+    if dft_gap_spectrum:
+
+        if scattering_antenna is None:
+            raise ValueError("scattering_antenna must be provided for DFT gap spectrum")
+
+        fcen = config.frequency
+        df = config.frequency_width
+        nfreq = config.nfreq
+
+        cx, cy = scattering_antenna.center
+        cz = scattering_antenna.z_offset
+        t = scattering_antenna.thickness
+
+        dz = 1 / config.resolution
+
+        z_min = cz - t / 2
+        z_max = cz + t / 2
+
+        z_points = np.arange(z_min, z_max + dz/2, dz)
+
+        gap_dft_empty = []
+        gap_dft_antenna = []
+
+        for z in z_points:
+            pt = mp.Vector3(cx, cy, z)
+            # EMPTY
+            gap_dft_empty.append(
+                sim_empty.add_dft_fields(
+                    [mp.Ex, mp.Ey, mp.Ez],
+                    fcen,
+                    df,
+                    nfreq,
+                    where=mp.Volume(center=pt, size=mp.Vector3(0, 0, 0))
+                )
+            )
+            # ANTENNA
+            gap_dft_antenna.append(
+                sim_antenna.add_dft_fields(
+                    [mp.Ex, mp.Ey, mp.Ez],
+                    fcen,
+                    df,
+                    nfreq,
+                    where=mp.Volume(center=pt, size=mp.Vector3(0, 0, 0))
+                )
+            )
 
     # ============================================================
     # EMPTY STRUCTURE
@@ -751,6 +806,118 @@ def compute_fields(
             scatt_flux_faces_empty,
             save_path=config.path_to_save,
         )
+        if mp.am_master():
+            print("Done.")
+
+    # ============================================================
+    # GAP DFT DATA COLLECTION
+    # ============================================================        
+    if dft_gap_spectrum and mode == "BOTH":
+    
+        if mp.am_master():
+            print("Collecting gap DFT data")
+    
+        gap_data = {
+            "Ex": {"empty": [], "antenna": []},
+            "Ey": {"empty": [], "antenna": []},
+            "Ez": {"empty": [], "antenna": []},
+        }
+    
+        for dft_a, dft_e in zip(gap_dft_antenna, gap_dft_empty):
+    
+            # =========================
+            # ANTENNA (full spectrum)
+            # =========================
+            Ex_a = np.array([
+                sim_antenna.get_dft_array(dft_a, mp.Ex, i)
+                for i in range(nfreq)
+            ])
+            Ey_a = np.array([
+                sim_antenna.get_dft_array(dft_a, mp.Ey, i)
+                for i in range(nfreq)
+            ])
+            Ez_a = np.array([
+                sim_antenna.get_dft_array(dft_a, mp.Ez, i)
+                for i in range(nfreq)
+            ])
+    
+            # =========================
+            # EMPTY (full spectrum)
+            # =========================
+            Ex_e = np.array([
+                sim_empty.get_dft_array(dft_e, mp.Ex, i)
+                for i in range(nfreq)
+            ])
+            Ey_e = np.array([
+                sim_empty.get_dft_array(dft_e, mp.Ey, i)
+                for i in range(nfreq)
+            ])
+            Ez_e = np.array([
+                sim_empty.get_dft_array(dft_e, mp.Ez, i)
+                for i in range(nfreq)
+            ])
+    
+            # =========================
+            # |E|^2
+            # =========================
+            gap_data["Ex"]["antenna"].append(np.abs(Ex_a)**2)
+            gap_data["Ey"]["antenna"].append(np.abs(Ey_a)**2)
+            gap_data["Ez"]["antenna"].append(np.abs(Ez_a)**2)
+    
+            gap_data["Ex"]["empty"].append(np.abs(Ex_e)**2)
+            gap_data["Ey"]["empty"].append(np.abs(Ey_e)**2)
+            gap_data["Ez"]["empty"].append(np.abs(Ez_e)**2)
+    
+        # =========================
+        # numpy
+        # =========================
+        for comp in gap_data:
+            for key in gap_data[comp]:
+                gap_data[comp][key] = np.array(gap_data[comp][key])
+                # shape: (Nz, Nfreq)
+    
+        # =========================
+        # E2
+        # =========================
+        gap_data["E2"] = {}
+    
+        gap_data["E2"]["antenna"] = (
+            gap_data["Ex"]["antenna"] +
+            gap_data["Ey"]["antenna"] +
+            gap_data["Ez"]["antenna"]
+        )
+    
+        gap_data["E2"]["empty"] = (
+            gap_data["Ex"]["empty"] +
+            gap_data["Ey"]["empty"] +
+            gap_data["Ez"]["empty"]
+        )
+    
+        # =========================
+        # enhancement
+        # =========================
+        eps = 1e-20
+    
+        for comp in gap_data:
+            gap_data[comp]["enh"] = (
+                gap_data[comp]["antenna"] /
+                (gap_data[comp]["empty"] + eps)
+            )
+    
+        # =========================
+        # freq axis
+        # =========================
+        freqs = mp.get_flux_freqs(tran) if fluxes else np.linspace(
+            fcen - df/2, fcen + df/2, nfreq
+        )
+
+        compute_gap_spectrum(
+                gap_data,
+                z_points,
+                freqs,
+                save_path=config.path_to_save,
+            )
+        
         if mp.am_master():
             print("Done.")
 
@@ -1366,3 +1533,119 @@ def compute_scattering(
         )
 
         return wavelength, scatt_cross_section
+
+def compute_gap_spectrum(
+    gap_data,
+    z_points,
+    freqs,
+    save_path=None,
+):
+    if not mp.am_master():
+        return
+
+    freqs = np.array(freqs)
+    wavelength = 1.0 / freqs
+    z_points = np.array(z_points)
+
+    gap_dir = os.path.join(save_path, "gap_spec")
+    os.makedirs(gap_dir, exist_ok=True)
+
+    # =========================================
+    # SAVE FILES PER POINT
+    # =========================================
+    for zi, z in enumerate(z_points):
+
+        z_str = f"{z:.6f}".replace(".", "p")
+
+        for comp in ["Ex", "Ey", "Ez", "E2"]:
+
+            empty = gap_data[comp]["empty"][zi]
+            antenna = gap_data[comp]["antenna"][zi]
+            enh = gap_data[comp]["enh"][zi]
+
+            data = np.column_stack((
+                wavelength,
+                empty,
+                antenna,
+                enh
+            ))
+
+            header = "wavelength  empty(|E|^2)  antenna(|E|^2)  enhancement"
+
+            fname = os.path.join(
+                gap_dir,
+                f"{comp}_z_{z_str}.txt"
+            )
+
+            np.savetxt(fname, data, header=header)
+
+    # =========================================
+    # PLOTS
+    # =========================================
+    for comp in ["E2", "Ex", "Ey", "Ez"]:
+        plot_gap_component(
+            component_name=comp,
+            gap_data=gap_data,
+            z_points=z_points,
+            wavelength=wavelength,
+            save_path=gap_dir,
+        )
+
+def plot_gap_component(
+    component_name,
+    gap_data,
+    z_points,
+    wavelength,
+    save_path,
+):
+
+    comp_empty = gap_data[component_name]["empty"]
+    comp_ant = gap_data[component_name]["antenna"]
+    comp_enh = gap_data[component_name]["enh"]
+
+    # =========================================
+    # GENERATE COLORS FROM COLORMAP
+    # =========================================
+    cmap = plt.get_cmap("inferno")
+    n = len(z_points)
+    colors = [cmap(i / (n - 1)) for i in range(n)]
+
+    def make_plot(data, label_suffix, filename):
+
+        xdata_list = [wavelength for _ in range(n)]
+        ydata_list = [data[i] for i in range(n)]
+        labels = [f"z={z:.3f}" for z in z_points]
+
+        multi_line_plotter_same_axes(
+            xdata_list=xdata_list,
+            ydata_list=ydata_list,
+            labels=labels,
+            colors=colors,
+            xlabel="Wavelength [μm]",
+            ylabel=f"{component_name} {label_suffix}",
+            title=f"{component_name} {label_suffix} spectrum along gap",
+            legend=False,
+            save_path=save_path,
+            save_name=filename,
+        )
+
+    # --- EMPTY ---
+    make_plot(
+        comp_empty,
+        "|E|² (empty)",
+        f"{component_name}_empty_all_z.png"
+    )
+
+    # --- ANTENNA ---
+    make_plot(
+        comp_ant,
+        "|E|² (antenna)",
+        f"{component_name}_antenna_all_z.png"
+    )
+
+    # --- ENHANCEMENT ---
+    make_plot(
+        comp_enh,
+        "enhancement",
+        f"{component_name}_enh_all_z.png"
+    )
