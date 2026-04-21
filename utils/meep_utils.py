@@ -270,13 +270,6 @@ def enhancement_divided_by_maxes_arr(
             name = dataset_name or list(f.keys())[0]
             return [f], [f[name]]
 
-    for da, db in zip(dA, dB):
-        if da.shape != db.shape:
-            raise RuntimeError(
-                "Enhancement ERROR: target and reference datasets have different shapes.\n"
-                f"Target: {da.shape}, Reference: {db.shape}"
-            )
-
     def _get_frame_sum_sq(dsets, t):
         acc = None
         for d in dsets:
@@ -302,6 +295,13 @@ def enhancement_divided_by_maxes_arr(
     # ---------------------------
     # Shape
     # ---------------------------
+    for da, db in zip(dA, dB):
+        if da.shape != db.shape:
+            raise RuntimeError(
+                "Enhancement ERROR: target and reference datasets have different shapes.\n"
+                f"Target: {da.shape}, Reference: {db.shape}"
+            )
+
     sample = dA[0]
     if sample.ndim == 4:
         Nx, Ny, Nz, Nt = sample.shape
@@ -520,7 +520,7 @@ def compute_fields(
     Parameters
     ----------
     mode : str
-        "WITH_ANTENNA", "EMPTY", or "BOTH"
+        "WITH_ANTENNA", "EMPTY", "BOTH" or "ENH_ONLY"
 
     calc_E : bool
         Whether to calculate E-field enhancement.
@@ -1365,4 +1365,4 @@ def compute_scattering(
             save_name="spectra_scattering_each_face_empty.png",
         )
 
-    return wavelength, scatt_cross_section
+        return wavelength, scatt_cross_section

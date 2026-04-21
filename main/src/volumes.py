@@ -1,7 +1,7 @@
 import meep as mp
 xm = 1000
 
-def _compute_bounds(volume):
+def compute_bounds(volume):
     cx, cy, cz = volume.center.x, volume.center.y, volume.center.z
     sx, sy, sz = volume.size.x, volume.size.y, volume.size.z
 
@@ -161,7 +161,7 @@ class VolumeSet:
         # =====================================================
         
         for name, vol in self.volume.items():
-            self.bounds[name] = self._compute_bounds(vol)
+            self.bounds[name] = compute_bounds(vol)
 
 class VolumeSetROI:
     """
@@ -332,4 +332,4 @@ class VolumeSetROI:
         # =====================================================
         
         for name, vol in self.volume.items():
-            self.bounds[name] = self._compute_bounds(vol)
+            self.bounds[name] = compute_bounds(vol)
