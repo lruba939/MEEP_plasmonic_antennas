@@ -654,7 +654,8 @@ def compute_fields(
     # GAP DFT MONITORS
     # ============================================================
     if dft_gap_spectrum:
-
+        if dft_gap_spectrum and mode != "BOTH":
+            raise ValueError("DFT gap spectrum requires mode='BOTH'")
         if scattering_antenna is None:
             raise ValueError("scattering_antenna must be provided for DFT gap spectrum")
 
@@ -732,6 +733,35 @@ def compute_fields(
                 sim_antenna.load_minus_flux_data(f, d)
             incident_flux_top = np.asarray(mp.get_fluxes(scatt_empty[5]))
             intensity = incident_flux_top / (Lx * Ly)
+        if dft_gap_spectrum:
+            gap_data_empty = {
+                "Ex": [],
+                "Ey": [],
+                "Ez": [],
+            }
+        
+            for dft_e in gap_dft_empty:
+        
+                Ex_e = np.array([
+                    sim_empty.get_dft_array(dft_e, mp.Ex, i)
+                    for i in range(nfreq)
+                ])
+                Ey_e = np.array([
+                    sim_empty.get_dft_array(dft_e, mp.Ey, i)
+                    for i in range(nfreq)
+                ])
+                Ez_e = np.array([
+                    sim_empty.get_dft_array(dft_e, mp.Ez, i)
+                    for i in range(nfreq)
+                ])
+        
+                gap_data_empty["Ex"].append(np.abs(Ex_e)**2)
+                gap_data_empty["Ey"].append(np.abs(Ey_e)**2)
+                gap_data_empty["Ez"].append(np.abs(Ez_e)**2)
+        
+            # numpy
+            for comp in gap_data_empty:
+                gap_data_empty[comp] = np.array(gap_data_empty[comp])
 
         if mp.am_master():
             print("Done.")
@@ -773,6 +803,57 @@ def compute_fields(
             )
             scatt_cross_section = scatt_flux_total / intensity # <- from empty
             flux_freqs_scatt = mp.get_flux_freqs(scatt_empty[5])  # z2
+        if dft_gap_spectrum:
+            gap_data = {
+                "Ex": {"empty": gap_data_empty["Ex"], "antenna": []},
+                "Ey": {"empty": gap_data_empty["Ey"], "antenna": []},
+                "Ez": {"empty": gap_data_empty["Ez"], "antenna": []},
+            }
+
+            for dft_a in gap_dft_antenna:
+
+                Ex_a = np.array([
+                    sim_antenna.get_dft_array(dft_a, mp.Ex, i)
+                    for i in range(nfreq)
+                ])
+                Ey_a = np.array([
+                    sim_antenna.get_dft_array(dft_a, mp.Ey, i)
+                    for i in range(nfreq)
+                ])
+                Ez_a = np.array([
+                    sim_antenna.get_dft_array(dft_a, mp.Ez, i)
+                    for i in range(nfreq)
+                ])
+
+                gap_data["Ex"]["antenna"].append(np.abs(Ex_a)**2)
+                gap_data["Ey"]["antenna"].append(np.abs(Ey_a)**2)
+                gap_data["Ez"]["antenna"].append(np.abs(Ez_a)**2)
+
+            # numpy
+            for comp in gap_data:
+                gap_data[comp]["antenna"] = np.array(gap_data[comp]["antenna"])
+
+            gap_data["E2"] = {}
+
+            gap_data["E2"]["antenna"] = (
+                gap_data["Ex"]["antenna"] +
+                gap_data["Ey"]["antenna"] +
+                gap_data["Ez"]["antenna"]
+            )
+
+            gap_data["E2"]["empty"] = (
+                gap_data["Ex"]["empty"] +
+                gap_data["Ey"]["empty"] +
+                gap_data["Ez"]["empty"]
+            )
+
+            eps = 1e-20
+
+            for comp in gap_data:
+                gap_data[comp]["enh"] = (
+                    gap_data[comp]["antenna"] /
+                    (gap_data[comp]["empty"] + eps)
+                )
 
         if mp.am_master():
             print("Done.")
@@ -813,114 +894,20 @@ def compute_fields(
     # GAP DFT DATA COLLECTION
     # ============================================================        
     if dft_gap_spectrum and mode == "BOTH":
-    
         if mp.am_master():
-            print("Collecting gap DFT data")
-    
-        gap_data = {
-            "Ex": {"empty": [], "antenna": []},
-            "Ey": {"empty": [], "antenna": []},
-            "Ez": {"empty": [], "antenna": []},
-        }
-    
-        for dft_a, dft_e in zip(gap_dft_antenna, gap_dft_empty):
-    
-            # =========================
-            # ANTENNA (full spectrum)
-            # =========================
-            Ex_a = np.array([
-                sim_antenna.get_dft_array(dft_a, mp.Ex, i)
-                for i in range(nfreq)
-            ])
-            Ey_a = np.array([
-                sim_antenna.get_dft_array(dft_a, mp.Ey, i)
-                for i in range(nfreq)
-            ])
-            Ez_a = np.array([
-                sim_antenna.get_dft_array(dft_a, mp.Ez, i)
-                for i in range(nfreq)
-            ])
-    
-            # =========================
-            # EMPTY (full spectrum)
-            # =========================
-            Ex_e = np.array([
-                sim_empty.get_dft_array(dft_e, mp.Ex, i)
-                for i in range(nfreq)
-            ])
-            Ey_e = np.array([
-                sim_empty.get_dft_array(dft_e, mp.Ey, i)
-                for i in range(nfreq)
-            ])
-            Ez_e = np.array([
-                sim_empty.get_dft_array(dft_e, mp.Ez, i)
-                for i in range(nfreq)
-            ])
-    
-            # =========================
-            # |E|^2
-            # =========================
-            gap_data["Ex"]["antenna"].append(np.abs(Ex_a)**2)
-            gap_data["Ey"]["antenna"].append(np.abs(Ey_a)**2)
-            gap_data["Ez"]["antenna"].append(np.abs(Ez_a)**2)
-    
-            gap_data["Ex"]["empty"].append(np.abs(Ex_e)**2)
-            gap_data["Ey"]["empty"].append(np.abs(Ey_e)**2)
-            gap_data["Ez"]["empty"].append(np.abs(Ez_e)**2)
-    
-        # =========================
-        # numpy
-        # =========================
-        for comp in gap_data:
-            for key in gap_data[comp]:
-                gap_data[comp][key] = np.array(gap_data[comp][key])
-                # shape: (Nz, Nfreq)
-    
-        # =========================
-        # E2
-        # =========================
-        gap_data["E2"] = {}
-    
-        gap_data["E2"]["antenna"] = (
-            gap_data["Ex"]["antenna"] +
-            gap_data["Ey"]["antenna"] +
-            gap_data["Ez"]["antenna"]
-        )
-    
-        gap_data["E2"]["empty"] = (
-            gap_data["Ex"]["empty"] +
-            gap_data["Ey"]["empty"] +
-            gap_data["Ez"]["empty"]
-        )
-    
-        # =========================
-        # enhancement
-        # =========================
-        eps = 1e-20
-    
-        for comp in gap_data:
-            gap_data[comp]["enh"] = (
-                gap_data[comp]["antenna"] /
-                (gap_data[comp]["empty"] + eps)
-            )
-    
-        # =========================
-        # freq axis
-        # =========================
-        freqs = mp.get_flux_freqs(tran) if fluxes else np.linspace(
-            fcen - df/2, fcen + df/2, nfreq
-        )
+            print("Calculating gap DFT spectrum")
+
+        freqs = np.linspace(fcen - df/2, fcen + df/2, nfreq)
 
         compute_gap_spectrum(
-                gap_data,
-                z_points,
-                freqs,
-                save_path=config.path_to_save,
-            )
-        
+            gap_data,
+            z_points,
+            freqs,
+            save_path=config.path_to_save,
+        )
+
         if mp.am_master():
             print("Done.")
-
     # ============================================================
     # ENHANCEMENT CALCULATION
     # ============================================================
