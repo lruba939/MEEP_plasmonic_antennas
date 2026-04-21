@@ -568,14 +568,13 @@ def compute_fields(
             "yzplanar_5": volumes.volume["YZ_5"],
         })
 
+    fcen = config.frequency
+    df = config.frequency_width
+    nfreq = config.nfreq
     # ============================================================
     # FLUX MONITORS
     # ============================================================
     if fluxes:
-        fcen = config.frequency
-        df = config.frequency_width
-        nfreq = config.nfreq
-
         refl_fr = mp.FluxRegion(
             center=mp.Vector3(0, 0, config.z_reflection),
             size=mp.Vector3(
@@ -600,13 +599,8 @@ def compute_fields(
     # SCATTERING MONITORS
     # ============================================================
     if scattering:
-    
         if scattering_antenna is None:
             raise ValueError("scattering_antenna must be provided for scattering spectrum")
-
-        fcen = config.frequency
-        df = config.frequency_width
-        nfreq = config.nfreq
         # scattering box
         Lx, Ly, Lz = make_scattering_box(
             antenna=scattering_antenna,
@@ -658,11 +652,7 @@ def compute_fields(
             raise ValueError("DFT gap spectrum requires mode='BOTH'")
         if scattering_antenna is None:
             raise ValueError("scattering_antenna must be provided for DFT gap spectrum")
-
-        fcen = config.frequency
-        df = config.frequency_width
-        nfreq = config.nfreq
-
+            
         cx, cy = scattering_antenna.center
         cz = scattering_antenna.z_offset
         t = scattering_antenna.thickness
@@ -672,7 +662,8 @@ def compute_fields(
         z_min = cz - t / 2
         z_max = cz + t / 2
 
-        z_points = np.arange(z_min, z_max + dz/2, dz)
+        Nz = int(np.round(t / dz)) + 1
+        z_points = z_min + np.arange(Nz) * dz
 
         gap_dft_empty = []
         gap_dft_antenna = []
@@ -1595,7 +1586,10 @@ def plot_gap_component(
     # =========================================
     cmap = plt.get_cmap("inferno")
     n = len(z_points)
-    colors = [cmap(i / (n - 1)) for i in range(n)]
+    if n == 1:
+        colors = [cmap(0.5)]
+    else:
+        colors = [cmap(i / (n - 1)) for i in range(n)]
 
     def make_plot(data, label_suffix, filename):
 
