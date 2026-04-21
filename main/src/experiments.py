@@ -19,12 +19,12 @@ def bowtie_Xiong_test():
     # =====================================================
     config = SimulationConfig()
 
-    config.resolution = 500
+    config.resolution = 250
     config.sim_time = 25000 / xm
     config.sim_time_step = 50 / xm
     config.lambda0 = 650 / xm
     config.frequency_width = 0.9
-    gap = 6
+    gap = 10
 
     X_materials = [SiO2] #, Au
     X_material_names = ["SiO2"] #, "Au" 
@@ -102,48 +102,48 @@ def bowtie_Xiong_test():
         
         print("Antenna bounding box:", np.array(AuTop.bounding_box())*1000, "\n")
         # make_scattering_box(AuTop, config, padding_perc=1, extra_padding_nm=(0, 0, 0))
-        # # =====================================================
-        # print_task(1, "2D projections.")
-        # for plane in ["XY", "XZ", "YZ"]:
-        #     Name2D = f"antenna_vis_{plane}.png"
-        #     save_2D_plot(
-        #         sim,
-        #         antenna_vols.vis_volume[plane],
-        #         save_name=Name2D,
-        #         path_to_save=config.path_to_save,
-        #         IMG_CLOSE=config.IMG_CLOSE
-        #     )
-        # print_task(2, "2D projections.")
-        # for plane in ["XY", "XZ", "YZ"]:
-        #     Name2D = f"antenna_roi_{plane}.png"
-        #     save_2D_plot(
-        #         sim,
-        #         antenna_vols.volume[plane],
-        #         save_name=Name2D,
-        #         path_to_save=config.path_to_save,
-        #         IMG_CLOSE=config.IMG_CLOSE
-        #     )
-        # # =====================================================
-        # print_task(3, "3D calculations.")
-        # compute_fields(
-        #     sim,
-        #     sim_empty,
-        #     antenna_vols,
-        #     config,
-        #     fluxes=True,
-        #     scattering=True,
-        #     scattering_antenna=AuTop,
-        #     mode="ENH_ONLY"
-        # )
-        # # =====================================================
-        # print_task(4, "Postprocesing - raw animations for X.")
-        # animate_raw_fields(config=config, mode="BOTH", component="X")
-        # # =====================================================
-        # print_task(4, "Postprocesing - raw animations for Y.")
-        # animate_raw_fields(config=config, mode="BOTH", component="Y")
-        # # =====================================================
-        # print_task(4, "Postprocesing - raw animations for Z.")
-        # animate_raw_fields(config=config, mode="BOTH", component="Z")
+        # =====================================================
+        print_task(1, "2D projections.")
+        for plane in ["XY", "XZ", "YZ"]:
+            Name2D = f"antenna_vis_{plane}.png"
+            save_2D_plot(
+                sim,
+                antenna_vols.vis_volume[plane],
+                save_name=Name2D,
+                path_to_save=config.path_to_save,
+                IMG_CLOSE=config.IMG_CLOSE
+            )
+        print_task(2, "2D projections.")
+        for plane in ["XY", "XZ", "YZ"]:
+            Name2D = f"antenna_roi_{plane}.png"
+            save_2D_plot(
+                sim,
+                antenna_vols.volume[plane],
+                save_name=Name2D,
+                path_to_save=config.path_to_save,
+                IMG_CLOSE=config.IMG_CLOSE
+            )
+        # =====================================================
+        print_task(3, "3D calculations.")
+        compute_fields(
+            sim,
+            sim_empty,
+            antenna_vols,
+            config,
+            fluxes=True,
+            scattering=True,
+            scattering_antenna=AuTop,
+            mode="BOTH"
+        )
+        # =====================================================
+        print_task(4, "Postprocesing - raw animations for X.")
+        animate_raw_fields(config=config, mode="BOTH", component="X")
+        # =====================================================
+        print_task(4, "Postprocesing - raw animations for Y.")
+        animate_raw_fields(config=config, mode="BOTH", component="Y")
+        # =====================================================
+        print_task(4, "Postprocesing - raw animations for Z.")
+        animate_raw_fields(config=config, mode="BOTH", component="Z")
         # =====================================================
         draw_params = {
             "XY": {"x_zoom": 1,
