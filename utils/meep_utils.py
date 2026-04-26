@@ -16,6 +16,7 @@ def collect_fields_with_output(
     calc_E_fields=True,
     calc_H_fields=False,
     calc_Dpwr=False,
+    extra_run_functions=None,
 ):
     """
     Collect selected field data for multiple volumes in ONE sim.run().
@@ -67,6 +68,21 @@ def collect_fields_with_output(
 
     calc_Dpwr : bool, optional
         If True, record electric field energy density (Dpwr).
+
+    extra_run_functions : callable or list of callables, optional
+        Additional Meep step functions passed directly to sim.run().
+    
+        These can be used to extend the simulation with custom runtime
+        behaviors such as:
+    
+            * mp.after_sources(mp.Harminv(...)) — modal (Harminv) analysis
+            * mp.at_every(...) — custom field sampling
+            * mp.at_end(...) — post-run callbacks
+    
+        The provided function(s) are appended to the internally constructed
+        run actions and executed within the same sim.run() call.
+    
+        If None (default), no additional step functions are applied.
 
     NOTES
     -----
@@ -146,6 +162,15 @@ def collect_fields_with_output(
             "No field outputs selected. "
             "Set at least one of calc_E_fields, calc_H_fields, calc_Dpwr to True."
         )
+        
+    # --------------------------------------------------
+    # Include extra funcs
+    # --------------------------------------------------
+    if extra_run_functions is not None:
+        if isinstance(extra_run_functions, list):
+            run_actions.extend(extra_run_functions)
+        else:
+            run_actions.append(extra_run_functions)
 
     # --------------------------------------------------
     # Single sim.run()
@@ -514,6 +539,7 @@ def compute_fields(
     scattering=True,
     dft_gap_spectrum=False,
     scattering_antenna=None,
+    harminv=False,
 ):
     """
     Run field simulations and compute enhancement maps.
@@ -692,6 +718,61 @@ def compute_fields(
             )
 
     # ============================================================
+    # HARMONIC INVERSION IN GAP
+    # ============================================================
+    if harminv:
+        if scattering_antenna is None:
+            raise ValueError("scattering_antenna must be provided for Harminv")
+    
+        cx, cy = scattering_antenna.center
+        cz = scattering_antenna.z_offset
+        t = scattering_antenna.thickness
+    
+        dz = 1 / config.resolution
+    
+        # --- in gap ---
+        gap_points = [
+            mp.Vector3(cx, cy, cz - t/2 + 2*dz),  # bottom
+            mp.Vector3(cx, cy, cz),             # center
+            mp.Vector3(cx, cy, cz + t/2 - 2*dz),  # top
+        ]
+    
+        # --- corner of antena ---
+        # To have the same distance from the corner to the point as from the main corner to the gap center,
+        # we need to take the angle into account
+        corner_deg = np.atan(scattering_antenna.width / 2 / scattering_antenna.length)
+        corner_cx = cx + scattering_antenna.gap/2 + scattering_antenna.length + (scattering_antenna.gap/2.0)*np.cos(corner_deg) 
+        corner_cy = cy + scattering_antenna.width/2 + (scattering_antenna.gap/2.0)*np.sin(corner_deg)
+        tip_points = [
+            mp.Vector3(corner_cx,corner_cy, cz),
+            mp.Vector3(corner_cx,corner_cy, cz + 2*dz),
+            mp.Vector3(corner_cx,corner_cy, cz - 2*dz),
+        ]
+    
+        # --- arm ---
+        arm_cx = cx + scattering_antenna.length + scattering_antenna.gap
+        arm_points = [
+            mp.Vector3(arm_cx, cy, cz),
+            mp.Vector3(arm_cx, cy, cz + 2*dz),
+            mp.Vector3(arm_cx, cy, cz - 2*dz),
+        ]
+    
+        # --- far above ---
+        far_point = mp.Vector3(cx, cy, cz + 2*t)
+    
+        harminv_points = (
+            gap_points +
+            tip_points +
+            arm_points +
+            [far_point]
+        )
+    
+        harminv_objects = []
+    
+        for pt in harminv_points:
+            h = mp.Harminv(config.component, pt, fcen, df, mxbands=20)
+            harminv_objects.append((pt, h))
+    # ============================================================
     # EMPTY STRUCTURE
     # ============================================================
 
@@ -762,10 +843,18 @@ def compute_fields(
     # WITH ANTENNA
     # ============================================================
 
+
     if mode in ["WITH_ANTENNA", "BOTH"]:
         if mp.am_master():
             print("Running simulation WITH antenna")
             append_time_to_file(config, prefix="Running simulation WITH antenna: ")
+
+        if harminv:
+            extra_run_functions = [
+                mp.after_sources(h) for _, h in harminv_objects
+            ]
+        else:
+            extra_run_functions = None
         
         sim_antenna = collect_fields_with_output(
             sim_antenna,
@@ -777,6 +866,7 @@ def compute_fields(
             calc_E_fields=calc_E,
             calc_H_fields=calc_H,
             calc_Dpwr=calc_DPWR,
+            extra_run_functions=extra_run_functions,
         )
         if fluxes:
             refl_flux = mp.get_fluxes(refl)
@@ -845,7 +935,6 @@ def compute_fields(
                     gap_data[comp]["antenna"] /
                     (gap_data[comp]["empty"] + eps)
                 )
-
         if mp.am_master():
             print("Done.")
         sim_antenna.reset_meep()
@@ -887,18 +976,29 @@ def compute_fields(
     if dft_gap_spectrum and mode == "BOTH":
         if mp.am_master():
             print("Calculating gap DFT spectrum")
-
         freqs = np.linspace(fcen - df/2, fcen + df/2, nfreq)
-
         compute_gap_spectrum(
             gap_data,
             z_points,
             freqs,
             save_path=config.path_to_save,
         )
-
         if mp.am_master():
             print("Done.")
+
+    # ============================================================
+    # HARMINV CALCULATION
+    # ============================================================
+    if harminv and mode in ["WITH_ANTENNA", "BOTH"]:
+        if mp.am_master():
+            print("Calculating Harminv modes")
+        compute_harminv(
+            harminv_objects,
+            save_path=config.path_to_save,
+        )
+        if mp.am_master():
+            print("Done.")
+
     # ============================================================
     # ENHANCEMENT CALCULATION
     # ============================================================
@@ -1220,57 +1320,67 @@ def compute_T_R_A(
     -------
     wavelength, R, T, A : numpy arrays
     """
-    if mp.am_master():
-        incident_flux = np.array(incident_flux)
-        tran_flux = np.array(tran_flux)
-        refl_flux = np.array(refl_flux)
-        flux_freqs = np.array(flux_freqs)
+    if not mp.am_master():
+        return
 
-        # -----------------------------------------
-        # wavelength
-        # -----------------------------------------
-        wavelength = 1.0 / flux_freqs
+    incident_flux = np.array(incident_flux)
+    tran_flux = np.array(tran_flux)
+    refl_flux = np.array(refl_flux)
+    flux_freqs = np.array(flux_freqs)
 
-        # -----------------------------------------
-        # R T A
-        # -----------------------------------------
-        R = -refl_flux / incident_flux
-        T = tran_flux / incident_flux
-        A = 1.0 - R - T
+    # -----------------------------------------
+    # wavelength
+    # -----------------------------------------
+    wavelength = 1.0 / flux_freqs
 
-        # -----------------------------------------
-        # save
-        # -----------------------------------------
-        if save_path is not None:
-            os.makedirs(save_path, exist_ok=True)
+    # -----------------------------------------
+    # R T A
+    # -----------------------------------------
+    R = -refl_flux / incident_flux
+    T = tran_flux / incident_flux
+    A = 1.0 - R - T
 
-            data = np.column_stack((wavelength, R, T, A))
+    # -----------------------------------------
+    # CREATE TRA FOLDER
+    # -----------------------------------------
+    if save_path is not None:
+        tra_dir = os.path.join(save_path, "TRA")
+        os.makedirs(tra_dir, exist_ok=True)
+    else:
+        tra_dir = None
 
-            header = "lambda  R  T  A"
+    # -----------------------------------------
+    # SAVE DATA
+    # -----------------------------------------
+    if tra_dir is not None:
 
-            np.savetxt(
-                os.path.join(save_path, save_name),
-                data,
-                header=header
-            )
-        
-        # -----------------------------------------
-        # plot
-        # -----------------------------------------
-        multi_line_plotter_same_axes(
-            xdata_list=[wavelength, wavelength, wavelength],
-            ydata_list=[R, T, A],
-            labels=["R", "T", "A"],
-            colors=["blue", "red", "green"],
-            linestyles=["-", "--", "-."],
-            xlabel="Wavelength [μm]",
-            ylabel="Fraction",
-            title="Reflection, Transmission, Absorption Spectra",
-            legend=True,
-            save_path=save_path,
-            save_name="spectra_T_R_A.png",
+        data = np.column_stack((wavelength, R, T, A))
+        header = "lambda  R  T  A"
+
+        np.savetxt(
+            os.path.join(tra_dir, save_name),
+            data,
+            header=header
         )
-    return 0
+
+    # -----------------------------------------
+    # PLOT
+    # -----------------------------------------
+    multi_line_plotter_same_axes(
+        xdata_list=[wavelength, wavelength, wavelength],
+        ydata_list=[R, T, A],
+        labels=["R", "T", "A"],
+        colors=["blue", "red", "green"],
+        linestyles=["-", "--", "-."],
+        xlabel="Wavelength [μm]",
+        ylabel="Fraction",
+        title="Reflection, Transmission, Absorption Spectra",
+        legend=True,
+        save_path=tra_dir,
+        save_name="spectra_T_R_A.png",
+    )
+
+    return wavelength, R, T, A
 
 def make_scattering_box(
     antenna,
@@ -1368,149 +1478,147 @@ def compute_scattering(
     wavelength, scatt_cross_section : numpy arrays
     """
 
-    if mp.am_master():
+    if not mp.am_master():
+        return
 
-        # -----------------------------------------
-        # Convert to numpy
-        # -----------------------------------------
-        scatt_cross_section = np.array(scatt_cross_section)
-        intensity = np.array(intensity)
-        flux_freqs = np.array(flux_freqs)
+    # -----------------------------------------
+    # Convert to numpy
+    # -----------------------------------------
+    scatt_cross_section = np.array(scatt_cross_section)
+    intensity = np.array(intensity)
+    flux_freqs = np.array(flux_freqs)
 
-        scatt_flux_faces = [np.array(f) for f in scatt_flux_faces]
-        x1, x2, y1, y2, z1, z2 = scatt_flux_faces
-        ex1, ex2, ey1, ey2, ez1, ez2 = scatt_flux_faces_empty
+    scatt_flux_faces = [np.array(f) for f in scatt_flux_faces]
+    x1, x2, y1, y2, z1, z2 = scatt_flux_faces
+    ex1, ex2, ey1, ey2, ez1, ez2 = scatt_flux_faces_empty
 
-        # -----------------------------------------
-        # wavelength
-        # -----------------------------------------
-        wavelength = 1.0 / flux_freqs
+    # -----------------------------------------
+    # wavelength
+    # -----------------------------------------
+    wavelength = 1.0 / flux_freqs
 
-        # -----------------------------------------
-        # Save directory
-        # -----------------------------------------
-        if save_path is not None:
-            os.makedirs(save_path, exist_ok=True)
+    # -----------------------------------------
+    # CREATE SCATTERING FOLDER
+    # -----------------------------------------
+    if save_path is not None:
+        scattering_dir = os.path.join(save_path, "scattering")
+        os.makedirs(scattering_dir, exist_ok=True)
+    else:
+        scattering_dir = None
 
-        # -----------------------------------------
-        # FILE 1: scattering spectrum
-        # -----------------------------------------
-        if save_path is not None:
+    # -----------------------------------------
+    # FILE 1: scattering spectrum
+    # -----------------------------------------
+    if scattering_dir is not None:
 
-            data_main = np.column_stack(
-                (wavelength, scatt_cross_section, intensity)
-            )
-
-            header_main = (
-                "# lambda(um)  sigma_scatt  intensity(W/um^2)\n"
-                "# sigma_scatt normalized by local incident intensity"
-            )
-
-            np.savetxt(
-                os.path.join(save_path, save_name),
-                data_main,
-                header=header_main
-            )
-
-        # -----------------------------------------
-        # FILE 2: flux per face (debug / analysis)
-        # -----------------------------------------
-        if save_path is not None:
-
-            data_faces = np.column_stack(
-                (flux_freqs, x1, x2, y1, y2, z1, z2)
-            )
-
-            header_faces = "# freq  x1  x2  y1  y2  z1  z2"
-
-            np.savetxt(
-                os.path.join(save_path, save_faces_name),
-                data_faces,
-                header=header_faces
-            )
-
-        # -----------------------------------------
-        # FILE 3: up vs down scattering
-        # -----------------------------------------
-        if save_path is not None:
-
-            data_z = np.column_stack(
-                (flux_freqs, z1, z2)
-            )
-
-            header_z = "# freq  z_down(z1)  z_up(z2)"
-
-            np.savetxt(
-                os.path.join(save_path, "scattering_z_split.txt"),
-                data_z,
-                header=header_z
-            )
-
-        # -----------------------------------------
-        # FILE 4: flux per face empty (debug / analysis)
-        # -----------------------------------------
-        if save_path is not None:
-
-            data_faces_empty = np.column_stack(
-                (flux_freqs, ex1, ex2, ey1, ey2, ez1, ez2)
-            )
-
-            header_faces = "# freq  x1  x2  y1  y2  z1  z2"
-
-            np.savetxt(
-                os.path.join(save_path, save_faces_empty_name),
-                data_faces_empty,
-                header=header_faces
-            )
-
-        # -----------------------------------------
-        # Plot scattering spectrum
-        # -----------------------------------------
-        line_plotter(
-            wavelength,
-            scatt_cross_section,
-            xlabel="Wavelength [μm]",
-            ylabel="Scattering cross-section",
-            title="Scattering Spectrum",
-            save_path=save_path,
-            save_name="spectra_scattering.png",
+        data_main = np.column_stack(
+            (wavelength, scatt_cross_section, intensity)
         )
 
-        # -----------------------------------------
-        # Plot scattering spectrum for each face
-        # -----------------------------------------
-        multi_line_plotter_same_axes(
-            xdata_list=[wavelength, wavelength, wavelength, wavelength, wavelength, wavelength],
-            ydata_list=[x1, x2, y1, y2, z1, z2],
-            labels=["x1", "x2", "y1", "y2", "z1", "z2"],
-            colors=["#149dff", "#14517c", "#ff7700", "#914300", "#5ec75e", "#205220"],
-            linestyles=["-", "-.", "-", "-.", "-", "-."],
-            xlabel="Wavelength [μm]",
-            ylabel="Scattering",
-            title="Scattering Spectrum",
-            legend=True,
-            save_path=save_path,
-            save_name="spectra_scattering_each_face.png",
+        header_main = (
+            "# lambda(um)  sigma_scatt  intensity(W/um^2)\n"
+            "# sigma_scatt normalized by local incident intensity"
         )
 
-        # -----------------------------------------
-        # Plot scattering spectrum for each face
-        # -----------------------------------------
-        multi_line_plotter_same_axes(
-            xdata_list=[wavelength, wavelength, wavelength, wavelength, wavelength, wavelength],
-            ydata_list=[ex1, ex2, ey1, ey2, ez1, ez2],
-            labels=["x1", "x2", "y1", "y2", "z1", "z2"],
-            colors=["#149dff", "#14517c", "#ff7700", "#914300", "#5ec75e", "#205220"],
-            linestyles=["-", "-.", "-", "-.", "-", "-."],
-            xlabel="Wavelength [μm]",
-            ylabel="Scattering",
-            title="Scattering Spectrum for empty cell",
-            legend=True,
-            save_path=save_path,
-            save_name="spectra_scattering_each_face_empty.png",
+        np.savetxt(
+            os.path.join(scattering_dir, save_name),
+            data_main,
+            header=header_main
         )
 
-        return wavelength, scatt_cross_section
+    # -----------------------------------------
+    # FILE 2: flux per face
+    # -----------------------------------------
+    if scattering_dir is not None:
+
+        data_faces = np.column_stack(
+            (flux_freqs, x1, x2, y1, y2, z1, z2)
+        )
+
+        header_faces = "# freq  x1  x2  y1  y2  z1  z2"
+
+        np.savetxt(
+            os.path.join(scattering_dir, save_faces_name),
+            data_faces,
+            header=header_faces
+        )
+
+    # -----------------------------------------
+    # FILE 3: z split
+    # -----------------------------------------
+    if scattering_dir is not None:
+
+        data_z = np.column_stack(
+            (flux_freqs, z1, z2)
+        )
+
+        header_z = "# freq  z_down(z1)  z_up(z2)"
+
+        np.savetxt(
+            os.path.join(scattering_dir, "scattering_z_split.txt"),
+            data_z,
+            header=header_z
+        )
+
+    # -----------------------------------------
+    # FILE 4: empty faces
+    # -----------------------------------------
+    if scattering_dir is not None:
+
+        data_faces_empty = np.column_stack(
+            (flux_freqs, ex1, ex2, ey1, ey2, ez1, ez2)
+        )
+
+        header_faces = "# freq  x1  x2  y1  y2  z1  z2"
+
+        np.savetxt(
+            os.path.join(scattering_dir, save_faces_empty_name),
+            data_faces_empty,
+            header=header_faces
+        )
+
+    # -----------------------------------------
+    # PLOTS
+    # -----------------------------------------
+    line_plotter(
+        wavelength,
+        scatt_cross_section,
+        xlabel="Wavelength [μm]",
+        ylabel="Scattering cross-section",
+        title="Scattering Spectrum",
+        save_path=scattering_dir,
+        save_name="spectra_scattering.png",
+    )
+
+    multi_line_plotter_same_axes(
+        xdata_list=[wavelength]*6,
+        ydata_list=[x1, x2, y1, y2, z1, z2],
+        labels=["x1", "x2", "y1", "y2", "z1", "z2"],
+        colors=["#149dff", "#14517c", "#ff7700", "#914300", "#5ec75e", "#205220"],
+        linestyles=["-", "-.", "-", "-.", "-", "-."],
+        xlabel="Wavelength [μm]",
+        ylabel="Scattering",
+        title="Scattering Spectrum",
+        legend=True,
+        save_path=scattering_dir,
+        save_name="spectra_scattering_each_face.png",
+    )
+
+    multi_line_plotter_same_axes(
+        xdata_list=[wavelength]*6,
+        ydata_list=[ex1, ex2, ey1, ey2, ez1, ez2],
+        labels=["x1", "x2", "y1", "y2", "z1", "z2"],
+        colors=["#149dff", "#14517c", "#ff7700", "#914300", "#5ec75e", "#205220"],
+        linestyles=["-", "-.", "-", "-.", "-", "-."],
+        xlabel="Wavelength [μm]",
+        ylabel="Scattering",
+        title="Scattering Spectrum for empty cell",
+        legend=True,
+        save_path=scattering_dir,
+        save_name="spectra_scattering_each_face_empty.png",
+    )
+
+    return wavelength, scatt_cross_section
 
 def compute_gap_spectrum(
     gap_data,
@@ -1630,3 +1738,136 @@ def plot_gap_component(
         "enhancement",
         f"{component_name}_enh_all_z.png"
     )
+
+def compute_harminv(
+    harminv_objects,
+    save_path=None,
+    save_name="harminv_modes.txt",
+):
+    """
+    Process and save Harminv results.
+
+    Creates a dedicated folder 'harminv' and stores:
+        - raw data file
+        - plots: amplitude, Q, error vs frequency
+
+    Parameters
+    ----------
+    harminv_objects : list of tuples
+        [(point, harminv_instance), ...]
+
+    save_path : str or None
+        Output directory.
+
+    save_name : str
+        Output filename.
+    """
+
+    if not mp.am_master():
+        return
+
+    # -----------------------------------------
+    # create folder
+    # -----------------------------------------
+    harminv_dir = os.path.join(save_path, "harminv")
+    os.makedirs(harminv_dir, exist_ok=True)
+
+    # -----------------------------------------
+    # collect data
+    # -----------------------------------------
+    all_data = []
+
+    for i, (pt, h) in enumerate(harminv_objects):
+
+        x, y, z = pt.x, pt.y, pt.z
+
+        for m in h.modes:
+
+            freq = m.freq
+            Q = m.Q
+            amp = np.abs(m.amp)
+            err = m.err
+            decay = m.decay
+
+            all_data.append([
+                i, x, y, z,
+                freq, Q, decay, amp, err
+            ])
+
+    if len(all_data) == 0:
+        print("No Harminv modes found.")
+        return
+
+    all_data = np.array(all_data)
+
+    # -----------------------------------------
+    # save data
+    # -----------------------------------------
+    header = (
+        "id x y z freq Q decay amplitude error\n"
+        "Harminv modal analysis"
+    )
+
+    np.savetxt(
+        os.path.join(harminv_dir, save_name),
+        all_data,
+        header=header
+    )
+
+    # -----------------------------------------
+    # split columns
+    # -----------------------------------------
+    freq = all_data[:, 4]
+    Q = all_data[:, 5]
+    decay = all_data[:, 6]
+    amp = all_data[:, 7]
+    err = all_data[:, 8]
+
+    # -----------------------------------------
+    # PLOTS
+    # -----------------------------------------
+
+    # --- Amplitude ---
+    line_plotter(
+        freq,
+        amp,
+        xlabel="Frequency",
+        ylabel="|Amplitude|",
+        title="Harminv: Amplitude vs Frequency",
+        save_path=harminv_dir,
+        save_name="harminv_amplitude.png",
+    )
+
+    # --- Q factor ---
+    line_plotter(
+        freq,
+        Q,
+        xlabel="Frequency",
+        ylabel="Q factor",
+        title="Harminv: Q vs Frequency",
+        save_path=harminv_dir,
+        save_name="harminv_Q.png",
+    )
+
+    # --- decay ---
+    line_plotter(
+        freq,
+        decay,
+        xlabel="Frequency",
+        ylabel="Decay",
+        title="Harminv: Decay vs Frequency",
+        save_path=harminv_dir,
+        save_name="harminv_decay.png",
+    )
+
+    # --- Error ---
+    line_plotter(
+        freq,
+        err,
+        xlabel="Frequency",
+        ylabel="Error",
+        title="Harminv: Error vs Frequency",
+        save_path=harminv_dir,
+        save_name="harminv_error.png",
+    )
+    return all_data

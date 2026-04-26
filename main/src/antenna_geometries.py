@@ -28,7 +28,7 @@ class BowTieEquilateral(AntennaBase):
 
     def __init__(self,
                  gap,
-                 amp,
+                 length,
                  thickness,
                  radius,
                  material,
@@ -37,7 +37,8 @@ class BowTieEquilateral(AntennaBase):
 
         self.gap = gap
         self.corected_gap = gap
-        self.amp = amp
+        self.length = length
+        self.width = 2*length*np.tan(np.deg2rad(30))
         self.thickness = thickness
         self.radius = radius
         self.material = material
@@ -62,7 +63,7 @@ class BowTieEquilateral(AntennaBase):
         ])
 
         # Equilateral triangle assumption
-        P2 = P1 + self.amp * np.array([
+        P2 = P1 + self.length * np.array([
             1.0,
             np.tan(np.deg2rad(30))
         ])
@@ -84,7 +85,7 @@ class BowTieEquilateral(AntennaBase):
             mp.Vector3(*(P3 * mirror))
         ]
 
-        x_centroid = self.amp * 2/3 + self.corected_gap/2.0
+        x_centroid = self.length * 2/3 + self.corected_gap/2.0
         bow_tie = [
             mp.Prism(
                 tip_right,
@@ -130,8 +131,8 @@ class BowTieEquilateral(AntennaBase):
     def bounding_box(self):
 
         return [
-            2*self.amp + self.gap,
-            2*self.amp*np.tan(np.deg2rad(30)),
+            2*self.length + self.gap,
+            self.width,
             self.thickness
         ]
 
