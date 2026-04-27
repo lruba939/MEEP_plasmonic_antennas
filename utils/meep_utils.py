@@ -723,6 +723,8 @@ def compute_fields(
     if harminv:
         if scattering_antenna is None:
             raise ValueError("scattering_antenna must be provided for Harminv")
+
+        harminv_t0 = 10 # for debug !! after -> to config
     
         cx, cy = scattering_antenna.center
         cz = scattering_antenna.z_offset
@@ -770,7 +772,7 @@ def compute_fields(
         harminv_objects = []
     
         for pt in harminv_points:
-            h = mp.Harminv(config.component, pt, fcen, df, mxbands=20)
+            h = mp.Harminv(mp.Ex, pt, fcen, df, mxbands=100) # !! mp.Ex for debug -> after should be config.component
             harminv_objects.append((pt, h))
     # ============================================================
     # EMPTY STRUCTURE
@@ -851,7 +853,7 @@ def compute_fields(
 
         if harminv:
             extra_run_functions = [
-                mp.after_sources(h) for _, h in harminv_objects
+                mp.after_time(harminv_t0, h) for _, h in harminv_objects
             ]
         else:
             extra_run_functions = None

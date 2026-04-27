@@ -302,8 +302,8 @@ def split_bar_AuTiSiO2():
 
     config.resolution = 500
 
-    for gap in [90]:
-        SIM_NAME = f"split_bar_antenna_gap_{gap}nm_AuPdSiO2_test"
+    for gap in [10, 30, 50]:
+        SIM_NAME = f"WITH_PAD_split_bar_antenna_gap_{gap}nm_AuTiSiO2_test"
         config.path_to_save, config.animations_folder_path = create_directory(SIM_NAME)
         # =====================================================
         AuTop = SplitBar(
@@ -320,11 +320,36 @@ def split_bar_AuTiSiO2():
             length=1800/xm,
             width=240/xm,
             thickness=5/xm,
-            # material=Ti,
-            material=Pd,
+            material=Ti,
+            # material=Pd,
             z_offset=-(30+5)/2.0/xm,
             radius=0/xm,
         )
+
+        # !! PADS !! #########
+        AuTopPAD = SplitBar(
+            gap=(gap+1700*2)/xm,
+            length=100/xm,
+            width=40/xm,
+            thickness=30/xm,
+            material=Au,
+            z_offset=0.0/xm,
+            radius=0/xm,
+            center=(0.0, (20+240/2.0)/xm)
+        )
+        TiBetweenPAD = SplitBar(
+            gap=(gap+1700*2)/xm,
+            length=100/xm,
+            width=40/xm,
+            thickness=5/xm,
+            material=Ti,
+            # material=Pd,
+            z_offset=-(30+5)/2.0/xm,
+            radius=0/xm,
+            center=(0.0, (20+240/2.0)/xm)
+        )
+        #########################
+        
         substrate = Bar(
             length=4000/xm,
             width=320/xm,
@@ -334,7 +359,7 @@ def split_bar_AuTiSiO2():
             radius=12/xm,
         )
 
-        geometry = AuTop.build_geometry() + TiBetween.build_geometry() + substrate.build_geometry()
+        geometry = AuTop.build_geometry() + TiBetween.build_geometry() + AuTopPAD.build_geometry() + TiBetweenPAD.build_geometry() + substrate.build_geometry()
 
         config.pad = 100/xm
         config.pml = 100/xm
@@ -380,67 +405,67 @@ def split_bar_AuTiSiO2():
             symmetries=config.symmetries,
             dimensions=3
             )
+        # =====================================================
+        print_task(1, "2D projections.")
+        for plane in ["XY", "XZ", "YZ"]:
+            Name2D = f"antenna_{plane}.png"
+            save_2D_plot(
+                sim,
+                antenna_vols.vis_volume[plane],
+                save_name=Name2D,
+                path_to_save=config.path_to_save,
+                IMG_CLOSE=config.IMG_CLOSE
+            )
         # # =====================================================
-        # print_task(1, "2D projections.")
-        # for plane in ["XY", "XZ", "YZ"]:
-        #     Name2D = f"antenna_{plane}.png"
-        #     save_2D_plot(
-        #         sim,
-        #         antenna_vols.vis_volume[plane],
-        #         save_name=Name2D,
-        #         path_to_save=config.path_to_save,
-        #         IMG_CLOSE=config.IMG_CLOSE
-        #     )
-        # =====================================================
-        print_task(3, "3D calculations.")
-        compute_fields(sim, sim_empty, antenna_vols, config, fluxes=False, scattering=False, mode="ENH_ONLY")
-        # =====================================================
-        print_task(4, "Postprocesing - raw animations.")
-        animate_raw_fields(config=config, mode="BOTH")
-        # =====================================================
-        draw_params = {
-            "XY": {"x_zoom": 0.10,
-                   "y_zoom": 0.6,
-                   "roi": {
-                        "center": (0, 0),
-                        "width": AuTop.gap * 1e3,
-                        "height": AuTop.width * 1e3,
-                    },
-            },
-            "XZ": {"x_zoom": 0.1,
-                   "y_zoom": 0.2,
-                   "roi": {
-                        "center": (0, -1e3*TiBetween.thickness/2.0),
-                        "width": AuTop.gap * 1e3,
-                        "height": (AuTop.thickness + TiBetween.thickness) * 1e3,
-                    },
-            },
-            "YZ": {"x_zoom": 0.4,
-                   "y_zoom": 0.2,
-                   "roi": {
-                        "center": (0, -1e3*TiBetween.thickness/2.0),
-                        "width": AuTop.width * 1e3,
-                        "height": (AuTop.thickness + TiBetween.thickness) * 1e3,
-                    },
-            },
-        }
-        print_task(5, "Postprocesing - animations and plots.")
-        animate_enhancement_fields(config=config, volumes=antenna_vols, draw_params=draw_params)
-        # =====================================================
-        plot_signal_amplitude_vs_time_from_h5(
-            "xyplanar-empty_ex.h5",
-            load_h5data_path=config.path_to_save,
-            xzeros=int(100),
-            time_step=config.sim_time_step,
-            save_name=f"source_prof_empty"
-        )
-        plot_signal_amplitude_vs_time_from_h5(
-            "xyplanar_ex.h5",
-            load_h5data_path=config.path_to_save,
-            xzeros=int(100),
-            time_step=config.sim_time_step,
-            save_name=f"source_prof_antenna"
-        )
+        # print_task(3, "3D calculations.")
+        # compute_fields(sim, sim_empty, antenna_vols, config, fluxes=False, scattering=False, mode="ENH_ONLY")
+        # # =====================================================
+        # print_task(4, "Postprocesing - raw animations.")
+        # animate_raw_fields(config=config, mode="BOTH")
+        # # =====================================================
+        # draw_params = {
+        #     "XY": {"x_zoom": 0.10,
+        #            "y_zoom": 0.6,
+        #            "roi": {
+        #                 "center": (0, 0),
+        #                 "width": AuTop.gap * 1e3,
+        #                 "height": AuTop.width * 1e3,
+        #             },
+        #     },
+        #     "XZ": {"x_zoom": 0.1,
+        #            "y_zoom": 0.2,
+        #            "roi": {
+        #                 "center": (0, -1e3*TiBetween.thickness/2.0),
+        #                 "width": AuTop.gap * 1e3,
+        #                 "height": (AuTop.thickness + TiBetween.thickness) * 1e3,
+        #             },
+        #     },
+        #     "YZ": {"x_zoom": 0.4,
+        #            "y_zoom": 0.2,
+        #            "roi": {
+        #                 "center": (0, -1e3*TiBetween.thickness/2.0),
+        #                 "width": AuTop.width * 1e3,
+        #                 "height": (AuTop.thickness + TiBetween.thickness) * 1e3,
+        #             },
+        #     },
+        # }
+        # print_task(5, "Postprocesing - animations and plots.")
+        # animate_enhancement_fields(config=config, volumes=antenna_vols, draw_params=draw_params)
+        # # =====================================================
+        # plot_signal_amplitude_vs_time_from_h5(
+        #     "xyplanar-empty_ex.h5",
+        #     load_h5data_path=config.path_to_save,
+        #     xzeros=int(100),
+        #     time_step=config.sim_time_step,
+        #     save_name=f"source_prof_empty"
+        # )
+        # plot_signal_amplitude_vs_time_from_h5(
+        #     "xyplanar_ex.h5",
+        #     load_h5data_path=config.path_to_save,
+        #     xzeros=int(100),
+        #     time_step=config.sim_time_step,
+        #     save_name=f"source_prof_antenna"
+        # )
             
         return 0
 
