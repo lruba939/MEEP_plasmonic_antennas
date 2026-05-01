@@ -724,7 +724,7 @@ def compute_fields(
         if scattering_antenna is None:
             raise ValueError("scattering_antenna must be provided for Harminv")
 
-        harminv_t0 = 10 # for debug !! after -> to config
+        harminv_t0 = 8 # for debug !! after -> to config
     
         cx, cy = scattering_antenna.center
         cz = scattering_antenna.z_offset
@@ -772,7 +772,9 @@ def compute_fields(
         harminv_objects = []
     
         for pt in harminv_points:
-            h = mp.Harminv(mp.Ex, pt, fcen, df, mxbands=100) # !! mp.Ex for debug -> after should be config.component
+            hi_fcen = fcen
+            hi_df = df
+            h = mp.Harminv(mp.Ex, pt, hi_fcen, hi_df, mxbands=100) # !! mp.Ex for debug -> after should be config.component
             harminv_objects.append((pt, h))
     # ============================================================
     # EMPTY STRUCTURE
@@ -796,18 +798,18 @@ def compute_fields(
             calc_H_fields=calc_H,
             calc_Dpwr=calc_DPWR,
         )
-        if fluxes:
+        if fluxes and mode == "BOTH":
             incident_flux = mp.get_fluxes(tran_empty)
             refl_data = sim_empty.get_flux_data(refl_empty)
             sim_antenna.load_minus_flux_data(refl, refl_data)
-        if scattering:
+        if scattering and mode == "BOTH":
             scatt_data = [sim_empty.get_flux_data(f) for f in scatt_empty]
             scatt_flux_faces_empty = [np.asarray(mp.get_fluxes(f)) for f in scatt_empty]
             for f, d in zip(scatt, scatt_data):
                 sim_antenna.load_minus_flux_data(f, d)
             incident_flux_top = np.asarray(mp.get_fluxes(scatt_empty[5]))
             intensity = incident_flux_top / (Lx * Ly)
-        if dft_gap_spectrum:
+        if dft_gap_spectrum and mode == "BOTH":
             gap_data_empty = {
                 "Ex": [],
                 "Ey": [],
@@ -870,11 +872,11 @@ def compute_fields(
             calc_Dpwr=calc_DPWR,
             extra_run_functions=extra_run_functions,
         )
-        if fluxes:
+        if fluxes and mode == "BOTH":
             refl_flux = mp.get_fluxes(refl)
             tran_flux = mp.get_fluxes(tran)
             flux_freqs = mp.get_flux_freqs(tran)
-        if scattering:
+        if scattering and mode == "BOTH":
             scatt_flux_faces = [np.asarray(mp.get_fluxes(f)) for f in scatt]
 
             x1, x2, y1, y2, z1, z2 = scatt_flux_faces
@@ -886,7 +888,7 @@ def compute_fields(
             )
             scatt_cross_section = scatt_flux_total / intensity # <- from empty
             flux_freqs_scatt = mp.get_flux_freqs(scatt_empty[5])  # z2
-        if dft_gap_spectrum:
+        if dft_gap_spectrum and mode == "BOTH":
             gap_data = {
                 "Ex": {"empty": gap_data_empty["Ex"], "antenna": []},
                 "Ey": {"empty": gap_data_empty["Ey"], "antenna": []},

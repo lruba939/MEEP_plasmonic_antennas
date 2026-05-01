@@ -8,7 +8,7 @@ def run():
     # =====================================================
     # experiment_bow_tie_test()
     # TRA_Novotn()
-    split_bar_AuTiSiO2()
+    # split_bar_AuTiSiO2()
     # wave_shape_theo()
     # split_bar_AuTiX()
     # split_bar_AuTiX_SINGLE_PRECISION()
@@ -16,7 +16,7 @@ def run():
     # split_bar_AuTiX_SP_new_substr_geometry_XYZ()
     # scattering_test()
     # bowtie_Xiong()
-    # bowtie_Xiong_test()
+    bowtie_Xiong_test()
     
 if __name__ == "__main__":
     run()
