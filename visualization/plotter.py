@@ -1,3 +1,6 @@
+import matplotlib
+matplotlib.use("Agg")
+
 import numpy as np
 import os, h5py, meep, sys, gc
 import matplotlib.pyplot as plt
@@ -13,7 +16,13 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 ## Font
 from matplotlib import font_manager
-font_path = "visualization/fonts/LiberationSerif-Regular.ttf"
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+font_path = os.path.join(
+    BASE_DIR,
+    "fonts",
+    "LiberationSerif-Regular.ttf"
+)
 font_manager.fontManager.addfont(font_path)
 rcParams['font.family'] = 'Liberation Serif'
 rcParams['font.size'] = 14
