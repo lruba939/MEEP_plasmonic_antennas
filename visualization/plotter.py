@@ -1083,8 +1083,8 @@ def save_2D_plot(sim, volume, save_name="2Dplot.png", IMG_SAVE=True, path_to_sav
         if IMG_SAVE:
             plt.savefig(os.path.join(path_to_save, save_name), dpi=300, bbox_inches="tight", format="png")
         if IMG_CLOSE:
-            plt.show(block=False)
-            plt.pause(2)
+            # plt.show(block=False)
+            # plt.pause(2)
             plt.close("all")
         else:
             plt.show()

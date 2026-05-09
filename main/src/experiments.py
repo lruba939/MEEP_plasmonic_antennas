@@ -25,8 +25,8 @@ def bowtie_substrate_experiment():
     config.frequency_width = 1.0
     gap = 6
 
-    X_materials = [Cr, Al2O3] #, YAG, Y2O3, CaWO4
-    X_material_names = ["Cr", "Al2O3"] #, "YAG", "Y2O3", "CaWO4" 
+    X_materials = [Cr] #, YAG, Y2O3, CaWO4
+    X_material_names = ["Cr"] #, "YAG", "Y2O3", "CaWO4" 
     for X_material, X_material_name in zip(X_materials, X_material_names):
         SIM_NAME = f"BSE_Au{X_material_name}_wavleng_{config.lambda0}_gap_{gap}"
         config.path_to_save, config.animations_folder_path = create_directory(SIM_NAME)
@@ -97,29 +97,29 @@ def bowtie_substrate_experiment():
             dimensions=3
             )
         
-        # # =====================================================
-        # save_and_show_config(config, [AuTop, substrate])
-        # # =====================================================
-        # print_task(1, "2D projections.")
-        # for plane in ["XY", "XZ", "YZ"]:
-        #     Name2D = f"antenna_vis_{plane}.png"
-        #     save_2D_plot(
-        #         sim,
-        #         antenna_vols.vis_volume[plane],
-        #         save_name=Name2D,
-        #         path_to_save=config.path_to_save,
-        #         IMG_CLOSE=config.IMG_CLOSE
-        #     )
-        # print_task(2, "2D projections.")
-        # for plane in ["XY", "XZ", "YZ"]:
-        #     Name2D = f"antenna_roi_{plane}.png"
-        #     save_2D_plot(
-        #         sim,
-        #         antenna_vols.volume[plane],
-        #         save_name=Name2D,
-        #         path_to_save=config.path_to_save,
-        #         IMG_CLOSE=config.IMG_CLOSE
-        #     )
+        # =====================================================
+        save_and_show_config(config, [AuTop, substrate])
+        # =====================================================
+        print_task(1, "2D projections.")
+        for plane in ["XY", "XZ", "YZ"]:
+            Name2D = f"antenna_vis_{plane}.png"
+            save_2D_plot(
+                sim,
+                antenna_vols.vis_volume[plane],
+                save_name=Name2D,
+                path_to_save=config.path_to_save,
+                IMG_CLOSE=config.IMG_CLOSE
+            )
+        print_task(2, "2D projections.")
+        for plane in ["XY", "XZ", "YZ"]:
+            Name2D = f"antenna_roi_{plane}.png"
+            save_2D_plot(
+                sim,
+                antenna_vols.volume[plane],
+                save_name=Name2D,
+                path_to_save=config.path_to_save,
+                IMG_CLOSE=config.IMG_CLOSE
+            )
         # # =====================================================
         # print_task(3, "3D calculations.")
         # compute_fields(
