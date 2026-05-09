@@ -742,7 +742,7 @@ def compute_fields(
         # --- corner of antena ---
         # To have the same distance from the corner to the point as from the main corner to the gap center,
         # we need to take the angle into account
-        corner_deg = np.atan(scattering_antenna.width / 2 / scattering_antenna.length)
+        corner_deg = np.arctan(scattering_antenna.width / 2 / scattering_antenna.length)
         corner_cx = cx + scattering_antenna.gap/2 + scattering_antenna.length + (scattering_antenna.gap/2.0)*np.cos(corner_deg) 
         corner_cy = cy + scattering_antenna.width/2 + (scattering_antenna.gap/2.0)*np.sin(corner_deg)
         tip_points = [
