@@ -99,27 +99,27 @@ def bowtie_substrate_experiment():
         
         # =====================================================
         save_and_show_config(config, [AuTop, substrate])
-        # =====================================================
-        print_task(1, "2D projections.")
-        for plane in ["XY", "XZ", "YZ"]:
-            Name2D = f"antenna_vis_{plane}.png"
-            save_2D_plot(
-                sim,
-                antenna_vols.vis_volume[plane],
-                save_name=Name2D,
-                path_to_save=config.path_to_save,
-                IMG_CLOSE=config.IMG_CLOSE
-            )
-        print_task(2, "2D projections.")
-        for plane in ["XY", "XZ", "YZ"]:
-            Name2D = f"antenna_roi_{plane}.png"
-            save_2D_plot(
-                sim,
-                antenna_vols.volume[plane],
-                save_name=Name2D,
-                path_to_save=config.path_to_save,
-                IMG_CLOSE=config.IMG_CLOSE
-            )
+        # # =====================================================
+        # print_task(1, "2D projections.")
+        # for plane in ["XY", "XZ", "YZ"]:
+        #     Name2D = f"antenna_vis_{plane}.png"
+        #     save_2D_plot(
+        #         sim,
+        #         antenna_vols.vis_volume[plane],
+        #         save_name=Name2D,
+        #         path_to_save=config.path_to_save,
+        #         IMG_CLOSE=config.IMG_CLOSE
+        #     )
+        # print_task(2, "2D projections.")
+        # for plane in ["XY", "XZ", "YZ"]:
+        #     Name2D = f"antenna_roi_{plane}.png"
+        #     save_2D_plot(
+        #         sim,
+        #         antenna_vols.volume[plane],
+        #         save_name=Name2D,
+        #         path_to_save=config.path_to_save,
+        #         IMG_CLOSE=config.IMG_CLOSE
+        #     )
         # =====================================================
         print_task(3, "3D calculations.")
         compute_fields(
@@ -133,59 +133,59 @@ def bowtie_substrate_experiment():
             harminv=True,
             scattering_antenna=AuTop,
         )
-        # =====================================================
-        print_task(4, "Postprocesing - raw animations for X.")
-        animate_raw_fields(config=config, mode="BOTH", component="X")
-        # =====================================================
-        print_task(4, "Postprocesing - raw animations for Y.")
-        animate_raw_fields(config=config, mode="BOTH", component="Y")
-        # =====================================================
-        print_task(4, "Postprocesing - raw animations for Z.")
-        animate_raw_fields(config=config, mode="BOTH", component="Z")
-        # =====================================================
-        draw_params = {
-            "XY": {"x_zoom": 1,
-                    "y_zoom": 1,
-                    "roi": {
-                        "center": (0, 0),
-                        "width": AuTop.gap * 1.05 * 1e3,
-                        "height": AuTop.radius * 2.1 * 1e3,
-                    },
-            },
-            "XZ": {"x_zoom": 1,
-                    "y_zoom": 1,
-                    "roi": {
-                        "center": (0, 0),
-                        "width": AuTop.gap * 1.05 * 1e3,
-                        "height": AuTop.thickness * 1e3,
-                    },
-            },
-            "YZ": {"x_zoom": 0.25,
-                    "y_zoom": 1,
-                    "roi": {
-                        "center": (0, 0),
-                        "width": AuTop.radius * 2.1 * 1e3,
-                        "height": AuTop.thickness * 1e3,
-                    },
-            },
-        }
-        print_task(5, "Postprocesing - animations and plots.")
-        animate_enhancement_fields(config=config, volumes=antenna_vols, draw_params=draw_params, animate=True)
-        # =====================================================
-        plot_signal_amplitude_vs_time_from_h5(
-            "xyplanar-empty_ex.h5",
-            load_h5data_path=config.path_to_save,
-            xzeros=0,
-            time_step=config.sim_time_step,
-            save_name=f"source_prof_empty"
-        )
-        plot_signal_amplitude_vs_time_from_h5(
-            "xyplanar_ex.h5",
-            load_h5data_path=config.path_to_save,
-            xzeros=0,
-            time_step=config.sim_time_step,
-            save_name=f"source_prof_antenna"
-        ) 
+        # # =====================================================
+        # print_task(4, "Postprocesing - raw animations for X.")
+        # animate_raw_fields(config=config, mode="BOTH", component="X")
+        # # =====================================================
+        # print_task(4, "Postprocesing - raw animations for Y.")
+        # animate_raw_fields(config=config, mode="BOTH", component="Y")
+        # # =====================================================
+        # print_task(4, "Postprocesing - raw animations for Z.")
+        # animate_raw_fields(config=config, mode="BOTH", component="Z")
+        # # =====================================================
+        # draw_params = {
+        #     "XY": {"x_zoom": 1,
+        #             "y_zoom": 1,
+        #             "roi": {
+        #                 "center": (0, 0),
+        #                 "width": AuTop.gap * 1.05 * 1e3,
+        #                 "height": AuTop.radius * 2.1 * 1e3,
+        #             },
+        #     },
+        #     "XZ": {"x_zoom": 1,
+        #             "y_zoom": 1,
+        #             "roi": {
+        #                 "center": (0, 0),
+        #                 "width": AuTop.gap * 1.05 * 1e3,
+        #                 "height": AuTop.thickness * 1e3,
+        #             },
+        #     },
+        #     "YZ": {"x_zoom": 0.25,
+        #             "y_zoom": 1,
+        #             "roi": {
+        #                 "center": (0, 0),
+        #                 "width": AuTop.radius * 2.1 * 1e3,
+        #                 "height": AuTop.thickness * 1e3,
+        #             },
+        #     },
+        # }
+        # print_task(5, "Postprocesing - animations and plots.")
+        # animate_enhancement_fields(config=config, volumes=antenna_vols, draw_params=draw_params, animate=True)
+        # # =====================================================
+        # plot_signal_amplitude_vs_time_from_h5(
+        #     "xyplanar-empty_ex.h5",
+        #     load_h5data_path=config.path_to_save,
+        #     xzeros=0,
+        #     time_step=config.sim_time_step,
+        #     save_name=f"source_prof_empty"
+        # )
+        # plot_signal_amplitude_vs_time_from_h5(
+        #     "xyplanar_ex.h5",
+        #     load_h5data_path=config.path_to_save,
+        #     xzeros=0,
+        #     time_step=config.sim_time_step,
+        #     save_name=f"source_prof_antenna"
+        # ) 
     return 0
 
 def split_bar_AuTiX():
