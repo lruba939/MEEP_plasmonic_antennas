@@ -1,5 +1,5 @@
 import numpy as np
-import os, h5py, meep
+import os, h5py, meep, sys, gc
 import matplotlib.pyplot as plt
 from matplotlib import rcParams
 from matplotlib.cm import get_cmap
@@ -7,12 +7,15 @@ from matplotlib import animation
 from matplotlib.animation import FuncAnimation
 from mpl_toolkits.mplot3d import Axes3D
 from matplotlib.patches import Rectangle
-import gc
 
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 # Global settings for plotting
 
 ## Font
-rcParams['font.family'] = 'Times New Roman'
+from matplotlib import font_manager
+font_path = "visualization/fonts/LiberationSerif-Regular.ttf"
+font_manager.fontManager.addfont(font_path)
+rcParams['font.family'] = 'Liberation Serif'
 rcParams['font.size'] = 14
 
 ## Lines
