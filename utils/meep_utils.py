@@ -1,10 +1,57 @@
 import meep as mp
+from meep.materials import *
 import numpy as np
 import os
 from utils.logger import append_time_to_file
 
 from visualization.plotter import *
 # !!!!!!!!! ---> from main.src.simulation import * # CANT IMPORT DUE TO CIRCULAR DEPENDENCY
+
+def get_materials_dict(material_name=None):
+    materials = {
+        # dielectrics / semiconductors
+        "air": mp.air,
+        "cSi": cSi,
+        "aSi": aSi,
+        "SiO2": SiO2,
+        "ITO": ITO,
+        "Al2O3": Al2O3,
+        "GaAs": GaAs,
+        "AlAs": AlAs,
+        "AlN": AlN,
+        "BK7": BK7,
+        "FQ": fused_quartz,
+        "Si3N4": Si3N4,
+        "Ge": Ge,
+        "InP": InP,
+        "GaN": GaN,
+        "CdTe": CdTe,
+        "LiNbO3": LiNbO3,
+        "BaB2O4": BaB2O4,
+        "CaWO4": CaWO4,
+        "CaCO3": CaCO3,
+        "Y2O3": Y2O3,
+        "YAG": YAG,
+        "PMMA": PMMA,
+        # metals
+        "Ag": Ag,
+        "Au": Au,
+        "Cu": Cu,
+        "Al": Al,
+        "Be": Be,
+        "Cr": Cr,
+        "Ni": Ni,
+        "Pd": Pd,
+        "Pt": Pt,
+        "Ti": Ti,
+        "W": W,
+    }
+    if material_name not in materials:
+        raise ValueError(f"Unknown material: {material_name}")
+    if material_name is None:
+        return materials["air"]
+
+    return materials[material_name]
 
 def collect_fields_with_output(
     sim,
