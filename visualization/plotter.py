@@ -1,6 +1,6 @@
-import matplotlib
-matplotlib.use("Agg")
-
+# import matplotlib
+# matplotlib.use("Agg")
+# 
 import numpy as np
 import os, h5py, meep, sys, gc
 import matplotlib.pyplot as plt
