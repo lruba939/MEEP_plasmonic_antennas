@@ -126,10 +126,10 @@ def bowtie_substrate_experiment(material_name):
         sim_empty,
         antenna_vols,
         config,
-        fluxes=False,
-        scattering=False,
-        dft_gap_spectrum=False,
-        harminv=False,
+        fluxes=True,
+        scattering=True,
+        dft_gap_spectrum=True,
+        harminv=True,
         scattering_antenna=AuTop
     )
     return 0
@@ -246,10 +246,10 @@ def bowtie_substrate_experiment_LT(material_name):
         sim_empty,
         antenna_vols,
         config,
-        fluxes=False,
-        scattering=False,
-        dft_gap_spectrum=False,
-        harminv=False,
+        fluxes=True,
+        scattering=True,
+        dft_gap_spectrum=True,
+        harminv=True,
         scattering_antenna=AuTop
     )
     return 0
@@ -377,10 +377,10 @@ def bowtie_substrate_experiment_MIR(material_name):
         sim_empty,
         antenna_vols,
         config,
-        fluxes=False,
-        scattering=False,
-        dft_gap_spectrum=False,
-        harminv=False,
+        fluxes=True,
+        scattering=True,
+        dft_gap_spectrum=True,
+        harminv=True,
         scattering_antenna=AuTop
     )
     return 0
@@ -497,10 +497,10 @@ def bowtie_substrate_ONLY_experiment(material_name):
         sim_empty,
         antenna_vols,
         config,
-        fluxes=False,
-        scattering=False,
-        dft_gap_spectrum=False,
-        harminv=False,
+        fluxes=True,
+        scattering=True,
+        dft_gap_spectrum=True,
+        harminv=True,
         scattering_antenna=AuTop
     )
     return 0
@@ -587,17 +587,17 @@ def after_hpc_redraw(material_name):
         symmetries=config.symmetries,
         dimensions=3
         )
-# 
-#     # =====================================================
-#     print_task(4, "Postprocesing - raw animations for X.")
-#     animate_raw_fields(config=config, mode="BOTH", component="X")
-#     # =====================================================
-#     print_task(4, "Postprocesing - raw animations for Y.")
-#     animate_raw_fields(config=config, mode="BOTH", component="Y")
-#     # =====================================================
-#     print_task(4, "Postprocesing - raw animations for Z.")
-#     animate_raw_fields(config=config, mode="BOTH", component="Z")
-#     # =====================================================
+
+    # =====================================================
+    print_task(4, "Postprocesing - raw animations for X.")
+    animate_raw_fields(config=config, mode="BOTH", component="X")
+    # =====================================================
+    print_task(4, "Postprocesing - raw animations for Y.")
+    animate_raw_fields(config=config, mode="BOTH", component="Y")
+    # =====================================================
+    print_task(4, "Postprocesing - raw animations for Z.")
+    animate_raw_fields(config=config, mode="BOTH", component="Z")
+    # =====================================================
     print_task(3, "3D calculations.")
     compute_fields(
         sim,
