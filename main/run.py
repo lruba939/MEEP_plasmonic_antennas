@@ -1,3 +1,4 @@
+from html import parser
 import os
 import sys
 import argparse
@@ -79,6 +80,12 @@ def run():
         help="Path to cache/antenna directory. If None, run simulation."
     )
 
+    parser.add_argument(
+        "--gapsize",
+        default=None,
+        help="Gap size for antenna in nanometers."
+    )
+
     args = parser.parse_args()
 
     # =====================================================
@@ -119,7 +126,8 @@ def run():
         COMMENT=args.comment,
         empty_from_cache=args.empty_cache,
         substrate_from_cache=args.substrate_cache,
-        antenna_from_cache=args.antenna_cache
+        antenna_from_cache=args.antenna_cache,
+        gap_size=args.gapsize
     )
 
 

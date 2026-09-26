@@ -20,7 +20,8 @@ def bowtie_substrate_experiment(
     COMMENT=None,
     empty_from_cache=None,
     substrate_from_cache=None,
-    antenna_from_cache=None
+    antenna_from_cache=None,
+    gap_size=6,
     ):
     # =====================================================
     config = SimulationConfig()
@@ -35,7 +36,7 @@ def bowtie_substrate_experiment(
     config.pml = 350/xm
     pml_factor = 1.5
     
-    gap = 12
+    gap = gap_size
 
     # =====================================================
     Top = BowTieEquilateral(

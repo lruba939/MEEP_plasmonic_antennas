@@ -57,6 +57,8 @@ def get_materials_dict(material_name=None):
         "Pt": Pt,
         "Ti": Ti,
         "W": W,
+        # custom materials
+        "n1k05": custom_nk_material(1, 0.5),
     }
     if material_name not in materials:
         raise ValueError(f"Unknown material: {material_name}")
@@ -64,6 +66,30 @@ def get_materials_dict(material_name=None):
         return materials["air"]
 
     return materials[material_name]
+
+def custom_nk_material(n, k, lambda0_nm=650):
+    """
+    ONLY FOR k > 0 and k < n !!!!!!
+    """
+    lambda0 = lambda0_nm / 1000
+    frequency = 1 / lambda0
+
+    epsilon = (n + 1j * k) ** 2
+
+    eps_real = epsilon.real
+    eps_imag = epsilon.imag
+
+    D_conductivity = (
+        2 * mp.pi
+        * frequency
+        * eps_imag
+        / eps_real
+    )
+
+    return mp.Medium(
+        epsilon=eps_real,
+        D_conductivity=D_conductivity
+    )
 
 def collect_fields_with_output(
     sim,
