@@ -82,6 +82,7 @@ def run():
 
     parser.add_argument(
         "--gapsize",
+        type=int,
         default=None,
         help="Gap size for antenna in nanometers."
     )
