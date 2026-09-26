@@ -35,7 +35,7 @@ def bowtie_substrate_experiment(
     config.pml = 350/xm
     pml_factor = 1.5
     
-    gap = 6
+    gap = 12
 
     # =====================================================
     Top = BowTieEquilateral(
@@ -170,31 +170,31 @@ def bowtie_substrate_experiment(
                 IMG_CLOSE=config.IMG_CLOSE
             )
     # =====================================================
-#     compute_fields_2(
-#         sim_empty=sim_empty,
-#         empty_from_cache=empty_from_cache,
-#         
-#         sim_substrate=sim_substrate,
-#         substrate_from_cache=substrate_from_cache,
-#         
-#         sim_antenna=sim_antenna,
-#         antenna_from_cache=antenna_from_cache,
-#         
-#         volumes=antenna_vols,
-#         config=config,
-# 
-#         TRL=True,
-#         TRL_X_size=config.x_flux_monitor,
-#         TRL_Y_size=config.y_flux_monitor,
-# 
-#         scattering=True,
-#         scattering_object=Top,
-# 
-#         dft_gap_spectrum=True,
-#         dft_object=Top,
-# 
-#         calc_enh=True,
-#     )
+    compute_fields_2(
+        sim_empty=sim_empty,
+        empty_from_cache=empty_from_cache,
+        
+        sim_substrate=sim_substrate,
+        substrate_from_cache=substrate_from_cache,
+        
+        sim_antenna=sim_antenna,
+        antenna_from_cache=antenna_from_cache,
+        
+        volumes=antenna_vols,
+        config=config,
+
+        TRL=True,
+        TRL_X_size=config.x_flux_monitor,
+        TRL_Y_size=config.y_flux_monitor,
+
+        scattering=True,
+        scattering_object=Top,
+
+        dft_gap_spectrum=True,
+        dft_object=Top,
+
+        calc_enh=True,
+    )
     # ########################
     # draw_params = {
     #     "XY": {"x_zoom": 1,
